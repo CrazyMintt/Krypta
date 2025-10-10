@@ -1,0 +1,260 @@
+body {
+  font-family: Inter, sans-serif;
+}
+
+#app {
+  display: flex;
+  height: 100vh;
+  background-color: #000;
+  color: #fff;
+}
+
+#sidebar {
+  width: 224px;
+  background-color: #171717;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+#logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 40px;
+}
+
+#logo-icon {
+  width: 40px;
+  height: 40px;
+  background-color: #262626;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#logo-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+#logo span {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+#sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#sidebar nav div {
+  padding: 12px 16px;
+  color: #a3a3a3;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+#sidebar nav div:hover {
+  background-color: #262626;
+}
+
+#left-panel {
+  width: 256px;
+  background-color: #262626;
+  padding: 24px;
+  border-right: 1px solid #404040;
+}
+
+#vault-selector {
+  background-color: #171717;
+  border: 1px solid #404040;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+#vault-selector span {
+  font-size: 14px;
+}
+
+#search-bar {
+  background-color: #171717;
+  border: 1px solid #404040;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+#search-bar span {
+  font-size: 14px;
+  color: #a3a3a3;
+}
+
+#tags .tag-title,
+#folders .folder-title {
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+#tags .tag-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#tags .tag {
+  background-color: #171717;
+  border: 1px solid #404040;
+  border-left-width: 4px;
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+#tags .tag:hover {
+  background-color: #404040;
+}
+
+#folders .folder-item {
+  background-color: #171717;
+  border: 1px solid #404040;
+  border-radius: 6px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+#folders .folder-item:hover {
+  background-color: #404040;
+}
+
+#folders .folder-item span {
+  font-size: 14px;
+}
+
+#main-content {
+  flex: 1;
+  background-color: #171717;
+  padding: 32px;
+  overflow-y: auto;
+}
+
+#main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+#main-header h1 {
+  font-size: 30px;
+  font-weight: 600;
+}
+
+#header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+#header-actions button {
+  background-color: #7c3aed;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  transition: all 0.2s;
+  border: none;
+  cursor: pointer;
+}
+
+#header-actions button:hover {
+  background-color: #6d28d9;
+}
+
+#user-avatar {
+  width: 40px;
+  height: 40px;
+  background-color: #7c3aed;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+#password-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.password-item {
+  background-color: #262626;
+  border: 1px solid #404040;
+  border-radius: 8px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-left-width: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.password-item:hover {
+  background-color: #404040;
+  border-color: #525252;
+}
+
+.password-name {
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.password-email {
+  font-size: 14px;
+  color: #737373;
+}
+
+.password-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.password-actions button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #404040;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a3a3a3;
+  background: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.password-actions button:hover {
+  background-color: #525252;
+  color: #fff;
+}
