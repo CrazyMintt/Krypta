@@ -10,6 +10,9 @@ pkgs.mkShell {
           requests
           fastapi[standard]
           uvicorn
+          sqlalchemy
+          python-dotenv
+	  pymysql
         ]
       )
     )
