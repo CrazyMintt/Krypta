@@ -12,13 +12,14 @@ pkgs.mkShell {
           uvicorn
           sqlalchemy
           python-dotenv
-	  pymysql
-        ]
+          pymysql
+          email-validator
+	]
       )
     )
     
-
     # Frontend
+    rustc
     pkg-config
     gobject-introspection
     cargo 
