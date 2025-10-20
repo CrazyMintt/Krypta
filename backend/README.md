@@ -15,3 +15,62 @@ backend/
 ├── main.py                 # Ponto de entrada da aplicação que inicializa o FastAPI.
 └── requirements.txt        # Lista de todas as dependências Python do projeto.
 ```
+# Instruções
+
+## Ambiente Virtual e Dependências
+
+Primeiro, configure o ambiente virtual e instale as dependências do projeto.
+
+### Crie o ambiente virtual
+```python -m venv .venv```
+
+### Ative o ambiente virtual
+#### No Linux:
+```source .venv/bin/activate```
+#### No Windows:
+```.venv\Scripts\activate```
+
+### Instale as dependências
+```pip install -r requirements.txt```
+
+
+## Configurando HTTPS com mkcert
+
+Para rodar a API localmente com HTTPS, precisamos do mkcert.
+
+Instale o mkcert:
+
+No Windows (usando Chocolatey):
+
+```choco install mkcert```
+Ou faça o build https://github.com/FiloSottile/mkcert
+
+No Arch Linux:
+
+```
+sudo pacman -S nss
+sudo pacman -S nss
+
+```
+
+
+1. Instale a autoridade de certificação local (só precisa ser feito uma vez):
+
+```mkcert -install```
+
+
+2. Gere os certificados na pasta raiz do projeto:
+
+```mkcert localhost 127.0.0.1```
+
+
+## Executando a Aplicação
+
+A aplicação é servida com Uvicorn, usando main.py como ponto de entrada. Use o seguinte comando para iniciar o servidor com HTTPS:
+
+```
+python main.py
+```
+
+
+A API estará disponível em https://127.0.0.1:8000.
