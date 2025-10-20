@@ -1,9 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from datetime import timedelta
 
-from . import schemas, services, repository, core
+from . import schemas, services
 from .database import get_db
 
 router = APIRouter()
@@ -37,7 +36,6 @@ def login(
     login_response = services.authenticate_and_login_user(
         db=db, email=form_data.username, password=form_data.password
     )
-
     # endpoint só se preocupa com a resposta HTTP
     if not login_response:
         raise HTTPException(

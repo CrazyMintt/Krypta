@@ -48,8 +48,8 @@ Ou faça o build https://github.com/FiloSottile/mkcert
 No Arch Linux:
 
 ```
-sudo pacman -S nss
-sudo pacman -S nss
+
+sudo pacman -S mkcert
 
 ```
 

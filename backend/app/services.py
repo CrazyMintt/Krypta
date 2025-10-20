@@ -38,7 +38,6 @@ def authenticate_and_login_user(db: Session, email: str, password: str):
     Contém a lógica de negócio completa para o processo de login.
     """
     user = repository.get_user_by_email(db, email=email)
-
     if not user or not core.verify_password(password, user.senha_mestre):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -46,13 +45,12 @@ def authenticate_and_login_user(db: Session, email: str, password: str):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    access_token = core.create_access_token(data={"sub": user.email})
+    access_token = core.create_access_token(
+        data={"sub": user.email}
+    )
 
     crypto_salt = user.saltKDF
-    if not crypto_salt:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Não foi possível processar as credenciais de segurança.",
-        )
-
-    return schemas.LoginResponse(access_token=access_token, crypto_salt=crypto_salt)
+    return schemas.LoginResponse(
+        access_token=access_token,
+        crypto_salt=crypto_salt
+    )

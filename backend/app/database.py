@@ -14,7 +14,7 @@ if DATABASE_URL:
         pool_pre_ping=True,
     )
 else:
-    raise Exception("Variável DATABASE_URL não configurada.")
+    raise Exception("Variável DATABASE_URL não foi definida")
 # Cria uma fábrica de sessões. Cada instância de SessionLocal será uma sessão de banco de dados.
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
