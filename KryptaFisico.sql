@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS `usuario` (
 `nome` varchar(255) NOT NULL,
 `email` varchar(255) NOT NULL,
 `senha_mestre` varchar(255) NOT NULL,
+`saltKDF` varchar(1024) NOT NULL,
 `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
 PRIMARY KEY (`id`),
 UNIQUE KEY `email` (`email`)
@@ -89,7 +90,6 @@ CREATE TABLE IF NOT EXISTS `eventos` (
 `id` int(11) NOT NULL AUTO_INCREMENT,
 `usuario_id` int(11) NOT NULL,
 `notificacao` text DEFAULT NULL,
-`data_hora` datetime NOT NULL,
 `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
 PRIMARY KEY (`id`),
 KEY `usuario_id` (`usuario_id`),
