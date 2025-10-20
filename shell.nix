@@ -14,6 +14,11 @@ pkgs.mkShell {
           python-dotenv
           pymysql
           email-validator
+          python-jose
+          passlib
+          pydantic-settings
+          python-multipart
+          bcrypt
 	]
       )
     )
