@@ -12,3 +12,11 @@ def create_user(db: Session, user_data: schemas.UserCreate) -> models.Usuario:
     db.commit()
     db.refresh(db_user)
     return db_user
+
+def get_user_by_email(db: Session, email: str) -> models.Usuario | None:
+    """Busca um usuário pelo seu email."""
+    return db.query(models.Usuario).filter(models.Usuario.email == email).first()
+
+def get_user(db: Session, user_id: int) -> models.Usuario | None:
+    """Busca um usuário pelo seu ID."""
+    return db.query(models.Usuario).filter(models.Usuario.id == user_id).first()
