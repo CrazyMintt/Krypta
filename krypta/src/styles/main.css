@@ -1,0 +1,36 @@
+/* General & App Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: #171717;
+    color: #fff;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+/* --- Animations --- */
+.fade-in { animation: fadeIn 0.3s ease-in-out; }
+.fade-out { animation: fadeOut 0.3s ease-in-out forwards; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Responsive */
+@media (max-width: 968px) {
+    .form-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+    .form-container { padding: 24px; }
+    .form-title { font-size: 32px; }
+    .social-login { flex-direction: column; }
+}

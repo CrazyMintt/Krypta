@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Copy, Edit, MoreVertical, Bell, Search, ChevronDown, Folder, Plus } from 'lucide-react';
+import { Copy, Edit, MoreVertical, Search, ChevronDown, Folder } from 'lucide-react';
+import Header from '../layout/Header';
 
 const Cofre = ({ openModal }) => {
   const [passwords, setPasswords] = useState([
@@ -31,14 +32,7 @@ const Cofre = ({ openModal }) => {
       </div>
 
       <div id="main-content">
-        <div id="main-header">
-          <h1>Meu cofre</h1>
-          <div id="header-actions">
-            <button className="new-button" onClick={openModal}><Plus size={16} />Novo</button>
-            <button className="icon-button"><Bell size={20} /></button>
-            <div id="user-avatar"></div>
-          </div>
-        </div>
+        <Header title="Meu cofre" openModal={openModal} />
         <div id="password-list">
           {passwords.map((password) => (
             <div key={password.id} className="password-item" style={{ borderLeftColor: password.color }}>
