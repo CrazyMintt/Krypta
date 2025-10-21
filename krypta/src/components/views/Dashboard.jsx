@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Plus, Bell } from 'lucide-react';
+import Header from '../layout/Header';
 
 const Dashboard = ({ openModal }) => {
   const canvasRef = useRef(null);
@@ -47,14 +47,7 @@ const Dashboard = ({ openModal }) => {
 
   return (
     <div id="main-content" className="main-content dashboard-view">
-        <div id="main-header">
-          <h1>Dashboard</h1>
-          <div id="header-actions">
-            <button className="new-button" onClick={openModal}><Plus size={16} />Novo</button>
-            <button className="icon-button"><Bell size={20} /></button>
-            <div id="user-avatar"></div>
-          </div>
-        </div>
+      <Header title="Dashboard" openModal={openModal} />
         <div className="dashboard-grid">
           <div className="dashboard-section">
             <h2 className="section-title">Armazenamento</h2>
