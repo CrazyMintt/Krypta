@@ -5,7 +5,7 @@ from app.api import router as api_router
 app = FastAPI(
     title="Krypta API",
     description="API para o gerenciador de senhas e arquivos Krypta.",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 # Inclui as rotas da API
@@ -21,4 +21,11 @@ def read_root():
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, ssl_keyfile="localhost+1-key.pem", ssl_certfile="localhost+1.pem")
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        ssl_keyfile="localhost+1-key.pem",
+        ssl_certfile="localhost+1.pem",
+    )

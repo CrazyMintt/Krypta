@@ -20,12 +20,19 @@ from sqlalchemy.sql import func
 from .database import Base
 
 # Tabela de Associação (Muitos-para-Muitos)
-dados_separadores_association = Table('dados_separadores', Base.metadata,
-                                      Column('dado_id', Integer, ForeignKey(
-                                          'dados.id', ondelete="CASCADE"), primary_key=True),
-                                      Column('separador_id', Integer, ForeignKey(
-                                          'separadores.id', ondelete="CASCADE"), primary_key=True)
-                                      )
+dados_separadores_association = Table(
+    "dados_separadores",
+    Base.metadata,
+    Column(
+        "dado_id", Integer, ForeignKey("dados.id", ondelete="CASCADE"), primary_key=True
+    ),
+    Column(
+        "separador_id",
+        Integer,
+        ForeignKey("separadores.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+)
 
 # Enum
 
@@ -34,56 +41,69 @@ class TipoDado(str, enum.Enum):
     ARQUIVO = "arquivo"
     SENHA = "senha"
 
+
 # Mapeamento das Tabelas
 
 
 class Usuario(Base):
-    __tablename__ = 'usuario'
+    __tablename__ = "usuario"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     nome: Mapped[str] = mapped_column(String(255))
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     senha_mestre: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    saltKDF: Mapped[str] = mapped_column(String(1024))
 
     # Relacionamentos tipados
     dados: Mapped[List["Dado"]] = relationship(
-        back_populates="usuario", cascade="all, delete-orphan")
+        back_populates="usuario", cascade="all, delete-orphan"
+    )
     eventos: Mapped[List["Evento"]] = relationship(
-        back_populates="usuario", cascade="all, delete-orphan")
+        back_populates="usuario", cascade="all, delete-orphan"
+    )
     compartilhamentos_criados: Mapped[List["Compartilhamento"]] = relationship(
-        back_populates="owner_usuario", foreign_keys='Compartilhamento.owner_usuario_id', cascade="all, delete-orphan"
+        back_populates="owner_usuario",
+        foreign_keys="Compartilhamento.owner_usuario_id",
+        cascade="all, delete-orphan",
     )
     logs: Mapped[List["Log"]] = relationship(back_populates="usuario")
 
 
 class Dado(Base):
-    __tablename__ = 'dados'
+    __tablename__ = "dados"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     usuario_id: Mapped[int] = mapped_column(
-        ForeignKey('usuario.id', ondelete="CASCADE"))
+        ForeignKey("usuario.id", ondelete="CASCADE")
+    )
     nome_aplicacao: Mapped[Optional[str]] = mapped_column(String(255))
     descricao: Mapped[Optional[str]] = mapped_column(Text)
     tipo: Mapped[TipoDado] = mapped_column(
-        MysqlEnum('arquivo', 'senha', name='tipo_enum'))
+        MysqlEnum("arquivo", "senha", name="tipo_enum")
+    )
     criado_em: Mapped[datetime] = mapped_column(server_default=func.now())
     nota: Mapped[Optional[str]] = mapped_column(String(1000))
 
     usuario: Mapped["Usuario"] = relationship(back_populates="dados")
     arquivo: Mapped[Optional["Arquivo"]] = relationship(
-        back_populates="dado", uselist=False, cascade="all, delete-orphan")
+        back_populates="dado", uselist=False, cascade="all, delete-orphan"
+    )
     senha: Mapped[Optional["Senha"]] = relationship(
-        back_populates="dado", uselist=False, cascade="all, delete-orphan")
+        back_populates="dado", uselist=False, cascade="all, delete-orphan"
+    )
     separadores: Mapped[List["Separador"]] = relationship(
-        secondary=dados_separadores_association, back_populates="dados")
+        secondary=dados_separadores_association, back_populates="dados"
+    )
     logs: Mapped[List["Log"]] = relationship(back_populates="dado")
     compartilhamentos_origem: Mapped[List["DadosCompartilhados"]] = relationship(
-        back_populates="dado_origem")
+        back_populates="dado_origem"
+    )
 
 
 class Arquivo(Base):
-    __tablename__ = 'arquivos'
-    id: Mapped[int] = mapped_column(ForeignKey(
-        'dados.id', ondelete="CASCADE"), primary_key=True)
+    __tablename__ = "arquivos"
+    id: Mapped[int] = mapped_column(
+        ForeignKey("dados.id", ondelete="CASCADE"), primary_key=True
+    )
     arquivo: Mapped[Optional[bytes]] = mapped_column(LONGBLOB)
     extensao: Mapped[Optional[str]] = mapped_column(String(50))
     nome_arquivo: Mapped[Optional[str]] = mapped_column(String(255))
@@ -92,9 +112,10 @@ class Arquivo(Base):
 
 
 class Senha(Base):
-    __tablename__ = 'senhas'
-    id: Mapped[int] = mapped_column(ForeignKey(
-        'dados.id', ondelete="CASCADE"), primary_key=True)
+    __tablename__ = "senhas"
+    id: Mapped[int] = mapped_column(
+        ForeignKey("dados.id", ondelete="CASCADE"), primary_key=True
+    )
     senha_cripto: Mapped[str] = mapped_column(String(1024))
     host_url: Mapped[Optional[str]] = mapped_column(String(1024))
 
@@ -102,7 +123,7 @@ class Senha(Base):
 
 
 class Separador(Base):
-    __tablename__ = 'separadores'
+    __tablename__ = "separadores"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     nome: Mapped[str] = mapped_column(String(255))
     tipo: Mapped[str] = mapped_column(String(100))
@@ -110,65 +131,73 @@ class Separador(Base):
     cor: Mapped[Optional[str]] = mapped_column(String(100))
 
     dados: Mapped[List["Dado"]] = relationship(
-        secondary=dados_separadores_association, back_populates="separadores")
+        secondary=dados_separadores_association, back_populates="separadores"
+    )
 
 
 class Compartilhamento(Base):
-    __tablename__ = 'compartilhamento'
+    __tablename__ = "compartilhamento"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     owner_usuario_id: Mapped[int] = mapped_column(
-        ForeignKey('usuario.id', ondelete="CASCADE"))
+        ForeignKey("usuario.id", ondelete="CASCADE")
+    )
     n_acessos_total: Mapped[int] = mapped_column(BigInteger, default=0)
     n_acessos_atual: Mapped[int] = mapped_column(BigInteger, default=0)
     data_expiracao: Mapped[Optional[datetime]]
     criado_em: Mapped[datetime] = mapped_column(server_default=func.now())
 
     owner_usuario: Mapped["Usuario"] = relationship(
-        back_populates="compartilhamentos_criados")
+        back_populates="compartilhamentos_criados"
+    )
     dados_compartilhados: Mapped[List["DadosCompartilhados"]] = relationship(
-        back_populates="compartilhamento", cascade="all, delete-orphan")
+        back_populates="compartilhamento", cascade="all, delete-orphan"
+    )
 
 
 class DadosCompartilhados(Base):
-    __tablename__ = 'dados_compartilhados'
+    __tablename__ = "dados_compartilhados"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     compartilhamento_id: Mapped[int] = mapped_column(
-        ForeignKey('compartilhamento.id', ondelete="CASCADE"))
+        ForeignKey("compartilhamento.id", ondelete="CASCADE")
+    )
     dado_origem_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey('dados.id', ondelete="SET NULL"))
+        ForeignKey("dados.id", ondelete="SET NULL")
+    )
     dado_criptografado: Mapped[bytes] = mapped_column(LONGBLOB)
     meta: Mapped[Optional[str]] = mapped_column(LONGTEXT)
     criado_em: Mapped[datetime] = mapped_column(server_default=func.now())
 
     compartilhamento: Mapped["Compartilhamento"] = relationship(
-        back_populates="dados_compartilhados")
+        back_populates="dados_compartilhados"
+    )
     dado_origem: Mapped[Optional["Dado"]] = relationship(
-        back_populates="compartilhamentos_origem")
+        back_populates="compartilhamentos_origem"
+    )
 
 
 class Evento(Base):
-    __tablename__ = 'eventos'
+    __tablename__ = "eventos"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     usuario_id: Mapped[int] = mapped_column(
-        ForeignKey('usuario.id', ondelete="CASCADE"))
+        ForeignKey("usuario.id", ondelete="CASCADE")
+    )
     notificacao: Mapped[Optional[str]] = mapped_column(Text)
-    data_hora: Mapped[datetime]
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     usuario: Mapped["Usuario"] = relationship(back_populates="eventos")
 
 
 class Log(Base):
-    __tablename__ = 'logs'
+    __tablename__ = "logs"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    usuario_id: Mapped[Optional[int]] = mapped_column(ForeignKey('usuario.id'))
+    usuario_id: Mapped[Optional[int]] = mapped_column(ForeignKey("usuario.id"))
     dispositivo: Mapped[Optional[str]] = mapped_column(String(255))
     data_hora: Mapped[datetime] = mapped_column(server_default=func.now())
     ip: Mapped[Optional[str]] = mapped_column(String(45))
     regiao: Mapped[Optional[str]] = mapped_column(String(255))
     nome_aplicacao: Mapped[Optional[str]] = mapped_column(String(255))
     tipo_acesso: Mapped[str] = mapped_column(String(100))
-    id_dado: Mapped[Optional[int]] = mapped_column(ForeignKey('dados.id'))
+    id_dado: Mapped[Optional[int]] = mapped_column(ForeignKey("dados.id"))
 
     usuario: Mapped[Optional["Usuario"]] = relationship(back_populates="logs")
     dado: Mapped[Optional["Dado"]] = relationship(back_populates="logs")

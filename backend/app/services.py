@@ -19,12 +19,13 @@ def register_user(db: Session, user_data: schemas.UserCreate) -> models.Usuario:
 
     # Cria o hash da senha antes de salvar
     hashed_password = core.get_password_hash(user_data.senha_mestre)
-
+    salt = core.generate_crypto_salt()
     # Cria o novo objeto de usuário
     new_user = models.Usuario(
         email=user_data.email,
         nome=user_data.nome,
-        senha_mestre=hashed_password
+        senha_mestre=hashed_password,
+        saltKDF = salt
     )
 
     # Usa o repositório para salvar o usuário no banco de dados
@@ -45,18 +46,13 @@ def authenticate_and_login_user(db: Session, email: str, password: str):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    access_token = core.create_access_token(
-        data={"sub": user.email}
-    )
+    access_token = core.create_access_token(data={"sub": user.email})
 
-    crypto_salt = "a"  # TODO Fazer uma coluna de SALT por usuário
+    crypto_salt = user.saltKDF
     if not crypto_salt:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Não foi possível processar as credenciais de segurança."
+            detail="Não foi possível processar as credenciais de segurança.",
         )
 
-    return schemas.LoginResponse(
-        access_token=access_token,
-        crypto_salt=crypto_salt
-    )
+    return schemas.LoginResponse(access_token=access_token, crypto_salt=crypto_salt)

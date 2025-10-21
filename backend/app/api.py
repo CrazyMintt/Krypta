@@ -9,7 +9,12 @@ from .database import get_db
 router = APIRouter()
 
 
-@router.post("/users/", response_model=schemas.User, status_code=status.HTTP_201_CREATED, tags=["Users"])
+@router.post(
+    "/users/",
+    response_model=schemas.User,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Users"],
+)
 def create_user(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
     """
     Endpoint para criar um novo usuário.
@@ -19,7 +24,9 @@ def create_user(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=schemas.LoginResponse, tags=["Authentication"])
-def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()):
+def login(
+    db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()
+):
     """
     Autentica um usuário e retorna um token JWT junto com o salt para criptografia.
 
@@ -28,9 +35,7 @@ def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = 
     """
     # Delega toda a lógica de autenticação para a camada de serviço
     login_response = services.authenticate_and_login_user(
-        db=db,
-        email=form_data.username,
-        password=form_data.password
+        db=db, email=form_data.username, password=form_data.password
     )
 
     # endpoint só se preocupa com a resposta HTTP
