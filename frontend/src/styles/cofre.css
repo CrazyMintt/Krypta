@@ -5,8 +5,66 @@
   border-right: 1px solid #404040;
 }
 
-#vault-selector,
-#search-bar,
+#vault-selector {
+  position: relative;
+  border: 1px solid #404040;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: #171717;
+  margin-bottom: 12px;
+}
+
+#vault-selector:hover {
+  background-color: #2a2a2a;
+}
+
+.vault-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: #262626;
+  border: 1px solid #404040;
+  border-radius: 8px;
+  margin-top: 8px;
+  z-index: 10;
+  overflow: hidden;
+}
+
+.vault-dropdown-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  color: #a3a3a3;
+  transition: background-color 0.2s;
+}
+
+.vault-dropdown-item:hover {
+  background-color: #404040;
+  color: #fff;
+}
+
+#search-bar {
+  border: 1px solid #404040;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: #171717;
+  margin-bottom: 24px;
+}
+
+#search-bar:hover {
+  background-color: #2a2a2a;
+}
+
 #folders .folder-item,
 #tags .tag {
   border: 1px solid #404040;
@@ -17,16 +75,7 @@
   gap: 8px;
   cursor: pointer;
   transition: all 0.2s;
-}
-
-#vault-selector,
-#search-bar {
   background-color: #171717;
-  margin-bottom: 12px;
-}
-
-#search-bar {
-  margin-bottom: 24px;
 }
 
 #tags .tag-list {
