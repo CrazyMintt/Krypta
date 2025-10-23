@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Folder, File, MoreVertical, ChevronRight, Search } from 'lucide-react';
 import Header from '../layout/Header';
 import Modal from '../layout/Modal';
+import NewCredentialForm from '../forms/NewCredentialForm';
 
 // Mock data para simular uma estrutura de arquivos
 const initialFileSystem = {
@@ -45,7 +46,6 @@ const Cofre = () => {
     const newFolder = { type: 'folder', name: newFolderName.trim() };
     const newPath = `${currentPath}${newFolderName.trim()}/`;
 
-    // Update fileSystem state correctly
     const updatedFileSystem = {
       ...fileSystem,
       [currentPath]: [...fileSystem[currentPath], newFolder],
@@ -53,9 +53,22 @@ const Cofre = () => {
     };
     setFileSystem(updatedFileSystem);
 
-    // Update items for the current view
     setItems(updatedFileSystem[currentPath]);
     closeNewFolderModal();
+  };
+
+  const addPassword = (newPassword) => {
+    console.log('Nova credencial a ser adicionada:', newPassword);
+    const newFile = { type: 'file', name: `${newPassword.name}.cred` }; // Represent as a .cred file
+
+    const updatedFileSystem = {
+      ...fileSystem,
+      [currentPath]: [...fileSystem[currentPath], newFile],
+      // Here you would also store the detailed credential data, maybe in a separate state
+    };
+    setFileSystem(updatedFileSystem);
+    setItems(updatedFileSystem[currentPath]);
+    closeNewCredentialModal();
   };
 
   const navigateTo = (folderName) => {
@@ -141,23 +154,8 @@ const Cofre = () => {
         </div>
       </Modal>
 
-      <Modal title="Nova Credencial" isOpen={isNewCredentialModalOpen} onCancel={closeNewCredentialModal}>
-        <div className="form-group">
-          <label className="form-label">Nome</label>
-          <input type="text" className="form-input" placeholder="Ex: Gmail, Facebook..." />
-        </div>
-        <div className="form-group">
-          <label className="form-label">Email/Username</label>
-          <input type="text" className="form-input" placeholder="seu.email@exemplo.com" />
-        </div>
-        <div className="form-group">
-          <label className="form-label">Senha</label>
-          <input type="password" className="form-input" placeholder="Digite a senha" />
-        </div>
-        <div className="modal-actions">
-          <button type="button" className="btn btn-secondary" onClick={closeNewCredentialModal}>Cancelar</button>
-          <button type="button" className="btn btn-primary">Salvar</button>
-        </div>
+      <Modal title="Novo Item" isOpen={isNewCredentialModalOpen} onCancel={closeNewCredentialModal}>
+        <NewCredentialForm onCancel={closeNewCredentialModal} addPassword={addPassword} />
       </Modal>
     </>
   );
