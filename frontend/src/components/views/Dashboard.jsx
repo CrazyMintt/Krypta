@@ -57,7 +57,7 @@ const Dashboard = ({ openModal, fileSystem, activityLog }) => {
   };
 
   return (
-    <div id="main-content" className="main-content dashboard-view">
+    <div className="main-content dashboard-view">
       <Header title="Dashboard" openModal={openModal} />
         <div className="dashboard-grid">
           <div className="dashboard-section">

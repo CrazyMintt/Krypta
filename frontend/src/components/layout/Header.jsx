@@ -51,9 +51,9 @@ const Header = ({ title, onNewFolder, onNewCredential }) => {
   }, []);
 
   return (
-    <div id="main-header">
+    <div className="main-header">
       <h1>{title}</h1>
-      <div id="header-actions">
+      <div className="header-actions">
         <div style={{ position: 'relative' }}>
           <button className="new-button" onClick={toggleNewItemMenu} ref={newButtonRef}><Plus size={16} />Novo</button>
           {showNewItemMenu && <NewItemMenu ref={newItemMenuRef} onNewFolder={onNewFolder} onNewCredential={onNewCredential} />}
@@ -62,7 +62,7 @@ const Header = ({ title, onNewFolder, onNewCredential }) => {
           <button className="icon-button" onClick={toggleNotifications} ref={bellRef}><Bell size={20} /></button>
           {showNotifications && <Notifications ref={notificationsRef} />}
         </div>
-        <div id="user-avatar"></div>
+        <div className="user-avatar"></div>
       </div>
     </div>
   );

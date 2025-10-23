@@ -55,7 +55,7 @@ const NewCredentialForm = ({ onCancel, addPassword }) => {
   };
 
   return (
-    <form id="itemForm" onSubmit={handleFormSubmit}>
+    <form className="item-form" onSubmit={handleFormSubmit}>
       <div className="form-section">
         <div className="form-group">
           <label className="form-label">Nome <span className="required">*</span></label>

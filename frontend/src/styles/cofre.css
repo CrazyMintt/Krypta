@@ -1,4 +1,4 @@
-#left-panel {
+.left-panel {
     width: 250px;
     background-color: #1e1f24;
     padding: 20px;
@@ -7,7 +7,7 @@
     gap: 20px;
 }
 
-#search-bar {
+.search-bar {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -17,7 +17,7 @@
     background-color: #2a2d35;
 }
 
-#tags {
+.tags {
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -42,7 +42,7 @@
     background-color: #2a2d35;
 }
 
-#main-content {
+.main-content {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
@@ -129,7 +129,7 @@
 }
 
 /* Header Styles */
-#main-header {
+.main-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -139,12 +139,12 @@
     margin: 10px;
 }
 
-#main-header h1 {
+.main-header h1 {
     font-size: 1.5rem;
     font-weight: 600;
 }
 
-#header-actions {
+.header-actions {
     display: flex;
     align-items: center;
     gap: 15px;
@@ -174,10 +174,10 @@
     color: #fff;
 }
 
-#user-avatar {
+.user-avatar {
     width: 40px;
     height: 40px;
-    background-color: #7c3aed;
     border-radius: 50%;
-    cursor: pointer;
+    background-color: #4f46e5;
+    /* Placeholder for user image */
 }

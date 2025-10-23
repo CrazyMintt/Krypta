@@ -155,9 +155,9 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog }) => {
 
   return (
     <>
-      <div id="left-panel">
-        <div id="search-bar"><Search size={16} /><span>Pesquisar</span></div>
-        <div id="tags">
+      <div className="left-panel">
+        <div className="search-bar"><Search size={16} /><span>Pesquisar</span></div>
+        <div className="tags">
           <div className="tag-title">Tags</div>
           <div className="tag-list">
             <div className="tag" style={{ borderLeftColor: 'red' }}>Email</div>
@@ -166,7 +166,7 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog }) => {
         </div>
       </div>
 
-      <div id="main-content">
+      <div className="main-content">
         <Header title="Meu Cofre" onNewFolder={openNewFolderModal} onNewCredential={openNewCredentialModal} />
         <div className="file-manager">
           <Breadcrumbs />
