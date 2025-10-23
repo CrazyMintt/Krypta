@@ -99,8 +99,18 @@
     gap: 15px;
 }
 
+.file-details {
+    display: flex;
+    flex-direction: column;
+}
+
 .file-name {
     font-size: 1rem;
+}
+
+.file-email {
+    font-size: 0.8rem;
+    color: #aaa;
 }
 
 .file-actions button {

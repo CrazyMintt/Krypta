@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Folder, File, MoreVertical, ChevronRight, Search } from 'lucide-react';
+import { Folder, File, MoreVertical, ChevronRight, Search, Key } from 'lucide-react';
 import Header from '../layout/Header';
 import Modal from '../layout/Modal';
 import NewCredentialForm from '../forms/NewCredentialForm';
@@ -59,12 +59,15 @@ const Cofre = () => {
 
   const addPassword = (newPassword) => {
     console.log('Nova credencial a ser adicionada:', newPassword);
-    const newFile = { type: 'file', name: `${newPassword.name}.cred` }; // Represent as a .cred file
+    const newCredential = { 
+      type: 'credential', 
+      name: newPassword.name, 
+      email: newPassword.email 
+    };
 
     const updatedFileSystem = {
       ...fileSystem,
-      [currentPath]: [...fileSystem[currentPath], newFile],
-      // Here you would also store the detailed credential data, maybe in a separate state
+      [currentPath]: [...fileSystem[currentPath], newCredential],
     };
     setFileSystem(updatedFileSystem);
     setItems(updatedFileSystem[currentPath]);
@@ -124,8 +127,13 @@ const Cofre = () => {
             {items.map((item, index) => (
               <div key={index} className="file-item" onDoubleClick={() => item.type === 'folder' && navigateTo(item.name)}>
                 <div className="file-info">
-                  {item.type === 'folder' ? <Folder size={20} /> : <File size={20} />}
-                  <span className="file-name">{item.name}</span>
+                  {item.type === 'folder' && <Folder size={20} />}
+                  {item.type === 'file' && <File size={20} />}
+                  {item.type === 'credential' && <Key size={20} />}
+                  <div className="file-details">
+                    <span className="file-name">{item.name}</span>
+                    {item.type === 'credential' && item.email && <span className="file-email">{item.email}</span>}
+                  </div>
                 </div>
                 <div className="file-actions">
                   <button><MoreVertical size={16} /></button>
