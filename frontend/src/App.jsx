@@ -6,6 +6,7 @@ import './styles/dashboard.css';
 import './styles/modal.css';
 import './styles/auth.css';
 import './styles/notifications.css';
+import './styles/dropdown-menu.css';
 
 import Login from './components/auth/Login';
 import Signup from './components/auth/Signup';

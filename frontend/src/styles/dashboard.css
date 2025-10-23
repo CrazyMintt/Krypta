@@ -1,126 +1,69 @@
-/* --- Dashboard --- */
-.main-content.dashboard-view {
-    background: #1a1a1a;
-    padding: 24px 32px;
-}
-
-.dashboard-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 32px;
-}
-
-.dashboard-section {
-    background: #2a2a2a;
-    border-radius: 12px;
-    padding: 24px;
-    border: 1px solid #3a3a3a;
-}
-
-.section-title {
-    font-size: 16px;
-    font-weight: 500;
-    margin-bottom: 24px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid #3a3a3a;
-}
-
-.chart-container {
+.dashboard-view {
     display: flex;
     flex-direction: column;
+}
+
+.file-manager {
+    padding: 20px;
+    flex-grow: 1;
+}
+
+.breadcrumbs {
+    display: flex;
     align-items: center;
-    margin-bottom: 32px;
+    margin-bottom: 20px;
+    color: #aaa;
 }
 
-.donut-chart {
-    position: relative;
-    width: 280px;
-    height: 280px;
+.breadcrumbs span {
+    cursor: pointer;
+    padding: 5px;
 }
 
-.chart-center {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-}
-
-.chart-value {
-    font-size: 36px;
-    font-weight: 600;
+.breadcrumbs span:hover {
     color: #fff;
-    margin-bottom: 4px;
-}
-
-.chart-label {
-    font-size: 13px;
-    color: #999;
 }
 
 .file-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
 }
 
 .file-item {
-    background: #1a1a1a;
-    border: 1px solid #3a3a3a;
-    border-radius: 8px;
-    padding: 16px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    transition: all 0.2s;
+    background-color: #2a2d35;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: background-color 0.2s, border-left-color 0.2s;
 }
 
 .file-item:hover {
-    background: #333;
-    border-color: #4a4a4a;
+    background-color: #31343d;
+    border-left-color: #8b5cf6;
 }
 
-.activity-list {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.activity-item {
+.file-info {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 15px;
 }
 
-.activity-icon {
-    width: 40px;
-    height: 40px;
-    background: #1a1a1a;
-    border: 1px solid #3a3a3a;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+.file-name {
+    font-size: 1rem;
 }
 
-.activity-icon svg {
-    width: 20px;
-    height: 20px;
-    fill: #999;
+.file-actions button {
+    background: none;
+    border: none;
+    color: #aaa;
+    cursor: pointer;
 }
 
-.activity-info {
-    flex: 1;
-}
-
-.activity-title {
-    font-size: 14px;
+.file-actions button:hover {
     color: #fff;
-    margin-bottom: 4px;
-}
-
-.activity-time {
-    font-size: 12px;
-    color: #666;
 }

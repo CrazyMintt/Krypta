@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Sidebar = ({ changeView }) => (
+const Sidebar = ({  changeView  }) => (
   <div className="sidebar">
     <div className="logo">
       <div className="logo-icon">

@@ -1,221 +1,169 @@
 #left-panel {
-  width: 256px;
-  background-color: #262626;
-  padding: 24px;
-  border-right: 1px solid #404040;
-}
-
-#vault-selector {
-  position: relative;
-  border: 1px solid #404040;
-  border-radius: 8px;
-  padding: 12px 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  background-color: #171717;
-  margin-bottom: 12px;
-}
-
-#vault-selector:hover {
-  background-color: #2a2a2a;
-}
-
-.vault-dropdown-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background-color: #262626;
-  border: 1px solid #404040;
-  border-radius: 8px;
-  margin-top: 8px;
-  z-index: 10;
-  overflow: hidden;
-}
-
-.vault-dropdown-item {
-  padding: 12px 16px;
-  cursor: pointer;
-  color: #a3a3a3;
-  transition: background-color 0.2s;
-}
-
-.vault-dropdown-item:hover {
-  background-color: #404040;
-  color: #fff;
+    width: 250px;
+    background-color: #1e1f24;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
 #search-bar {
-  border: 1px solid #404040;
-  border-radius: 8px;
-  padding: 12px 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  background-color: #171717;
-  margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    background-color: #2a2d35;
 }
 
-#search-bar:hover {
-  background-color: #2a2a2a;
+#tags {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-#folders .folder-item,
-#tags .tag {
-  border: 1px solid #404040;
-  border-radius: 8px;
-  padding: 12px 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  background-color: #171717;
+.tag-title {
+    color: #aaa;
+    font-size: 0.9rem;
+    text-transform: uppercase;
 }
 
-#tags .tag-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 24px;
+.tag-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
 }
 
-#tags .tag {
-  border-left-width: 4px;
-  padding: 8px 12px;
-}
-
-#folders .folder-item:hover,
-#tags .tag:hover {
-  background-color: #404040;
+.tag {
+    border-left-width: 3px;
+    border-left-style: solid;
+    padding: 5px 10px;
+    background-color: #2a2d35;
 }
 
 #main-content {
-  flex: 1;
-  background-color: #171717;
-  padding: 32px;
-  overflow-y: auto;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #18191d;
 }
 
+.file-manager {
+    padding: 20px;
+    flex-grow: 1;
+}
+
+.breadcrumbs {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    color: #aaa;
+}
+
+.breadcrumbs span {
+    cursor: pointer;
+    padding: 5px;
+}
+
+.breadcrumbs span:hover {
+    color: #fff;
+}
+
+.file-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #2a2d35;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: background-color 0.2s, border-left-color 0.2s;
+}
+
+.file-item:hover {
+    background-color: #31343d;
+    border-left-color: #8b5cf6;
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.file-name {
+    font-size: 1rem;
+}
+
+.file-actions button {
+    background: none;
+    border: none;
+    color: #aaa;
+    cursor: pointer;
+}
+
+.file-actions button:hover {
+    color: #fff;
+}
+
+/* Header Styles */
 #main-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #2a2d35;
+    padding: 10px;
+    margin: 10px;
 }
 
 #main-header h1 {
-  font-size: 30px;
-  font-weight: 600;
+    font-size: 1.5rem;
+    font-weight: 600;
 }
 
 #header-actions {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 16px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
 }
 
 .new-button {
-  background-color: #7c3aed;
-  color: #fff;
-  padding: 10px 20px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 500;
-  transition: all 0.2s;
-  border: none;
-  cursor: pointer;
-}
-
-.new-button:hover {
-  background-color: #6d28d9;
+    background-color: #8b5cf6;
+    color: #fff;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: 600;
 }
 
 .icon-button {
-  background: transparent;
-  border: none;
-  color: #999;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 6px;
-  transition: all 0.2s;
+    background: none;
+    border: none;
+    color: #aaa;
+    cursor: pointer;
 }
 
 .icon-button:hover {
-  background: #2a2a2a;
+    color: #fff;
 }
 
-#user-avatar,
-.profile-pic {
-  width: 40px;
-  height: 40px;
-  background-color: #7c3aed;
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-#password-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.password-item {
-  background-color: #262626;
-  border: 1px solid #404040;
-  border-radius: 8px;
-  padding: 16px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-left-width: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.password-item:hover {
-  background-color: #404040;
-  border-color: #525252;
-}
-
-.password-name {
-  font-weight: 500;
-  font-size: 16px;
-}
-
-.password-email {
-  font-size: 14px;
-  color: #737373;
-}
-
-.password-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.password-actions button {
-  width: 36px;
-  height: 36px;
-  border: 1px solid #404040;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #a3a3a3;
-  background: none;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.password-actions button:hover {
-  background-color: #525252;
-  color: #fff;
+#user-avatar {
+    width: 40px;
+    height: 40px;
+    background-color: #7c3aed;
+    border-radius: 50%;
+    cursor: pointer;
 }
