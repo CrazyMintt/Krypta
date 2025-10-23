@@ -5,8 +5,7 @@ import Modal from '../layout/Modal';
 import ItemActionsMenu from '../layout/ItemActionsMenu';
 import NewCredentialForm from '../forms/NewCredentialForm';
 
-const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog }) => {
-  const [currentPath, setCurrentPath] = useState('/');
+const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, currentPath, setCurrentPath }) => {
   const [items, setItems] = useState(fileSystem[currentPath]);
   const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
   const [isNewCredentialModalOpen, setIsNewCredentialModalOpen] = useState(false);
@@ -47,7 +46,6 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog }) => {
     const newPath = `${currentPath}${newFolderName.trim()}/`;
     const updatedFileSystem = { ...fileSystem, [currentPath]: [...fileSystem[currentPath], newFolder], [newPath]: [] };
     setFileSystem(updatedFileSystem);
-    setItems(updatedFileSystem[currentPath]);
 
     const newLogEntry = {
       type: 'add',
@@ -63,7 +61,6 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog }) => {
     const newCredential = { type: 'credential', name: newPassword.name, email: newPassword.email };
     const updatedFileSystem = { ...fileSystem, [currentPath]: [...fileSystem[currentPath], newCredential] };
     setFileSystem(updatedFileSystem);
-    setItems(updatedFileSystem[currentPath]);
 
     const newLogEntry = {
       type: 'add',
@@ -109,7 +106,6 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog }) => {
     }
 
     setFileSystem(updatedFileSystem);
-    setItems(updatedItems);
 
     const newLogEntry = {
       type: 'delete', // Or a more specific type
@@ -125,7 +121,6 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog }) => {
     const newPath = folderName === '' ? '/' : `${currentPath}${folderName}/`;
     if (fileSystem[newPath]) {
       setCurrentPath(newPath);
-      setItems(fileSystem[newPath]);
     }
   };
 
@@ -134,7 +129,6 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog }) => {
     const newPath = `/${pathParts.slice(0, pathIndex + 1).join('/')}/`;
     if (fileSystem[newPath]) {
       setCurrentPath(newPath);
-      setItems(fileSystem[newPath]);
     }
   };
 

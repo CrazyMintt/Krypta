@@ -52,6 +52,7 @@ const MainApp = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [fileSystem, setFileSystem] = useState(initialFileSystem);
     const [activityLog, setActivityLog] = useState(initialActivityLog);
+    const [currentPath, setCurrentPath] = useState('/');
 
     const openModal = () => setIsModalOpen(true);
     const closeModal = () => setIsModalOpen(false);
@@ -69,6 +70,8 @@ const MainApp = () => {
             setFileSystem,
             activityLog,
             setActivityLog,
+            currentPath,
+            setCurrentPath,
         };
         if (view === 'cofre') return <Cofre {...commonProps} />;
         if (view === 'dashboard') return <Dashboard {...commonProps} />;
