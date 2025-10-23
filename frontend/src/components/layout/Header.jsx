@@ -33,7 +33,7 @@ const Header = ({ title, openModal }) => {
     <div id="main-header">
       <h1>{title}</h1>
       <div id="header-actions">
-        <button className="new-button" onClick={openModal}><Plus size={16} />Novo</button>
+        <button className="new-button" onClick={() => openModal(null)}><Plus size={16} />Novo</button>
         <button className="icon-button" onClick={toggleNotifications} ref={bellRef}><Bell size={20} /></button>
         {showNotifications && <Notifications ref={notificationsRef} />}
         <div id="user-avatar"></div>

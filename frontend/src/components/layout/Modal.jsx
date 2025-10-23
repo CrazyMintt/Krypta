@@ -1,10 +1,35 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
-const Modal = ({ closeModal, isOpen }) => {
+const Modal = ({ closeModal, isOpen, password }) => {
   const passwordInputRef = useRef(null);
   const eyeIconRef = useRef(null);
 
+  const [formData, setFormData] = useState({
+    name: '',
+    folder: '',
+    email: '',
+    senha: '',
+    site: ''
+  });
+
+  // Preenche os campos se estiver editando
+  useEffect(() => {
+    if (password) {
+      setFormData({
+        name: password.name || '',
+        folder: password.vault || '',
+        email: password.email || '',
+        senha: '',
+        site: ''
+      });
+    } else {
+      setFormData({ name: '', folder: '', email: '', senha: '', site: '' });
+    }
+  }, [password]);
+
   const togglePassword = () => {
+    if (!passwordInputRef.current || !eyeIconRef.current) return;
+
     if (passwordInputRef.current.type === 'password') {
       passwordInputRef.current.type = 'text';
       eyeIconRef.current.innerHTML = `
@@ -22,40 +47,64 @@ const Modal = ({ closeModal, isOpen }) => {
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
+
+    if (password) {
+      console.log('Editando item:', formData);
+    } else {
+      console.log('Criando novo item:', formData);
+    }
+
     alert('Item salvo com sucesso!');
     closeModal();
   };
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        closeModal();
-      }
+      if (e.key === 'Escape') closeModal();
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [closeModal]);
 
   return (
-    <div className={`overlay ${isOpen ? 'fade-in' : 'fade-out'}`} onClick={(e) => e.target.classList.contains('overlay') && closeModal()}>
+    <div
+      className={`overlay ${isOpen ? 'fade-in' : 'fade-out'}`}
+      onClick={(e) => e.target.classList.contains('overlay') && closeModal()}
+    >
       <div className="modal">
         <button className="close-btn" onClick={closeModal}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M18 6L6 18M6 6l12 12" />
           </svg>
         </button>
+
         <div className="modal-header">
-          <h2 className="modal-title">Novo Item</h2>
+          <h2 className="modal-title">{password ? 'Editar Item' : 'Novo Item'}</h2>
         </div>
+
         <form id="itemForm" onSubmit={handleFormSubmit}>
           <div className="form-section">
             <div className="form-group">
-              <label className="form-label">Nome <span className="required">*</span></label>
-              <input type="text" className="form-input" placeholder="Digite o nome do item" required />
+              <label className="form-label">
+                Nome <span className="required">*</span>
+              </label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Digite o nome do item"
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
             </div>
+
             <div className="form-group">
               <label className="form-label">Pasta</label>
-              <select className="form-select">
+              <select
+                className="form-select"
+                value={formData.folder}
+                onChange={(e) => setFormData({ ...formData, folder: e.target.value })}
+              >
                 <option value="">Selecione uma pasta</option>
                 <option value="backup">Backup</option>
                 <option value="trabalho">Trabalho</option>
@@ -66,41 +115,93 @@ const Modal = ({ closeModal, isOpen }) => {
           <div className="divider"></div>
           <div className="form-section">
             <h3 className="section-title">
-              <svg className="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" /></svg>
+              <svg className="section-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+              </svg>
               Credenciais
             </h3>
+
             <div className="form-group">
               <label className="form-label">Email/username</label>
-              <input type="text" className="form-input" placeholder="exemplo@email.com" />
+              <input
+                type="text"
+                className="form-input"
+                placeholder="exemplo@email.com"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              />
             </div>
+
             <div className="form-group">
               <label className="form-label">Senha</label>
               <div className="password-input-wrapper">
-                <input type="password" className="form-input" id="passwordInput" ref={passwordInputRef} placeholder="Digite a senha" />
+                <input
+                  type="password"
+                  className="form-input"
+                  ref={passwordInputRef}
+                  placeholder="Digite a senha"
+                  value={formData.senha}
+                  onChange={(e) => setFormData({ ...formData, senha: e.target.value })}
+                />
                 <button type="button" className="toggle-password" onClick={togglePassword}>
-                  <svg id="eyeIcon" ref={eyeIconRef} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+                  <svg
+                    id="eyeIcon"
+                    ref={eyeIconRef}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
                   </svg>
                 </button>
               </div>
             </div>
           </div>
+
           <div className="divider"></div>
+
           <div className="form-section">
             <h3 className="section-title">
-              <svg className="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z" /></svg>
+              <svg className="section-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z" />
+              </svg>
               Preenchimento automático
             </h3>
+
             <div className="form-group">
               <label className="form-label">Site (url)</label>
-              <input type="url" className="form-input" placeholder="https://exemplo.com" />
+              <input
+                type="url"
+                className="form-input"
+                placeholder="https://exemplo.com"
+                value={formData.site}
+                onChange={(e) => setFormData({ ...formData, site: e.target.value })}
+              />
             </div>
           </div>
+          
           <div className="modal-actions">
-            <button type="button" className="btn btn-secondary" onClick={closeModal}>Cancelar</button>
+            <button type="button" className="btn btn-secondary" onClick={closeModal}>
+              Cancelar
+            </button>
             <button type="submit" className="btn btn-primary">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-              Salvar
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              {password ? 'Salvar alterações' : 'Salvar'}
             </button>
           </div>
         </form>

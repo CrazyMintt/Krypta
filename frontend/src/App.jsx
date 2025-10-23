@@ -18,8 +18,17 @@ const MainApp = () => {
     const [view, setView] = useState('cofre');
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const openModal = () => setIsModalOpen(true);
-    const closeModal = () => setIsModalOpen(false);
+    const [selectedPassword, setSelectedPassword] = useState(null);
+
+    const openModal = (password = null) => {
+        setSelectedPassword(password);
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setSelectedPassword(null);
+        setIsModalOpen(false);
+    };
 
     const changeView = (newView) => {
         if (view !== newView) {
@@ -37,14 +46,21 @@ const MainApp = () => {
         <div className="container">
             <Sidebar changeView={changeView} />
             <CurrentView />
-            {isModalOpen && <Modal closeModal={closeModal} isOpen={isModalOpen} />}
+
+            {isModalOpen && (
+                <Modal
+                    closeModal={closeModal}
+                    isOpen={isModalOpen}
+                    password={selectedPassword}
+                />
+            )}
         </div>
     );
 };
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [authView, setAuthView] = useState('login'); // 'login' or 'signup'
+    const [authView, setAuthView] = useState('login');
 
     const handleLoginSuccess = () => {
         setIsAuthenticated(true);
@@ -52,7 +68,12 @@ function App() {
 
     if (!isAuthenticated) {
         if (authView === 'login') {
-            return <Login onNavigateToSignup={() => setAuthView('signup')} onLoginSuccess={handleLoginSuccess} />;
+            return (
+                <Login
+                    onNavigateToSignup={() => setAuthView('signup')}
+                    onLoginSuccess={handleLoginSuccess}
+                />
+            );
         }
         return <Signup onNavigateToLogin={() => setAuthView('login')} />;
     }

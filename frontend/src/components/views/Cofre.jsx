@@ -48,7 +48,11 @@ const Cofre = ({ openModal }) => {
   }, [selectedVault, allPasswords]);
 
   const handleCopy = (name) => alert(`Senha de ${name} copiada!`);
-  const handleEdit = (name) => alert(`Editando ${name}`);
+  
+  const handleEdit = (password) => {
+      openModal(password);
+    };
+
   const handleMenu = (name) => alert(`Menu de opções de ${name}`);
 
   return (
@@ -95,7 +99,14 @@ const Cofre = ({ openModal }) => {
               </div>
               <div className="password-actions">
                 <button onClick={(e) => { e.stopPropagation(); handleCopy(password.name); }}><Copy size={16} /></button>
-                <button onClick={(e) => { e.stopPropagation(); handleEdit(password.name); }}><Edit size={16} /></button>
+                <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(password);
+                    }}
+                  >
+                    <Edit size={16} />
+                  </button>
                 <button onClick={(e) => { e.stopPropagation(); handleMenu(password.name); }}><MoreVertical size={16} /></button>
               </div>
             </div>
