@@ -5,7 +5,7 @@ import Modal from '../layout/Modal';
 import ItemActionsMenu from '../layout/ItemActionsMenu';
 import NewCredentialForm from '../forms/NewCredentialForm';
 
-const Cofre = ({ fileSystem, setFileSystem }) => {
+const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog }) => {
   const [currentPath, setCurrentPath] = useState('/');
   const [items, setItems] = useState(fileSystem[currentPath]);
   const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
@@ -48,6 +48,14 @@ const Cofre = ({ fileSystem, setFileSystem }) => {
     const updatedFileSystem = { ...fileSystem, [currentPath]: [...fileSystem[currentPath], newFolder], [newPath]: [] };
     setFileSystem(updatedFileSystem);
     setItems(updatedFileSystem[currentPath]);
+
+    const newLogEntry = {
+      type: 'add',
+      title: `Pasta "${newFolderName.trim()}" criada`,
+      time: new Date().toLocaleString(),
+    };
+    setActivityLog([newLogEntry, ...activityLog]);
+
     closeNewFolderModal();
   };
 
@@ -56,6 +64,14 @@ const Cofre = ({ fileSystem, setFileSystem }) => {
     const updatedFileSystem = { ...fileSystem, [currentPath]: [...fileSystem[currentPath], newCredential] };
     setFileSystem(updatedFileSystem);
     setItems(updatedFileSystem[currentPath]);
+
+    const newLogEntry = {
+      type: 'add',
+      title: `Credencial "${newPassword.name}" criada`,
+      time: new Date().toLocaleString(),
+    };
+    setActivityLog([newLogEntry, ...activityLog]);
+
     closeNewCredentialModal();
   };
 
@@ -94,6 +110,14 @@ const Cofre = ({ fileSystem, setFileSystem }) => {
 
     setFileSystem(updatedFileSystem);
     setItems(updatedItems);
+
+    const newLogEntry = {
+      type: 'delete', // Or a more specific type
+      title: `Item "${item.name}" excluído`,
+      time: new Date().toLocaleString(),
+    };
+    setActivityLog([newLogEntry, ...activityLog]);
+
     closeDeleteModal();
   };
 

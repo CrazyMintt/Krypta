@@ -34,10 +34,24 @@ const initialFileSystem = {
   ],
 };
 
+const initialActivityLog = [
+  {
+    type: 'add',
+    title: 'Senha do github criada',
+    time: 'Há 1 minuto atrás',
+  },
+  {
+    type: 'edit',
+    title: 'Senha do gmail alterada',
+    time: 'Há 1 hora atrás',
+  },
+];
+
 const MainApp = () => {
     const [view, setView] = useState('cofre');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [fileSystem, setFileSystem] = useState(initialFileSystem);
+    const [activityLog, setActivityLog] = useState(initialActivityLog);
 
     const openModal = () => setIsModalOpen(true);
     const closeModal = () => setIsModalOpen(false);
@@ -53,6 +67,8 @@ const MainApp = () => {
             openModal,
             fileSystem,
             setFileSystem,
+            activityLog,
+            setActivityLog,
         };
         if (view === 'cofre') return <Cofre {...commonProps} />;
         if (view === 'dashboard') return <Dashboard {...commonProps} />;
