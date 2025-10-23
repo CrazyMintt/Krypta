@@ -46,10 +46,8 @@ def authenticate_and_login_user(
             detail="Email ou senha incorretos",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
+    user = schemas.UserComplete.model_validate(user)
     access_token = core.create_access_token(data={"sub": user.email})
-    user = schemas.UserResponse.model_validate(user)
-    print(user)
 
     return schemas.LoginResponse(
         nome=user.nome,
@@ -60,3 +58,21 @@ def authenticate_and_login_user(
         access_token=access_token,
         saltKDF=user.saltKDF,
     )
+
+
+def get_current_user(db: Session, token: str) -> schemas.UserResponse:
+    try:
+        payload = core.decode_access_token(token)
+        email = payload.get("sub")
+        if not email:
+             raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Não foi possível validar credenciais",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    except:
+         raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Não foi possível validar credenciais",
+            headers={"WWW-Authenticate": "Bearer"},
+        )

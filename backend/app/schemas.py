@@ -44,10 +44,13 @@ class UserCreate(UserBase):
 class UserResponse(UserBase):
     # Permite que o Pydantic leia os dados de um objeto SQLAlchemy
     model_config = ConfigDict(from_attributes=True)
-    saltKDF: str
     id: int
     dados: Optional[List[DataBase]]
     created_at: datetime
+
+
+class UserComplete(UserResponse):
+    saltKDF: str
 
 
 # Schemas de Autenticação

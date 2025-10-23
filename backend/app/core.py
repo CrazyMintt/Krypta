@@ -12,7 +12,6 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
-
 settings = Settings()
 
 # Hashing de Senhas
@@ -57,3 +56,5 @@ def create_access_token(data: dict) -> str:
     )
     return encoded_jwt
 
+def decode_access_token(token: str) -> dict:
+    return jwt.decode(token, settings.SECRET_KEY, settings.ALGORITHM)
