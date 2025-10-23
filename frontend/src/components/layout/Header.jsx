@@ -54,11 +54,11 @@ const Header = ({ title, onNewFolder, onNewCredential }) => {
     <div className="main-header">
       <h1>{title}</h1>
       <div className="header-actions">
-        <div style={{ position: 'relative' }}>
+        <div className="header-action-item">
           <button className="new-button" onClick={toggleNewItemMenu} ref={newButtonRef}><Plus size={16} />Novo</button>
           {showNewItemMenu && <NewItemMenu ref={newItemMenuRef} onNewFolder={onNewFolder} onNewCredential={onNewCredential} />}
         </div>
-        <div style={{ position: 'relative' }}>
+        <div className="header-action-item">
           <button className="icon-button" onClick={toggleNotifications} ref={bellRef}><Bell size={20} /></button>
           {showNotifications && <Notifications ref={notificationsRef} />}
         </div>

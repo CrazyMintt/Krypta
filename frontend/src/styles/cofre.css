@@ -70,6 +70,12 @@
     color: #fff;
 }
 
+.breadcrumbs span.drag-over {
+    background-color: #3a3d4d;
+    border-radius: 4px;
+    color: #fff;
+}
+
 .file-manager .file-list {
     display: flex;
     flex-direction: column;
@@ -91,6 +97,11 @@
 .file-manager .file-item:hover {
     background-color: #31343d;
     border-left-color: #8b5cf6;
+}
+
+.file-manager .file-item.drag-over {
+    background-color: #3a3d4d;
+    border: 2px dashed #8b5cf6;
 }
 
 .file-manager .file-info {
@@ -148,6 +159,10 @@
     display: flex;
     align-items: center;
     gap: 15px;
+}
+
+.header-action-item {
+    position: relative;
 }
 
 .new-button {
