@@ -15,9 +15,29 @@ import Modal from './components/layout/Modal';
 import Cofre from './components/views/Cofre';
 import Dashboard from './components/views/Dashboard';
 
+// Mock data para simular uma estrutura de arquivos
+const initialFileSystem = {
+  '/': [
+    { type: 'folder', name: 'Trabalho' },
+    { type: 'folder', name: 'Pessoal' },
+    { type: 'credential', name: 'senha_wifi', email: 'user@example.com' },
+  ],
+  '/Trabalho/': [
+    { type: 'file', name: 'relatorio_q3.pdf' },
+    { type: 'folder', name: 'Projetos' },
+  ],
+  '/Trabalho/Projetos/': [
+    { type: 'file', name: 'projeto_krypta.docx' },
+  ],
+  '/Pessoal/': [
+    { type: 'file', name: 'lista_compras.txt' },
+  ],
+};
+
 const MainApp = () => {
     const [view, setView] = useState('cofre');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [fileSystem, setFileSystem] = useState(initialFileSystem);
 
     const openModal = () => setIsModalOpen(true);
     const closeModal = () => setIsModalOpen(false);
@@ -29,8 +49,13 @@ const MainApp = () => {
     };
 
     const CurrentView = () => {
-        if (view === 'cofre') return <Cofre openModal={openModal} />;
-        if (view === 'dashboard') return <Dashboard openModal={openModal} />;
+        const commonProps = {
+            openModal,
+            fileSystem,
+            setFileSystem,
+        };
+        if (view === 'cofre') return <Cofre {...commonProps} />;
+        if (view === 'dashboard') return <Dashboard {...commonProps} />;
         return null;
     };
 

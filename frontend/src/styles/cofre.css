@@ -70,13 +70,13 @@
     color: #fff;
 }
 
-.file-list {
+.file-manager .file-list {
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
 
-.file-item {
+.file-manager .file-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -88,32 +88,36 @@
     transition: background-color 0.2s, border-left-color 0.2s;
 }
 
-.file-item:hover {
+.file-manager .file-item:hover {
     background-color: #31343d;
     border-left-color: #8b5cf6;
 }
 
-.file-info {
+.file-manager .file-info {
     display: flex;
     align-items: center;
     gap: 15px;
 }
 
-.file-details {
+.file-manager .file-details {
     display: flex;
     flex-direction: column;
 }
 
-.file-name {
+.file-manager .file-name {
     font-size: 1rem;
 }
 
-.file-email {
+.file-manager .file-email {
     font-size: 0.8rem;
     color: #aaa;
 }
 
-.file-actions button {
+.file-manager .file-actions {
+    position: relative;
+}
+
+.file-manager .file-actions button {
     background: none;
     border: none;
     color: #aaa;

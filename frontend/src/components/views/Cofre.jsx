@@ -1,35 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Folder, File, MoreVertical, ChevronRight, Search, Key } from 'lucide-react';
 import Header from '../layout/Header';
 import Modal from '../layout/Modal';
+import ItemActionsMenu from '../layout/ItemActionsMenu';
 import NewCredentialForm from '../forms/NewCredentialForm';
 
-// Mock data para simular uma estrutura de arquivos
-const initialFileSystem = {
-  '/': [
-    { type: 'folder', name: 'Trabalho' },
-    { type: 'folder', name: 'Pessoal' },
-    { type: 'file', name: 'senha_wifi.txt' },
-  ],
-  '/Trabalho/': [
-    { type: 'file', name: 'relatorio_q3.pdf' },
-    { type: 'folder', name: 'Projetos' },
-  ],
-  '/Trabalho/Projetos/': [
-    { type: 'file', name: 'projeto_krypta.docx' },
-  ],
-  '/Pessoal/': [
-    { type: 'file', name: 'lista_compras.txt' },
-  ],
-};
-
-const Cofre = () => {
-  const [fileSystem, setFileSystem] = useState(initialFileSystem);
+const Cofre = ({ fileSystem, setFileSystem }) => {
   const [currentPath, setCurrentPath] = useState('/');
   const [items, setItems] = useState(fileSystem[currentPath]);
   const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
   const [isNewCredentialModalOpen, setIsNewCredentialModalOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+  const [activeItemIndex, setActiveItemIndex] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+
+  useEffect(() => {
+    setItems(fileSystem[currentPath]);
+  }, [currentPath, fileSystem]);
+
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      if (activeItemIndex !== null) {
+        setActiveItemIndex(null);
+      }
+    };
+
+    window.addEventListener('click', handleOutsideClick);
+    return () => {
+      window.removeEventListener('click', handleOutsideClick);
+    };
+  }, [activeItemIndex]);
 
   const openNewFolderModal = () => setIsNewFolderModalOpen(true);
   const closeNewFolderModal = () => {
@@ -42,36 +43,58 @@ const Cofre = () => {
 
   const handleCreateFolder = () => {
     if (newFolderName.trim() === '') return;
-
     const newFolder = { type: 'folder', name: newFolderName.trim() };
     const newPath = `${currentPath}${newFolderName.trim()}/`;
-
-    const updatedFileSystem = {
-      ...fileSystem,
-      [currentPath]: [...fileSystem[currentPath], newFolder],
-      [newPath]: [],
-    };
+    const updatedFileSystem = { ...fileSystem, [currentPath]: [...fileSystem[currentPath], newFolder], [newPath]: [] };
     setFileSystem(updatedFileSystem);
-
     setItems(updatedFileSystem[currentPath]);
     closeNewFolderModal();
   };
 
   const addPassword = (newPassword) => {
-    console.log('Nova credencial a ser adicionada:', newPassword);
-    const newCredential = { 
-      type: 'credential', 
-      name: newPassword.name, 
-      email: newPassword.email 
-    };
-
-    const updatedFileSystem = {
-      ...fileSystem,
-      [currentPath]: [...fileSystem[currentPath], newCredential],
-    };
+    const newCredential = { type: 'credential', name: newPassword.name, email: newPassword.email };
+    const updatedFileSystem = { ...fileSystem, [currentPath]: [...fileSystem[currentPath], newCredential] };
     setFileSystem(updatedFileSystem);
     setItems(updatedFileSystem[currentPath]);
     closeNewCredentialModal();
+  };
+
+  const openDeleteModal = (index) => {
+    setItemToDelete(index);
+    setIsDeleteModalOpen(true);
+    setActiveItemIndex(null);
+  };
+
+  const closeDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setItemToDelete(null);
+  };
+
+  const confirmDelete = () => {
+    if (itemToDelete === null) return;
+
+    const item = items[itemToDelete];
+    // For now, only allow deleting files, credentials, and empty folders
+    if (item.type === 'folder') {
+      const folderPath = `${currentPath}${item.name}/`;
+      if (fileSystem[folderPath] && fileSystem[folderPath].length > 0) {
+        alert('Não é possível excluir pastas que não estão vazias.');
+        closeDeleteModal();
+        return;
+      }
+    }
+
+    const updatedItems = items.filter((_, index) => index !== itemToDelete);
+    const updatedFileSystem = { ...fileSystem, [currentPath]: updatedItems };
+    // If it was a folder, remove its own path from the file system
+    if (item.type === 'folder') {
+      const folderPath = `${currentPath}${item.name}/`;
+      delete updatedFileSystem[folderPath];
+    }
+
+    setFileSystem(updatedFileSystem);
+    setItems(updatedItems);
+    closeDeleteModal();
   };
 
   const navigateTo = (folderName) => {
@@ -136,7 +159,10 @@ const Cofre = () => {
                   </div>
                 </div>
                 <div className="file-actions">
-                  <button><MoreVertical size={16} /></button>
+                  <button onClick={(e) => { e.stopPropagation(); setActiveItemIndex(index === activeItemIndex ? null : index); }}><MoreVertical size={16} /></button>
+                  {activeItemIndex === index && (
+                    <ItemActionsMenu onDelete={() => openDeleteModal(index)} />
+                  )}
                 </div>
               </div>
             ))}
@@ -164,6 +190,14 @@ const Cofre = () => {
 
       <Modal title="Novo Item" isOpen={isNewCredentialModalOpen} onCancel={closeNewCredentialModal}>
         <NewCredentialForm onCancel={closeNewCredentialModal} addPassword={addPassword} />
+      </Modal>
+
+      <Modal title="Confirmar Exclusão" isOpen={isDeleteModalOpen} onCancel={closeDeleteModal}>
+        <p>Você tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.</p>
+        <div className="modal-actions">
+          <button type="button" className="btn btn-secondary" onClick={closeDeleteModal}>Cancelar</button>
+          <button type="button" className="btn btn-danger" onClick={confirmDelete}>Excluir</button>
+        </div>
       </Modal>
     </>
   );

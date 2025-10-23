@@ -3,67 +3,89 @@
     flex-direction: column;
 }
 
-.file-manager {
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
     padding: 20px;
     flex-grow: 1;
 }
 
-.breadcrumbs {
+.dashboard-section {
+    background-color: #1e1f24;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.section-title {
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+}
+
+.chart-container {
     display: flex;
+    justify-content: center;
     align-items: center;
     margin-bottom: 20px;
+}
+
+.donut-chart {
+    position: relative;
+    width: 280px;
+    height: 280px;
+}
+
+.chart-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.chart-value {
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+.chart-label {
+    font-size: 1rem;
     color: #aaa;
 }
 
-.breadcrumbs span {
-    cursor: pointer;
-    padding: 5px;
-}
-
-.breadcrumbs span:hover {
-    color: #fff;
-}
-
-.file-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.file-item {
+.dashboard-section .file-list .file-item {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    background-color: #2a2d35;
-    padding: 10px 15px;
-    border-radius: 8px;
-    cursor: pointer;
-    border-left: 3px solid transparent;
-    transition: background-color 0.2s, border-left-color 0.2s;
+    padding: 10px 0;
+    border-bottom: 1px solid #2a2d35;
 }
 
-.file-item:hover {
-    background-color: #31343d;
-    border-left-color: #8b5cf6;
+.dashboard-section .file-list .file-item:last-child {
+    border-bottom: none;
 }
 
-.file-info {
+.file-type {
+    font-weight: bold;
+}
+
+.activity-list .activity-item {
     display: flex;
     align-items: center;
     gap: 15px;
+    margin-bottom: 15px;
 }
 
-.file-name {
-    font-size: 1rem;
+.activity-icon svg {
+    width: 24px;
+    height: 24px;
+    fill: #8b5cf6;
 }
 
-.file-actions button {
-    background: none;
-    border: none;
+.activity-title {
+    font-weight: bold;
+}
+
+.activity-time {
+    font-size: 0.9rem;
     color: #aaa;
-    cursor: pointer;
-}
-
-.file-actions button:hover {
-    color: #fff;
 }
