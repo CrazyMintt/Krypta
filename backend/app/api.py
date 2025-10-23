@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
+from app import repository
+
 from . import schemas, services
 from .database import get_db
 
@@ -10,7 +12,7 @@ router = APIRouter()
 
 @router.post(
     "/users/",
-    response_model=schemas.User,
+    response_model=schemas.UserResponse,
     status_code=status.HTTP_201_CREATED,
     tags=["Users"],
 )
@@ -45,3 +47,13 @@ def login(
         )
 
     return login_response
+
+
+@router.get(
+    "/users/{user_id}",
+    response_model=schemas.UserResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Users"],
+)
+def get_user_by_id(user_id: int, db: Session = Depends(get_db)) -> schemas.UserResponse:
+    return repository.get_user(db, user_id)

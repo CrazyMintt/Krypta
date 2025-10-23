@@ -25,14 +25,16 @@ def register_user(db: Session, user_data: schemas.UserCreate) -> models.Usuario:
         email=user_data.email,
         nome=user_data.nome,
         senha_mestre=hashed_password,
-        saltKDF = salt
+        saltKDF=salt,
     )
 
     # Usa o repositório para salvar o usuário no banco de dados
     return repository.create_user(db=db, user_data=new_user)
 
 
-def authenticate_and_login_user(db: Session, email: str, password: str):
+def authenticate_and_login_user(
+    db: Session, email: str, password: str
+) -> schemas.LoginResponse:
     """
     Serviço para autenticar um usuário.
     Contém a lógica de negócio completa para o processo de login.
@@ -45,12 +47,16 @@ def authenticate_and_login_user(db: Session, email: str, password: str):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    access_token = core.create_access_token(
-        data={"sub": user.email}
-    )
+    access_token = core.create_access_token(data={"sub": user.email})
+    user = schemas.UserResponse.model_validate(user)
+    print(user)
 
-    crypto_salt = user.saltKDF
     return schemas.LoginResponse(
+        nome=user.nome,
+        id=user.id,
+        dados=user.dados,
+        created_at=user.created_at,
+        email=user.email,
         access_token=access_token,
-        crypto_salt=crypto_salt
+        saltKDF=user.saltKDF,
     )

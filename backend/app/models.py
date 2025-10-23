@@ -5,7 +5,6 @@ from typing import List, Optional
 from sqlalchemy import (
     BigInteger,
     Column,
-    DateTime,
     ForeignKey,
     Integer,
     String,
