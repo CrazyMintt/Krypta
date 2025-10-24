@@ -19,7 +19,6 @@ class FileBase(BaseModel):
 
 class DataBase(BaseModel):
     id: int
-    id_usuario: int
     nome_aplicacao: str
     descricao: Optional[str]
     tipo: str

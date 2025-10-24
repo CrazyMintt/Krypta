@@ -1,4 +1,3 @@
-from os import wait
 from jose import ExpiredSignatureError
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status, Depends
