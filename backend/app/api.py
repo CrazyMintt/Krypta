@@ -34,8 +34,8 @@ def login(
     - **password**: A senha mestra do usuário (em texto plano, protegida por HTTPS).
     """
     # Delega toda a lógica de autenticação para a camada de serviço
-    login_response = services.authenticate_and_login_user(db, 
-        email=form_data.username, password=form_data.password
+    login_response = services.authenticate_and_login_user(
+        db, email=form_data.username, password=form_data.password
     )
 
     return login_response

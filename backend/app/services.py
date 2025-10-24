@@ -1,3 +1,5 @@
+from os import wait
+from jose import ExpiredSignatureError
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status, Depends
 from . import models, schemas, repository, core
@@ -8,7 +10,7 @@ from .database import get_db
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 
-def register_user(db:Session, user_data: schemas.UserCreate) -> models.Usuario:
+def register_user(db: Session, user_data: schemas.UserCreate) -> models.Usuario:
     """
     Serviço para registrar um novo usuário.
     Contém a lógica de negócio para verificar se o email já existe.
@@ -37,7 +39,7 @@ def register_user(db:Session, user_data: schemas.UserCreate) -> models.Usuario:
 
 
 def authenticate_and_login_user(
-    db:Session, email: str, password: str
+    db: Session, email: str, password: str
 ) -> schemas.LoginResponse:
     """
     Serviço para autenticar um usuário.
@@ -66,7 +68,8 @@ def authenticate_and_login_user(
 
 
 def get_current_user(
-        db: Annotated[Session, Depends(get_db)],token: Annotated[str, Depends(oauth2_scheme)]
+    db: Annotated[Session, Depends(get_db)],
+    token: Annotated[str, Depends(oauth2_scheme)],
 ) -> schemas.UserResponse:
     try:
         payload = core.decode_access_token(token)
@@ -80,7 +83,14 @@ def get_current_user(
 
         user = repository.get_user_by_email(db, email)
         return user
-    except:
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token Expirado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except Exception as e:
+        print(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Não foi possível processar os dados",
