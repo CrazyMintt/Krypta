@@ -13,6 +13,9 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
   const [activeItemIndex, setActiveItemIndex] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [draggedItemIndex, setDraggedItemIndex] = useState(null);
+  const [dragOverFolderIndex, setDragOverFolderIndex] = useState(null);
+  const [dragOverBreadcrumbPath, setDragOverBreadcrumbPath] = useState(null);
 
   useEffect(() => {
     setItems(fileSystem[currentPath]);
@@ -30,6 +33,127 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
       window.removeEventListener('click', handleOutsideClick);
     };
   }, [activeItemIndex]);
+
+  const handleDragStart = (e, index) => {
+    setDraggedItemIndex(index);
+    e.dataTransfer.setData('text/plain', index);
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    if (items[index].type === 'folder') {
+      setDragOverFolderIndex(index);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverFolderIndex(null);
+  };
+
+  const handleDrop = (e, targetFolderIndex) => {
+    e.preventDefault();
+    setDragOverFolderIndex(null);
+
+    const sourceItemIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
+    if (isNaN(sourceItemIndex) || sourceItemIndex === targetFolderIndex) return;
+
+    const sourceItem = items[sourceItemIndex];
+    const targetFolder = items[targetFolderIndex];
+
+    if (targetFolder.type !== 'folder') {
+      return; // Cannot drop on a file or credential
+    }
+
+    let updatedFileSystem = { ...fileSystem };
+
+    // 1. Remove from source
+    const sourcePath = currentPath;
+    const updatedSourceItems = items.filter((_, index) => index != sourceItemIndex);
+    updatedFileSystem[sourcePath] = updatedSourceItems;
+
+    // 2. Add to destination
+    const targetPath = `${currentPath}${targetFolder.name}/`;
+    const updatedTargetItems = [...updatedFileSystem[targetPath], sourceItem];
+    updatedFileSystem[targetPath] = updatedTargetItems;
+
+    // 3. If a folder was moved, recursively update all its children paths
+    if (sourceItem.type === 'folder') {
+      const oldFolderPath = `${currentPath}${sourceItem.name}/`;
+      const newFolderPath = `${targetPath}${sourceItem.name}/`;
+
+      const pathsToUpdate = Object.keys(updatedFileSystem).filter(path => path.startsWith(oldFolderPath));
+
+      for (const oldPath of pathsToUpdate) {
+        const newPath = oldPath.replace(oldFolderPath, newFolderPath);
+        updatedFileSystem[newPath] = updatedFileSystem[oldPath];
+        delete updatedFileSystem[oldPath];
+      }
+    }
+
+    setFileSystem(updatedFileSystem);
+
+    const newLogEntry = {
+      type: 'edit', // Using 'edit' for a move action
+      title: `"${sourceItem.name}" movido para "${targetFolder.name}"`,
+      time: new Date().toLocaleString(),
+    };
+    setActivityLog([newLogEntry, ...activityLog]);
+  };
+
+  const handleBreadcrumbDragOver = (e, path) => {
+    e.preventDefault();
+    setDragOverBreadcrumbPath(path);
+  };
+
+  const handleBreadcrumbDragLeave = () => {
+    setDragOverBreadcrumbPath(null);
+  };
+
+  const handleBreadcrumbDrop = (e, targetPath) => {
+    e.preventDefault();
+    setDragOverBreadcrumbPath(null);
+
+    if (targetPath === currentPath) return; // Cannot drop in the same folder
+
+    const sourceItemIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
+    if (isNaN(sourceItemIndex)) return;
+
+    const sourceItem = items[sourceItemIndex];
+    let updatedFileSystem = { ...fileSystem };
+
+    // 1. Remove from source
+    const sourcePath = currentPath;
+    const updatedSourceItems = items.filter((_, index) => index != sourceItemIndex);
+    updatedFileSystem[sourcePath] = updatedSourceItems;
+
+    // 2. Add to destination
+    const updatedTargetItems = [...updatedFileSystem[targetPath], sourceItem];
+    updatedFileSystem[targetPath] = updatedTargetItems;
+
+    // 3. If a folder was moved, recursively update all its children paths
+    if (sourceItem.type === 'folder') {
+      const oldFolderPath = `${currentPath}${sourceItem.name}/`;
+      const newFolderPath = `${targetPath}${sourceItem.name}/`;
+
+      const pathsToUpdate = Object.keys(updatedFileSystem).filter(path => path.startsWith(oldFolderPath));
+
+      for (const oldPath of pathsToUpdate) {
+        const newPath = oldPath.replace(oldFolderPath, newFolderPath);
+        updatedFileSystem[newPath] = updatedFileSystem[oldPath];
+        delete updatedFileSystem[oldPath];
+      }
+    }
+
+    setFileSystem(updatedFileSystem);
+
+    const targetFolderName = targetPath === '/' ? 'Raiz' : targetPath.split('/').filter(p => p).pop();
+    const newLogEntry = {
+      type: 'edit', // Using 'edit' for a move action
+      title: `"${sourceItem.name}" movido para "${targetFolderName}"`,
+      time: new Date().toLocaleString(),
+    };
+    setActivityLog([newLogEntry, ...activityLog]);
+  };
 
   const openNewFolderModal = () => setIsNewFolderModalOpen(true);
   const closeNewFolderModal = () => {
@@ -136,13 +260,32 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
     const pathParts = currentPath.split('/').filter(p => p);
     return (
       <div className="breadcrumbs">
-        <span onClick={() => navigateTo('')}>Raiz</span>
-        {pathParts.map((part, index) => (
-          <React.Fragment key={index}>
-            <ChevronRight size={16} />
-            <span onClick={() => navigateBack(index)}>{part}</span>
-          </React.Fragment>
-        ))}
+        <span 
+          onClick={() => navigateTo('')} 
+          className={dragOverBreadcrumbPath === '/' ? 'drag-over' : ''}
+          onDragOver={(e) => handleBreadcrumbDragOver(e, '/')}
+          onDragLeave={handleBreadcrumbDragLeave}
+          onDrop={(e) => handleBreadcrumbDrop(e, '/')}
+        >
+          Raiz
+        </span>
+        {pathParts.map((part, index) => {
+          const path = `/${pathParts.slice(0, index + 1).join('/')}/`;
+          return (
+            <React.Fragment key={index}>
+              <ChevronRight size={16} />
+              <span 
+                onClick={() => navigateBack(index)}
+                className={dragOverBreadcrumbPath === path ? 'drag-over' : ''}
+                onDragOver={(e) => handleBreadcrumbDragOver(e, path)}
+                onDragLeave={handleBreadcrumbDragLeave}
+                onDrop={(e) => handleBreadcrumbDrop(e, path)}
+              >
+                {part}
+              </span>
+            </React.Fragment>
+          )
+        })}
       </div>
     );
   };
@@ -166,7 +309,15 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
           <Breadcrumbs />
           <div className="file-list">
             {items.map((item, index) => (
-              <div key={index} className="file-item" onDoubleClick={() => item.type === 'folder' && navigateTo(item.name)}>
+              <div 
+                key={index} 
+                className={`file-item ${dragOverFolderIndex === index ? 'drag-over' : ''}`}
+                draggable="true"
+                onDragStart={(e) => handleDragStart(e, index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, index)}
+                onDoubleClick={() => item.type === 'folder' && navigateTo(item.name)}>
                 <div className="file-info">
                   {item.type === 'folder' && <Folder size={20} />}
                   {item.type === 'file' && <File size={20} />}
