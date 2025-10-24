@@ -1,107 +1,222 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Copy, Edit, MoreVertical, Search, ChevronDown, Folder } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Folder, File, MoreVertical, ChevronRight, Search, Key } from 'lucide-react';
 import Header from '../layout/Header';
+import Modal from '../layout/Modal';
+import ItemActionsMenu from '../layout/ItemActionsMenu';
+import NewCredentialForm from '../forms/NewCredentialForm';
 
-const Cofre = ({ openModal }) => {
-  const [allPasswords, setAllPasswords] = useState([
-    { id: 1, name: 'Gmail', email: 'email@gmail.com', color: 'red', vault: 'Cofre 1' },
-    { id: 2, name: 'Github', email: 'email@gmail.com', color: 'blue', vault: 'Cofre 1' },
-    { id: 3, name: 'Spotify', email: 'email@gmail.com', color: 'purple', vault: 'Cofre 2' },
-    { id: 4, name: 'Netflix', email: 'email@gmail.com', color: 'green', vault: 'Cofre 3' },
-  ]);
-
-  const [displayedPasswords, setDisplayedPasswords] = useState([]);
-  const [showVaultDropdown, setShowVaultDropdown] = useState(false);
-  const [selectedVault, setSelectedVault] = useState('Todos os cofres');
-  const vaultSelectorRef = useRef(null);
-
-  const vaults = ['Todos os cofres', 'Cofre 1', 'Cofre 2', 'Cofre 3'];
-
-  const toggleVaultDropdown = () => {
-    setShowVaultDropdown(!showVaultDropdown);
-  };
-
-  const handleVaultSelect = (vault) => {
-    setSelectedVault(vault);
-    setShowVaultDropdown(false);
-  };
+const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, currentPath, setCurrentPath }) => {
+  const [items, setItems] = useState(fileSystem[currentPath]);
+  const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
+  const [isNewCredentialModalOpen, setIsNewCredentialModalOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [activeItemIndex, setActiveItemIndex] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (vaultSelectorRef.current && !vaultSelectorRef.current.contains(event.target)) {
-        setShowVaultDropdown(false);
+    setItems(fileSystem[currentPath]);
+  }, [currentPath, fileSystem]);
+
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      if (activeItemIndex !== null) {
+        setActiveItemIndex(null);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('click', handleOutsideClick);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('click', handleOutsideClick);
     };
-  }, []);
+  }, [activeItemIndex]);
 
-  useEffect(() => {
-    if (selectedVault === 'Todos os cofres') {
-      setDisplayedPasswords(allPasswords);
-    } else {
-      setDisplayedPasswords(allPasswords.filter(password => password.vault === selectedVault));
+  const openNewFolderModal = () => setIsNewFolderModalOpen(true);
+  const closeNewFolderModal = () => {
+    setIsNewFolderModalOpen(false);
+    setNewFolderName('');
+  };
+
+  const openNewCredentialModal = () => setIsNewCredentialModalOpen(true);
+  const closeNewCredentialModal = () => setIsNewCredentialModalOpen(false);
+
+  const handleCreateFolder = () => {
+    if (newFolderName.trim() === '') return;
+    const newFolder = { type: 'folder', name: newFolderName.trim() };
+    const newPath = `${currentPath}${newFolderName.trim()}/`;
+    const updatedFileSystem = { ...fileSystem, [currentPath]: [...fileSystem[currentPath], newFolder], [newPath]: [] };
+    setFileSystem(updatedFileSystem);
+
+    const newLogEntry = {
+      type: 'add',
+      title: `Pasta "${newFolderName.trim()}" criada`,
+      time: new Date().toLocaleString(),
+    };
+    setActivityLog([newLogEntry, ...activityLog]);
+
+    closeNewFolderModal();
+  };
+
+  const addPassword = (newPassword) => {
+    const newCredential = { type: 'credential', name: newPassword.name, email: newPassword.email };
+    const updatedFileSystem = { ...fileSystem, [currentPath]: [...fileSystem[currentPath], newCredential] };
+    setFileSystem(updatedFileSystem);
+
+    const newLogEntry = {
+      type: 'add',
+      title: `Credencial "${newPassword.name}" criada`,
+      time: new Date().toLocaleString(),
+    };
+    setActivityLog([newLogEntry, ...activityLog]);
+
+    closeNewCredentialModal();
+  };
+
+  const openDeleteModal = (index) => {
+    setItemToDelete(index);
+    setIsDeleteModalOpen(true);
+    setActiveItemIndex(null);
+  };
+
+  const closeDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setItemToDelete(null);
+  };
+
+  const confirmDelete = () => {
+    if (itemToDelete === null) return;
+
+    const item = items[itemToDelete];
+    // For now, only allow deleting files, credentials, and empty folders
+    if (item.type === 'folder') {
+      const folderPath = `${currentPath}${item.name}/`;
+      if (fileSystem[folderPath] && fileSystem[folderPath].length > 0) {
+        alert('Não é possível excluir pastas que não estão vazias.');
+        closeDeleteModal();
+        return;
+      }
     }
-  }, [selectedVault, allPasswords]);
 
-  const handleCopy = (name) => alert(`Senha de ${name} copiada!`);
-  const handleEdit = (name) => alert(`Editando ${name}`);
-  const handleMenu = (name) => alert(`Menu de opções de ${name}`);
+    const updatedItems = items.filter((_, index) => index !== itemToDelete);
+    const updatedFileSystem = { ...fileSystem, [currentPath]: updatedItems };
+    // If it was a folder, remove its own path from the file system
+    if (item.type === 'folder') {
+      const folderPath = `${currentPath}${item.name}/`;
+      delete updatedFileSystem[folderPath];
+    }
+
+    setFileSystem(updatedFileSystem);
+
+    const newLogEntry = {
+      type: 'delete', // Or a more specific type
+      title: `Item "${item.name}" excluído`,
+      time: new Date().toLocaleString(),
+    };
+    setActivityLog([newLogEntry, ...activityLog]);
+
+    closeDeleteModal();
+  };
+
+  const navigateTo = (folderName) => {
+    const newPath = folderName === '' ? '/' : `${currentPath}${folderName}/`;
+    if (fileSystem[newPath]) {
+      setCurrentPath(newPath);
+    }
+  };
+
+  const navigateBack = (pathIndex) => {
+    const pathParts = currentPath.split('/').filter(p => p);
+    const newPath = `/${pathParts.slice(0, pathIndex + 1).join('/')}/`;
+    if (fileSystem[newPath]) {
+      setCurrentPath(newPath);
+    }
+  };
+
+  const Breadcrumbs = () => {
+    const pathParts = currentPath.split('/').filter(p => p);
+    return (
+      <div className="breadcrumbs">
+        <span onClick={() => navigateTo('')}>Raiz</span>
+        {pathParts.map((part, index) => (
+          <React.Fragment key={index}>
+            <ChevronRight size={16} />
+            <span onClick={() => navigateBack(index)}>{part}</span>
+          </React.Fragment>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <>
-      <div id="left-panel">
-        <div id="vault-selector" onClick={toggleVaultDropdown} ref={vaultSelectorRef}>
-          <ChevronDown size={16} /><span>{selectedVault}</span>
-          {showVaultDropdown && (
-            <div className="vault-dropdown-menu">
-              {vaults.map((vault) => (
-                <div
-                  key={vault}
-                  className="vault-dropdown-item"
-                  onClick={() => handleVaultSelect(vault)}
-                >
-                  {vault}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        <div id="search-bar"><Search size={16} /><span>Pesquisar</span></div>
-        <div id="tags">
+      <div className="left-panel">
+        <div className="search-bar"><Search size={16} /><span>Pesquisar</span></div>
+        <div className="tags">
           <div className="tag-title">Tags</div>
           <div className="tag-list">
             <div className="tag" style={{ borderLeftColor: 'red' }}>Email</div>
             <div className="tag" style={{ borderLeftColor: 'blue' }}>Apps</div>
           </div>
         </div>
-        <div id="folders">
-          <div className="folder-title">Pastas</div>
-          <div className="folder-item"><Folder size={16} /><span>Backup</span></div>
+      </div>
+
+      <div className="main-content">
+        <Header title="Meu Cofre" onNewFolder={openNewFolderModal} onNewCredential={openNewCredentialModal} />
+        <div className="file-manager">
+          <Breadcrumbs />
+          <div className="file-list">
+            {items.map((item, index) => (
+              <div key={index} className="file-item" onDoubleClick={() => item.type === 'folder' && navigateTo(item.name)}>
+                <div className="file-info">
+                  {item.type === 'folder' && <Folder size={20} />}
+                  {item.type === 'file' && <File size={20} />}
+                  {item.type === 'credential' && <Key size={20} />}
+                  <div className="file-details">
+                    <span className="file-name">{item.name}</span>
+                    {item.type === 'credential' && item.email && <span className="file-email">{item.email}</span>}
+                  </div>
+                </div>
+                <div className="file-actions">
+                  <button onClick={(e) => { e.stopPropagation(); setActiveItemIndex(index === activeItemIndex ? null : index); }}><MoreVertical size={16} /></button>
+                  {activeItemIndex === index && (
+                    <ItemActionsMenu onDelete={() => openDeleteModal(index)} />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div id="main-content">
-        <Header title="Meu cofre" openModal={openModal} />
-        <div id="password-list">
-          {displayedPasswords.map((password) => (
-            <div key={password.id} className="password-item" style={{ borderLeftColor: password.color }}>
-              <div>
-                <div className="password-name">{password.name}</div>
-                <div className="password-email">{password.email}</div>
-              </div>
-              <div className="password-actions">
-                <button onClick={(e) => { e.stopPropagation(); handleCopy(password.name); }}><Copy size={16} /></button>
-                <button onClick={(e) => { e.stopPropagation(); handleEdit(password.name); }}><Edit size={16} /></button>
-                <button onClick={(e) => { e.stopPropagation(); handleMenu(password.name); }}><MoreVertical size={16} /></button>
-              </div>
-            </div>
-          ))}
+      <Modal title="Nova Pasta" isOpen={isNewFolderModalOpen} onCancel={closeNewFolderModal}>
+        <div className="form-group">
+          <label className="form-label">Nome da Pasta</label>
+          <input 
+            type="text" 
+            className="form-input" 
+            placeholder="Digite o nome da pasta"
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            autoFocus
+          />
         </div>
-      </div>
+        <div className="modal-actions">
+          <button type="button" className="btn btn-secondary" onClick={closeNewFolderModal}>Cancelar</button>
+          <button type="button" className="btn btn-primary" onClick={handleCreateFolder}>Criar</button>
+        </div>
+      </Modal>
+
+      <Modal title="Novo Item" isOpen={isNewCredentialModalOpen} onCancel={closeNewCredentialModal}>
+        <NewCredentialForm onCancel={closeNewCredentialModal} addPassword={addPassword} />
+      </Modal>
+
+      <Modal title="Confirmar Exclusão" isOpen={isDeleteModalOpen} onCancel={closeDeleteModal}>
+        <p>Você tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.</p>
+        <div className="modal-actions">
+          <button type="button" className="btn btn-secondary" onClick={closeDeleteModal}>Cancelar</button>
+          <button type="button" className="btn btn-danger" onClick={confirmDelete}>Excluir</button>
+        </div>
+      </Modal>
     </>
   );
 };

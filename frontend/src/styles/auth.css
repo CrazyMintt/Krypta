@@ -5,12 +5,12 @@
     justify-content: center;
     width: 100%;
     min-height: 100vh;
-    background: linear-gradient(to right, #8b5cf6 0%, #8b5cf6 50%, #333 50%, #333 100%);
+    background: linear-gradient(to right, #8b5cf6 0%, #8b5cf6 50%, #23262d 50%, #333 100%);
     padding: 20px;
 }
 
 .form-container {
-    background: #3f3f3f;
+    background: #2a2d35;
     border-radius: 24px;
     padding: 48px 56px;
     width: 100%;

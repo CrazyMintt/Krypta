@@ -6,6 +6,7 @@ import './styles/dashboard.css';
 import './styles/modal.css';
 import './styles/auth.css';
 import './styles/notifications.css';
+import './styles/dropdown-menu.css';
 
 import Login from './components/auth/Login';
 import Signup from './components/auth/Signup';
@@ -14,9 +15,44 @@ import Modal from './components/layout/Modal';
 import Cofre from './components/views/Cofre';
 import Dashboard from './components/views/Dashboard';
 
+// Mock data para simular uma estrutura de arquivos
+const initialFileSystem = {
+  '/': [
+    { type: 'folder', name: 'Trabalho' },
+    { type: 'folder', name: 'Pessoal' },
+    { type: 'credential', name: 'senha_wifi', email: 'user@example.com' },
+  ],
+  '/Trabalho/': [
+    { type: 'file', name: 'relatorio_q3.pdf' },
+    { type: 'folder', name: 'Projetos' },
+  ],
+  '/Trabalho/Projetos/': [
+    { type: 'file', name: 'projeto_krypta.docx' },
+  ],
+  '/Pessoal/': [
+    { type: 'file', name: 'lista_compras.txt' },
+  ],
+};
+
+const initialActivityLog = [
+  {
+    type: 'add',
+    title: 'Senha do github criada',
+    time: 'Há 1 minuto atrás',
+  },
+  {
+    type: 'edit',
+    title: 'Senha do gmail alterada',
+    time: 'Há 1 hora atrás',
+  },
+];
+
 const MainApp = () => {
     const [view, setView] = useState('cofre');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [fileSystem, setFileSystem] = useState(initialFileSystem);
+    const [activityLog, setActivityLog] = useState(initialActivityLog);
+    const [currentPath, setCurrentPath] = useState('/');
 
     const openModal = () => setIsModalOpen(true);
     const closeModal = () => setIsModalOpen(false);
@@ -28,8 +64,17 @@ const MainApp = () => {
     };
 
     const CurrentView = () => {
-        if (view === 'cofre') return <Cofre openModal={openModal} />;
-        if (view === 'dashboard') return <Dashboard openModal={openModal} />;
+        const commonProps = {
+            openModal,
+            fileSystem,
+            setFileSystem,
+            activityLog,
+            setActivityLog,
+            currentPath,
+            setCurrentPath,
+        };
+        if (view === 'cofre') return <Cofre {...commonProps} />;
+        if (view === 'dashboard') return <Dashboard {...commonProps} />;
         return null;
     };
 
