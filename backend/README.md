@@ -33,6 +33,8 @@ Primeiro, configure o ambiente virtual e instale as dependências do projeto.
 ### Instale as dependências
 ```pip install -r requirements.txt```
 
+## Variáveis de Ambiente
+É necessário configurar algumas variáveis de ambinete para rodar o backend. Um template está presente em .env.new
 
 ## Configurando HTTPS com mkcert
 

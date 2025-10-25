@@ -3,6 +3,7 @@ from passlib.context import CryptContext
 from jose import jwt
 from pydantic_settings import BaseSettings
 import secrets
+from zoneinfo import ZoneInfo
 
 # Configurações do JWT
 
@@ -50,10 +51,17 @@ def generate_crypto_salt(num_bytes: int = 16) -> str:
 def create_access_token(data: dict) -> str:
     """Cria um novo token de acesso JWT."""
     to_encode = data.copy()
-    expire = datetime.now() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(ZoneInfo("America/Sao_Paulo")) + timedelta(
+        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+    )
     to_encode.update({"exp": expire})
+    print("expira em: ", expire)
     encoded_jwt = jwt.encode(
         to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )
+
     return encoded_jwt
 
+
+def decode_access_token(token: str) -> dict:
+    return jwt.decode(token, settings.SECRET_KEY, settings.ALGORITHM)

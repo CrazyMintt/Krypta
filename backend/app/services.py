@@ -1,7 +1,12 @@
+from jose import ExpiredSignatureError
 from sqlalchemy.orm import Session
-from fastapi import HTTPException, status
-
+from fastapi import HTTPException, status, Depends
 from . import models, schemas, repository, core
+from typing import Annotated
+from fastapi.security import OAuth2PasswordBearer
+from .database import get_db
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 
 def register_user(db: Session, user_data: schemas.UserCreate) -> models.Usuario:
@@ -10,7 +15,7 @@ def register_user(db: Session, user_data: schemas.UserCreate) -> models.Usuario:
     Contém a lógica de negócio para verificar se o email já existe.
     """
     # Verificar se já existe um usuário com este email.
-    existing_user = repository.get_user_by_email(db, email=user_data.email)
+    existing_user = repository.get_user_by_email(db=db, email=user_data.email)
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -25,19 +30,21 @@ def register_user(db: Session, user_data: schemas.UserCreate) -> models.Usuario:
         email=user_data.email,
         nome=user_data.nome,
         senha_mestre=hashed_password,
-        saltKDF = salt
+        saltKDF=salt,
     )
 
     # Usa o repositório para salvar o usuário no banco de dados
-    return repository.create_user(db=db, user_data=new_user)
+    return repository.create_user(db, user_data=new_user)
 
 
-def authenticate_and_login_user(db: Session, email: str, password: str):
+def authenticate_and_login_user(
+    db: Session, email: str, password: str
+) -> schemas.LoginResponse:
     """
     Serviço para autenticar um usuário.
     Contém a lógica de negócio completa para o processo de login.
     """
-    user = repository.get_user_by_email(db, email=email)
+    user = repository.get_user_by_email(db, email)
     if not user or not core.verify_password(password, user.senha_mestre):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -45,12 +52,45 @@ def authenticate_and_login_user(db: Session, email: str, password: str):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    access_token = core.create_access_token(
-        data={"sub": user.email}
+    user = schemas.UserComplete.model_validate(user)
+    access_token = core.create_access_token(data={"sub": user.email})
+
+    return schemas.LoginResponse(
+        nome=user.nome,
+        id=user.id,
+        created_at=user.created_at,
+        email=user.email,
+        access_token=access_token,
+        saltKDF=user.saltKDF,
     )
 
-    crypto_salt = user.saltKDF
-    return schemas.LoginResponse(
-        access_token=access_token,
-        crypto_salt=crypto_salt
-    )
+
+def get_current_user(
+    db: Annotated[Session, Depends(get_db)],
+    token: Annotated[str, Depends(oauth2_scheme)],
+) -> schemas.UserResponse:
+    try:
+        payload = core.decode_access_token(token)
+        email = payload.get("sub")
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Não foi possível validar as Credenciais",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        user = repository.get_user_by_email(db, email)
+        return user
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token Expirado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except Exception as e:
+        print(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Não foi possível processar os dados",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
