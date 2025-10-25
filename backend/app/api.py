@@ -27,8 +27,9 @@ def get_current_user(
     )
     try:
         payload = core.decode_access_token(token)
-        email = payload.get("sub")
-        if email is None:
+        id: str = payload.get("sub")
+        print(id)
+        if id is None:
             raise credentials_exception
     except ExpiredSignatureError:
         raise HTTPException(
@@ -36,9 +37,9 @@ def get_current_user(
             detail="Token Expirado",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except JWTError:
+    except JWTError as e:
         raise credentials_exception
-    user = repository.get_user_by_email(db, email=email)
+    user = repository.get_user_by_id(db, int(id))
     if user is None:
         raise credentials_exception
     return user

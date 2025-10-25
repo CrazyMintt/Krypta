@@ -38,7 +38,9 @@ def authenticate_and_login_user(
     if not user or not core.verify_password(password, user.senha_mestre):
         return None
 
-    access_token = core.create_access_token(data={"sub": user.email})
+    access_token = core.create_access_token(
+        data={"sub": str(user.id)}
+    )  # tem que ser string
 
     return schemas.LoginResponse(
         nome=user.nome,
