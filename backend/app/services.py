@@ -1,31 +1,21 @@
-from jose import ExpiredSignatureError
 from sqlalchemy.orm import Session
-from fastapi import HTTPException, status, Depends
 from . import models, schemas, repository, core
-from typing import Annotated
-from fastapi.security import OAuth2PasswordBearer
-from .database import get_db
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
+from .exceptions import UserNotFoundError, EmailAlreadyExistsError
 
 
-def register_user(db: Session, user_data: schemas.UserCreate) -> models.Usuario:
+def register_user(db: Session, user_data: schemas.UserCreate) -> models.Usuario | None:
     """
     Serviço para registrar um novo usuário.
     Contém a lógica de negócio para verificar se o email já existe.
     """
-    # Verificar se já existe um usuário com este email.
+    # Verificar se já existe um usuário com este email
     existing_user = repository.get_user_by_email(db=db, email=user_data.email)
     if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Já existe um usuário cadastrado com este email.",
-        )
-
-    # Cria o hash da senha antes de salvar
+        return None
+    # Cria o hash da senha
     hashed_password = core.get_password_hash(user_data.senha_mestre)
     salt = core.generate_crypto_salt()
-    # Cria o novo objeto de usuário
+
     new_user = models.Usuario(
         email=user_data.email,
         nome=user_data.nome,
@@ -33,26 +23,21 @@ def register_user(db: Session, user_data: schemas.UserCreate) -> models.Usuario:
         saltKDF=salt,
     )
 
-    # Usa o repositório para salvar o usuário no banco de dados
     return repository.create_user(db, user_data=new_user)
 
 
 def authenticate_and_login_user(
     db: Session, email: str, password: str
-) -> schemas.LoginResponse:
+) -> schemas.LoginResponse | None:
     """
     Serviço para autenticar um usuário.
     Contém a lógica de negócio completa para o processo de login.
     """
     user = repository.get_user_by_email(db, email)
-    if not user or not core.verify_password(password, user.senha_mestre):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Email ou senha incorretos",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
 
-    user = schemas.UserComplete.model_validate(user)
+    if not user or not core.verify_password(password, user.senha_mestre):
+        return None
+
     access_token = core.create_access_token(data={"sub": user.email})
 
     return schemas.LoginResponse(
@@ -65,32 +50,19 @@ def authenticate_and_login_user(
     )
 
 
-def get_current_user(
-    db: Annotated[Session, Depends(get_db)],
-    token: Annotated[str, Depends(oauth2_scheme)],
-) -> schemas.UserResponse:
-    try:
-        payload = core.decode_access_token(token)
-        email = payload.get("sub")
-        if not email:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Não foi possível validar as Credenciais",
-                headers={"WWW-Authenticate": "Bearer"},
+def edit_user(
+    db: Session, user_id: int, update_data: schemas.UserBase
+) -> models.Usuario:
+    db_user = repository.get_user_by_id(db, user_id=user_id)
+    if not db_user:
+        raise UserNotFoundError(f"Usuário com id {user_id} não encontrado.")
+
+    # verificar se o email já não está em uso por outro usuario
+    if update_data.email and update_data.email != db_user.email:
+        existing_user = repository.get_user_by_email(db, email=update_data.email)
+        if existing_user:
+            raise EmailAlreadyExistsError(
+                f"O email {update_data.email} já está em uso."
             )
 
-        user = repository.get_user_by_email(db, email)
-        return user
-    except ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token Expirado",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    except Exception as e:
-        print(e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Não foi possível processar os dados",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    return repository.update_user(db=db, db_user=db_user, update_data=update_data)
