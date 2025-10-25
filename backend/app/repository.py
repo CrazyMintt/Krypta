@@ -1,5 +1,6 @@
-from . import models
+from . import models, schemas
 from sqlalchemy.orm import Session
+from sqlalchemy import update
 
 
 def create_user(db: Session, user_data: models.Usuario) -> models.Usuario:
@@ -20,6 +21,24 @@ def get_user_by_email(db: Session, email: str) -> models.Usuario | None:
     return db.query(models.Usuario).filter(models.Usuario.email == email).first()
 
 
-def get_user(db: Session, user_id: int) -> models.Usuario | None:
+def get_user_by_id(db: Session, user_id: int) -> models.Usuario | None:
     """Busca um usuário pelo seu ID."""
     return db.query(models.Usuario).filter(models.Usuario.id == user_id).first()
+
+
+def update_user(
+    db: Session, db_user: models.Usuario, update_data: schemas.UserBase
+) -> models.Usuario:
+    """
+    Atualiza um objeto de usuário no banco de dados com dados parciais.
+    """
+    # Converte o schema Pydantic em um dicionário, excluindo campos não enviados
+    update_data_dict = update_data.model_dump(exclude_unset=True)
+
+    # Atualiza o modelo do SQLAlchemy
+    for key, value in update_data_dict.items():
+        setattr(db_user, key, value)
+
+    db.commit()
+    db.refresh(db_user)
+    return db_user
