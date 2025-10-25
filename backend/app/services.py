@@ -58,7 +58,6 @@ def authenticate_and_login_user(
     return schemas.LoginResponse(
         nome=user.nome,
         id=user.id,
-        dados=user.dados,
         created_at=user.created_at,
         email=user.email,
         access_token=access_token,

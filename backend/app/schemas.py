@@ -44,7 +44,6 @@ class UserResponse(UserBase):
     # Permite que o Pydantic leia os dados de um objeto SQLAlchemy
     model_config = ConfigDict(from_attributes=True)
     id: int
-    dados: Optional[List[DataBase]]
     created_at: datetime
 
 
