@@ -13,12 +13,17 @@ UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `separadores` (
-`id` int(11) NOT NULL AUTO_INCREMENT,
-`nome` varchar(255) NOT NULL,
-`tipo` varchar(100) NOT NULL,
-`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-`cor` varchar(100) DEFAULT NULL,
-PRIMARY KEY (`id`)
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_pasta_raiz` int(11) DEFAULT NULL,
+  `nome` varchar(255) NOT NULL,
+  `tipo` varchar(100) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `cor` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_pasta_raiz`
+    FOREIGN KEY (`id_pasta_raiz`) REFERENCES `separadores`(`id`)
+    ON DELETE SET NULL
+    ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `compartilhamento` (
