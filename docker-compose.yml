@@ -18,4 +18,4 @@ services:
       context: ./frontend
 
     ports:
-      - "8080:80"
+      - "1420:80"
