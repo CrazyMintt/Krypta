@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 
-const Modal = ({ title, children, onConfirm, onCancel, isOpen }) => {
+const Modal = ({ title, children, onCancel, isOpen }) => {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
@@ -21,9 +21,11 @@ const Modal = ({ title, children, onConfirm, onCancel, isOpen }) => {
             <path d="M18 6L6 18M6 6l12 12" />
           </svg>
         </button>
+
         <div className="modal-header">
           <h2 className="modal-title">{title}</h2>
         </div>
+
         <div className="modal-content">
           {children}
         </div>
