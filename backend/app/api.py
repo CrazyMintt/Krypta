@@ -3,6 +3,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import Annotated
 from jose import ExpiredSignatureError, JWTError
+from starlette.status import HTTP_204_NO_CONTENT, HTTP_500_INTERNAL_SERVER_ERROR
 
 from . import schemas, services, repository, core, models
 from .database import get_db
@@ -27,8 +28,7 @@ def get_current_user(
     )
     try:
         payload = core.decode_access_token(token)
-        id: str = payload.get("sub")
-        print(id)
+        id = payload.get("sub")
         if id is None:
             raise credentials_exception
     except ExpiredSignatureError:
@@ -37,7 +37,7 @@ def get_current_user(
             detail="Token Expirado",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except JWTError as e:
+    except JWTError:
         raise credentials_exception
     user = repository.get_user_by_id(db, int(id))
     if user is None:
@@ -92,18 +92,33 @@ def get_user_me(current_user: Annotated[models.Usuario, Depends(get_current_user
 @router.patch("/users/me", response_model=schemas.UserResponse, tags=["Users"])
 def update_user_me(
     update_data: schemas.UserBase,
-    db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
+    db=Depends(get_db),
 ):
     """
     Atualiza os dados (nome ou email) do usuário logado.
     """
     try:
         updated_user = services.edit_user(
-            db=db, user_id=current_user.id, update_data=update_data
+            db=db, user=current_user, update_data=update_data
         )
         return updated_user
     except UserNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except EmailAlreadyExistsError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+
+
+@router.delete("/users/me", status_code=HTTP_204_NO_CONTENT, tags=["Users"])
+def delete_user_me(
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+    db=Depends(get_db),
+):
+    "Apaga todos os dados do usuário logado, mantendo a conta"
+    success = services.clear_all_user_data(db=db, user_id=current_user.id)
+    if not success:
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Não foi possível apagar os dados do usuário.",
+        )
+    return current_user
