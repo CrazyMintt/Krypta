@@ -1,6 +1,0 @@
-services:
-  frontend:
-    build: .
-    image: krypta-frontend
-    ports:
-      - "8080:80"

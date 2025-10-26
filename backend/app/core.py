@@ -17,7 +17,7 @@ class Settings(BaseSettings):
 settings = Settings()
 
 # Hashing de Senhas
-pwd_context = CryptContext(schemes=["bcrypt"])
+pwd_context = CryptContext(schemes=["argon2"])
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

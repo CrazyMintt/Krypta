@@ -1,5 +1,12 @@
 # Como rodar
-cd frontend
+> Agora tudo é feito com docker, então é necessário apenas rodar
 
-# Construir e rodar a imagem do Docker
-docker-compose up -d --build
+```docker compose up -d --build```
+
+## Frontend
+Para rodar apenas o Frontend, rodar o seguinte comando:
+```docker compose up frontend -d --build```
+
+## Backend 
+Para rodar apenas o Backend, rodar o seguinte comando:
+```docker compose up backend -d --build```
