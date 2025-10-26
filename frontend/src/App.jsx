@@ -11,7 +11,6 @@ import './styles/dropdown-menu.css';
 import Login from './components/auth/Login';
 import Signup from './components/auth/Signup';
 import Sidebar from './components/layout/Sidebar';
-import Modal from './components/layout/Modal';
 import Cofre from './components/views/Cofre';
 import Dashboard from './components/views/Dashboard';
 
@@ -48,61 +47,49 @@ const initialActivityLog = [
 ];
 
 const MainApp = () => {
-    const [view, setView] = useState('cofre');
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [fileSystem, setFileSystem] = useState(initialFileSystem);
-    const [activityLog, setActivityLog] = useState(initialActivityLog);
-    const [currentPath, setCurrentPath] = useState('/');
+  const [view, setView] = useState('cofre');
+  const [fileSystem, setFileSystem] = useState(initialFileSystem);
+  const [activityLog, setActivityLog] = useState(initialActivityLog);
+  const [currentPath, setCurrentPath] = useState('/');
 
-    const openModal = () => setIsModalOpen(true);
-    const closeModal = () => setIsModalOpen(false);
+  const changeView = (newView) => {
+    if (view !== newView) {
+      setView(newView);
+    }
+  };
 
-    const changeView = (newView) => {
-        if (view !== newView) {
-            setView(newView);
-        }
-    };
+  const commonProps = {
+    fileSystem,
+    setFileSystem,
+    activityLog,
+    setActivityLog,
+    currentPath,
+    setCurrentPath,
+  };
 
-    const CurrentView = () => {
-        const commonProps = {
-            openModal,
-            fileSystem,
-            setFileSystem,
-            activityLog,
-            setActivityLog,
-            currentPath,
-            setCurrentPath,
-        };
-        if (view === 'cofre') return <Cofre {...commonProps} />;
-        if (view === 'dashboard') return <Dashboard {...commonProps} />;
-        return null;
-    };
-
-    return (
-        <div className="container">
-            <Sidebar changeView={changeView} />
-            <CurrentView />
-            {isModalOpen && <Modal closeModal={closeModal} isOpen={isModalOpen} />}
-        </div>
-    );
+  return (
+    <div className="container">
+      <Sidebar changeView={changeView} />
+      
+      {view === 'cofre' && <Cofre {...commonProps} />}
+      {view === 'dashboard' && <Dashboard {...commonProps} />}
+    </div>
+  );
 };
 
 function App() {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [authView, setAuthView] = useState('login'); // 'login' or 'signup'
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authView, setAuthView] = useState('login');
 
-    const handleLoginSuccess = () => {
-        setIsAuthenticated(true);
-    };
+  const handleLoginSuccess = () => setIsAuthenticated(true);
 
-    if (!isAuthenticated) {
-        if (authView === 'login') {
-            return <Login onNavigateToSignup={() => setAuthView('signup')} onLoginSuccess={handleLoginSuccess} />;
-        }
-        return <Signup onNavigateToLogin={() => setAuthView('login')} />;
-    }
+  if (!isAuthenticated) {
+    return authView === 'login'
+      ? <Login onNavigateToSignup={() => setAuthView('signup')} onLoginSuccess={handleLoginSuccess} />
+      : <Signup onNavigateToLogin={() => setAuthView('login')} />;
+  }
 
-    return <MainApp />;
+  return <MainApp />;
 }
 
 export default App;

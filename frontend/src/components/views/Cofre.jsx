@@ -4,6 +4,8 @@ import Header from '../layout/Header';
 import Modal from '../layout/Modal';
 import ItemActionsMenu from '../layout/ItemActionsMenu';
 import NewCredentialForm from '../forms/NewCredentialForm';
+import RenameFolderForm from "../forms/RenameFolderForm";
+
 
 const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, currentPath, setCurrentPath }) => {
   const [items, setItems] = useState(fileSystem[currentPath]);
@@ -16,6 +18,11 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
   const [draggedItemIndex, setDraggedItemIndex] = useState(null);
   const [dragOverFolderIndex, setDragOverFolderIndex] = useState(null);
   const [dragOverBreadcrumbPath, setDragOverBreadcrumbPath] = useState(null);
+  const [itemToEdit, setItemToEdit] = useState(null);
+  const [isEditCredentialModalOpen, setIsEditCredentialModalOpen] = useState(false);
+  const [folderToEdit, setFolderToEdit] = useState(null);
+  const [isEditFolderModalOpen, setIsEditFolderModalOpen] = useState(false);
+
 
   useEffect(() => {
     setItems(fileSystem[currentPath]);
@@ -241,6 +248,97 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
     closeDeleteModal();
   };
 
+  const openEditModal = (index) => {
+    setItemToEdit({ ...items[index], index });
+    setIsEditCredentialModalOpen(true);
+    setActiveItemIndex(null);
+  };
+
+  const closeEditModal = () => {
+    setItemToEdit(null);
+    setIsEditCredentialModalOpen(false);
+  };
+
+  const updatePassword = (updatedItem) => {
+    if (!updatedItem || updatedItem.index === undefined) return;
+
+    const updatedItems = [...items];
+    const originalItem = updatedItems[updatedItem.index];
+
+    // Atualiza os campos editáveis
+    updatedItems[updatedItem.index] = {
+      ...originalItem,
+      name: updatedItem.name,
+      email: updatedItem.email
+    };
+
+    // Salvar no fileSystem
+    const updatedFileSystem = {
+      ...fileSystem,
+      [currentPath]: updatedItems
+    };
+
+    setFileSystem(updatedFileSystem);
+
+    // Log de edição
+    const logEntry = {
+      type: 'edit',
+      title: `Credencial "${updatedItem.name}" alterada`,
+      time: new Date().toLocaleString(),
+    };
+
+    setActivityLog([logEntry, ...activityLog]);
+
+    closeEditModal();
+  };
+
+  const openEditFolderModal = (index) => {
+    setFolderToEdit({ ...items[index], index });
+    setNewFolderName(items[index].name); // preencher input
+    setIsEditFolderModalOpen(true);
+    setActiveItemIndex(null);
+  };
+
+  const closeEditFolderModal = () => {
+    setFolderToEdit(null);
+    setNewFolderName('');
+    setIsEditFolderModalOpen(false);
+  };
+
+  const updateFolderName = (updatedFolder) => {
+    const updatedItems = [...items];
+    updatedItems[updatedFolder.index].name = updatedFolder.name;
+
+    const oldPath = `${currentPath}${folderToEdit.name}/`;
+    const newPath = `${currentPath}${updatedFolder.name}/`;
+
+    let updatedFileSystem = { ...fileSystem };
+
+    updatedFileSystem[currentPath] = updatedItems;
+
+    if (updatedFileSystem[oldPath]) {
+      updatedFileSystem[newPath] = updatedFileSystem[oldPath];
+      delete updatedFileSystem[oldPath];
+
+      for (const path in updatedFileSystem) {
+        if (path.startsWith(oldPath)) {
+          const newSubPath = path.replace(oldPath, newPath);
+          updatedFileSystem[newSubPath] = updatedFileSystem[path];
+          delete updatedFileSystem[path];
+        }
+      }
+    }
+
+    setFileSystem(updatedFileSystem);
+
+    setActivityLog([
+      { type: 'edit', title: `Pasta renomeada para "${updatedFolder.name}"`, time: new Date().toLocaleString() },
+      ...activityLog
+    ]);
+
+    closeEditFolderModal();
+  };
+
   const navigateTo = (folderName) => {
     const newPath = folderName === '' ? '/' : `${currentPath}${folderName}/`;
     if (fileSystem[newPath]) {
@@ -330,7 +428,12 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
                 <div className="file-actions">
                   <button onClick={(e) => { e.stopPropagation(); setActiveItemIndex(index === activeItemIndex ? null : index); }}><MoreVertical size={16} /></button>
                   {activeItemIndex === index && (
-                    <ItemActionsMenu onDelete={() => openDeleteModal(index)} />
+                    <ItemActionsMenu
+                      onEditCredential={() => openEditModal(index)}
+                      onEditFolder={() => openEditFolderModal(index)}
+                      onDelete={() => openDeleteModal(index)}
+                      itemType={items[index].type}
+                    />
                   )}
                 </div>
               </div>
@@ -338,28 +441,53 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
           </div>
         </div>
       </div>
+      
+    <Modal title="Nova Pasta" isOpen={isNewFolderModalOpen} onCancel={closeNewFolderModal}>
+      <div className="form-group">
+        <label className="form-label">Nome da Pasta</label>
+        <input 
+          type="text"
+          className="form-input"
+          placeholder="Digite o nome da pasta"
+          value={newFolderName}
+          onChange={(e) => setNewFolderName(e.target.value)}
+          autoFocus
+        />
+      </div>
+      <div className="modal-actions">
+        <button type="button" className="btn btn-secondary" onClick={closeNewFolderModal}>Cancelar</button>
+        <button type="button" className="btn btn-primary" onClick={handleCreateFolder}>Criar</button>
+      </div>
+    </Modal>
 
-      <Modal title="Nova Pasta" isOpen={isNewFolderModalOpen} onCancel={closeNewFolderModal}>
-        <div className="form-group">
-          <label className="form-label">Nome da Pasta</label>
-          <input 
-            type="text" 
-            className="form-input" 
-            placeholder="Digite o nome da pasta"
-            value={newFolderName}
-            onChange={(e) => setNewFolderName(e.target.value)}
-            autoFocus
-          />
-        </div>
-        <div className="modal-actions">
-          <button type="button" className="btn btn-secondary" onClick={closeNewFolderModal}>Cancelar</button>
-          <button type="button" className="btn btn-primary" onClick={handleCreateFolder}>Criar</button>
-        </div>
-      </Modal>
+    <Modal title="Novo Item" isOpen={isNewCredentialModalOpen} onCancel={closeNewCredentialModal}>
+      <NewCredentialForm onCancel={closeNewCredentialModal} addPassword={addPassword} />
+    </Modal>
 
-      <Modal title="Novo Item" isOpen={isNewCredentialModalOpen} onCancel={closeNewCredentialModal}>
-        <NewCredentialForm onCancel={closeNewCredentialModal} addPassword={addPassword} />
-      </Modal>
+    <Modal title="Editar Item" isOpen={isEditCredentialModalOpen} onCancel={closeEditModal}>
+      <NewCredentialForm 
+        onCancel={closeEditModal}
+        editItem={itemToEdit}
+        updatePassword={updatePassword}
+      />
+    </Modal>
+
+    <Modal title="Renomear Pasta" isOpen={isEditFolderModalOpen} onCancel={closeEditFolderModal}>
+      <RenameFolderForm
+        folder={folderToEdit}
+        onCancel={closeEditFolderModal}
+        updateFolderName={updateFolderName}
+      />
+    </Modal>
+
+    <Modal title="Confirmar Exclusão" isOpen={isDeleteModalOpen} onCancel={closeDeleteModal}>
+      <p>Você tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.</p>
+      <div className="modal-actions">
+        <button type="button" className="btn btn-secondary" onClick={closeDeleteModal}>Cancelar</button>
+        <button type="button" className="btn btn-danger" onClick={confirmDelete}>Excluir</button>
+      </div>
+    </Modal>
+
 
       <Modal title="Confirmar Exclusão" isOpen={isDeleteModalOpen} onCancel={closeDeleteModal}>
         <p>Você tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.</p>
