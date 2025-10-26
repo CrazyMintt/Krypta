@@ -6,7 +6,6 @@ pymysql
 python-dotenv
 pydantic[email]
 pydantic-settings
-passlib
+passlib[argon2]
 python-jose
 python-multipart
-bcrypt

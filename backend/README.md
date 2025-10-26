@@ -68,10 +68,10 @@ sudo pacman -S mkcert
 
 ## Executando a Aplicação
 
-A aplicação é servida com Uvicorn, usando main.py como ponto de entrada. Use o seguinte comando para iniciar o servidor com HTTPS:
 
+A aplicação é rodada com Docker, então na **raiz do projeto** é necessário rodar:
 ```
-python main.py
+docker compose up backend --build -d
 ```
 
 
