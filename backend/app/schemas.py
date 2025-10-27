@@ -27,21 +27,25 @@ class DataBase(BaseModel):
     arquivo: Optional[FileBase]
 
 
+class CredentialBase(BaseModel):
+    nome_aplicacao:str
+    descricao:str
+    senha_cripto: str
+    email: Optional[EmailStr] = None
+    host_url: Optional[str] = None
+
+
 # Schemas para Usuario
-# Propriedades base compartilhadas por outros schemas
 class UserBase(BaseModel):
     email: EmailStr
     nome: str
 
 
-# Schema para criação de um novo usuário
 class UserCreate(UserBase):
     senha_mestre: str
 
 
-# Schema com os dados do usuário
 class UserResponse(UserBase):
-    # Permite que o Pydantic leia os dados de um objeto SQLAlchemy
     model_config = ConfigDict(from_attributes=True)
     id: int
     created_at: datetime
