@@ -5,66 +5,10 @@ import logging
 import os
 import sys
 from sqlalchemy import update, text
-
-# ==============================
-# Configuração do logger (Docker-friendly, debugado)
-# ==============================
-
-LOG_DIR = "/app/logs"
-os.makedirs(LOG_DIR, exist_ok=True)
-
-# Use sys.stdout explicitamente para garantir que vá para stdout (docker logs)
-console_handler = logging.StreamHandler(stream=sys.stdout)
-console_handler.setLevel(logging.INFO)
-
-file_handler = logging.FileHandler(f"{LOG_DIR}/create_credential.log", mode="a", encoding="utf-8")
-file_handler.setLevel(logging.INFO)
-
-formatter = logging.Formatter(
-    fmt="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-console_handler.setFormatter(formatter)
-file_handler.setFormatter(formatter)
-
-# Logger do módulo
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
-# Evita adicionar handlers duplicados se o módulo for recarregado
-if not logger.handlers:
-    logger.addHandler(console_handler)
-    logger.addHandler(file_handler)
-
-# Impede que a mensagem "suba" para loggers pai que podem suprimi-las
-logger.propagate = False
-
-# ---------- Opcional: também registre no root logger se estiver usando frameworks ----------
-# Isso ajuda quando uvicorn/gunicorn estão no controle dos logs;
-# adiciona um handler ao logger root só se não houver nenhum handler.
-root_logger = logging.getLogger()
-if not root_logger.handlers:
-    root_logger.addHandler(console_handler)
-    root_logger.setLevel(logging.INFO)
-
-# ==============================
-# Funções utilitárias de debug (execute manualmente ao iniciar)
-# ==============================
-def _debug_loggers():
-    """Imprime info útil para debug de handlers e níveis (chame apenas durante debug)."""
-    print("=== debug loggers ===", file=sys.stderr)
-    print("module logger:", logger, file=sys.stderr)
-    print("module handlers:", logger.handlers, file=sys.stderr)
-    print("module propagate:", logger.propagate, file=sys.stderr)
-    print("root logger handlers:", logging.getLogger().handlers, file=sys.stderr)
-    print("======================", file=sys.stderr)
-
-# Chame uma vez ao importar (comente em produção se preferir)
-_debug_loggers()
-
 # ==============================
 # Função principal
 # ==============================
+
 def create_credential(db: Session, user: models.Usuario, credential_data: schemas.CredentialBase) -> bool:
     nome_aplicacao = getattr(credential_data, "nome_aplicacao", None)
     if not nome_aplicacao:
@@ -78,7 +22,6 @@ def create_credential(db: Session, user: models.Usuario, credential_data: schema
     email = getattr(credential_data, "email", None)
     host_url = getattr(credential_data, "host_url", None)
 
-    logger.info(f"[create_credential] Iniciando criação para usuário {user.id}, app='{nome_aplicacao}'")
 
     try:
         call_sql = text(
@@ -107,16 +50,14 @@ def create_credential(db: Session, user: models.Usuario, credential_data: schema
             raise ValueError("Procedure retornou NULL ou falhou ao criar o dado.")
 
   
-        logger.info(f"[create_credential] Credential criada com sucesso (dado_id={novo_dado_id}) para usuário {user.id}")
-        return True
+        return novo_dado_id
 
     except Exception as e:
         try:
             db.rollback()
         except Exception as rb_err:
-            logger.error(f"[create_credential] Falha no rollback: {rb_err}")
-
-        logger.exception(f"[create_credential] Erro ao criar credential para usuário {user.id}: {e}")
+            pass # colocar logger
+        #colocar logger
         raise ValueError(f"Erro ao criar credential via procedure: {e}")
 
 

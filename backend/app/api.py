@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import Annotated
 from jose import ExpiredSignatureError, JWTError
 from starlette.status import HTTP_204_NO_CONTENT, HTTP_500_INTERNAL_SERVER_ERROR
-
+from fastapi import Body
 from . import schemas, services, repository, core, models
 from .database import get_db
 from .exceptions import UserNotFoundError, EmailAlreadyExistsError
@@ -123,7 +123,7 @@ def delete_user_me(
         )
     return current_user
 
-from fastapi import Body
+
 
 @router.post(
     "/data/credentials",
@@ -151,7 +151,7 @@ def create_credential(
                 detail="Não foi possível criar a credential."
             )
 
-        return created
+        return {"message": "credencial criado com sucesso!","id":created}
 
     except HTTPException:
         # re-levanta HTTPExceptions sem modificar (ex: validações de serviço)
