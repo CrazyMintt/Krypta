@@ -7,7 +7,7 @@ from starlette.status import HTTP_204_NO_CONTENT, HTTP_500_INTERNAL_SERVER_ERROR
 from fastapi import Body
 from . import schemas, services, repository, core, models
 from .database import get_db
-from .exceptions import UserNotFoundError, EmailAlreadyExistsError
+from .exceptions import UserNotFoundError, EmailAlreadyExistsError, DataNotFoundError
 
 router = APIRouter()
 
@@ -211,4 +211,33 @@ def create_file(
         raise HTTPException(
             status_code=HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao salvar o arquivo.",
+        )
+
+
+@router.delete(
+    "/data/{data_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["Data"],
+)
+def delete_data(
+    data_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Apaga um Dado específico (credencial ou arquivo) pertencente ao usuário logado.
+    """
+    try:
+        services.delete_data_by_id(db=db, user_id=current_user.id, data_id=data_id)
+        # Se o serviço não levantar exceção, a exclusão foi bem-sucedida.
+        # Retorna None para gerar a resposta 204 No Content.
+        return None
+
+    except DataNotFoundError as e:
+        # Traduz o erro de negócio para HTTP 404
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ocorreu um erro ao tentar apagar o dado: {e}",
         )

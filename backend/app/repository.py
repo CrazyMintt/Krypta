@@ -100,3 +100,26 @@ def create_file(db: Session, dado: models.Dado, arquivo: models.Arquivo) -> mode
     except Exception as e:
         db.rollback()
         raise e
+
+
+def get_data_by_id_and_user_id(
+    db: Session, data_id: int, user_id: int
+) -> models.Dado | None:
+    """Busca um Dado específico pelo seu ID e o ID do usuário proprietário."""
+    return (
+        db.query(models.Dado)
+        .filter(models.Dado.id == data_id, models.Dado.usuario_id == user_id)
+        .first()
+    )
+
+
+def delete_logs_by_dado_id(db: Session, data_id: int):
+    """Deleta todos os logs associados a um ID de Dado específico."""
+    db.query(models.Log).filter(models.Log.id_dado == data_id).delete(
+        synchronize_session=False
+    )
+
+
+def delete_dado(db: Session, db_dado: models.Dado):
+    """Deleta um objeto Dado do banco de dados."""
+    db.delete(db_dado)

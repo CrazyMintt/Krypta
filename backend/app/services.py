@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from . import models, schemas, repository, core
-from .exceptions import UserNotFoundError, EmailAlreadyExistsError
+from .exceptions import UserNotFoundError, EmailAlreadyExistsError, DataNotFoundError
 import logging
 import os
 import sys
@@ -211,3 +211,31 @@ def create_file(
     )
     created_data = repository.create_file(db=db, dado=db_dado, arquivo=db_arquivo)
     return created_data.arquivo
+
+
+def delete_data_by_id(db: Session, user_id: int, data_id: int):
+    """
+    Operação de remoção de um Dado específico e os Logs associados
+    """
+    dado = repository.get_data_by_id_and_user_id(
+        db=db, user_id=user_id, data_id=data_id
+    )
+    if not dado:
+        raise DataNotFoundError(
+            f"Dado com id {data_id} não encontrado ou não pertence ao usuário."
+        )
+    try:
+        # Deletar os Logs associados primeiro
+        repository.delete_logs_by_dado_id(db, data_id=data_id)
+
+        # O SQLAlchemy/DB cuida do cascade para Senha/Arquivo/Separadores
+        repository.delete_dado(db, db_dado=dado)
+
+        db.commit()
+
+    except Exception as e:
+        # Se algo der errado, desfaz tudo
+        db.rollback()
+        print(f"Erro ao deletar dado {data_id} do usuário {user_id}: {e}")
+        # Re-levanta a exceção para a camada da API tratar
+        raise e
