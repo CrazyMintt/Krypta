@@ -5,6 +5,7 @@ import Modal from '../layout/Modal';
 import ItemActionsMenu from '../layout/ItemActionsMenu';
 import NewCredentialForm from '../forms/NewCredentialForm';
 import RenameFolderForm from "../forms/RenameFolderForm";
+import ReadCredentialModal from "../views/ReadCredentialModal";
 
 
 const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, currentPath, setCurrentPath, changeView }) => {
@@ -22,6 +23,8 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
   const [isEditCredentialModalOpen, setIsEditCredentialModalOpen] = useState(false);
   const [folderToEdit, setFolderToEdit] = useState(null);
   const [isEditFolderModalOpen, setIsEditFolderModalOpen] = useState(false);
+  const [isReadCredentialModalOpen, setIsReadCredentialModalOpen] = useState(false);
+  const [credentialToRead, setCredentialToRead] = useState(null);
       const [selectedTags, setSelectedTags] = useState([]);
       const allTags = Array.from(
         Object.values(fileSystem)
@@ -183,6 +186,17 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
       time: new Date().toLocaleString(),
     };
     setActivityLog([newLogEntry, ...activityLog]);
+  };
+
+  const openReadCredentialModal = (credential) => {
+    setCredentialToRead(credential);
+    setIsReadCredentialModalOpen(true);
+    setActiveItemId(null);
+  };
+
+  const closeReadCredentialModal = () => {
+    setCredentialToRead(null);
+    setIsReadCredentialModalOpen(false);
   };
 
   const openNewFolderModal = () => setIsNewFolderModalOpen(true);
@@ -470,6 +484,7 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, index)}
+                onClick={() => item.type === 'credential' && openReadCredentialModal(item)}
                 onDoubleClick={() => item.type === 'folder' && navigateTo(item.name)}>
                 <div className="file-info">
                   {item.type === 'folder' && <Folder size={20} />}
@@ -484,6 +499,7 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
                   <button onClick={(e) => { e.stopPropagation(); setActiveItemId(item.id === activeItemId ? null : item.id); }}><MoreVertical size={16} /></button>
                   {activeItemId === item.id && (
                     <ItemActionsMenu
+                      onViewCredential={() => openReadCredentialModal(item)}
                       onEditCredential={() => openEditModal(item)}
                       onEditFolder={() => openEditFolderModal(item)}
                       onDelete={() => openDeleteModal(item)}
@@ -551,6 +567,10 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
           <button type="button" className="btn btn-secondary" onClick={closeDeleteModal}>Cancelar</button>
           <button type="button" className="btn btn-danger" onClick={confirmDelete}>Excluir</button>
         </div>
+      </Modal>
+
+      <Modal title="Visualizar Item" isOpen={isReadCredentialModalOpen} onCancel={closeReadCredentialModal}>
+        <ReadCredentialModal credential={credentialToRead} />
       </Modal>
     </>
   );
