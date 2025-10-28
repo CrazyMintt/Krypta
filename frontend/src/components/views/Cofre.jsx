@@ -8,193 +8,49 @@ import RenameFolderForm from "../forms/RenameFolderForm";
 
 
 const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, currentPath, setCurrentPath, changeView }) => {
-
-
   const [items, setItems] = useState(fileSystem[currentPath]);
-
-
   const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
-
-
   const [isNewCredentialModalOpen, setIsNewCredentialModalOpen] = useState(false);
-
-
   const [newFolderName, setNewFolderName] = useState('');
-
-
   const [activeItemId, setActiveItemId] = useState(null);
-
-
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-
-
   const [itemToDelete, setItemToDelete] = useState(null);
-
-
   const [draggedItemIndex, setDraggedItemIndex] = useState(null);
-
-
   const [dragOverFolderIndex, setDragOverFolderIndex] = useState(null);
-
-
   const [dragOverBreadcrumbPath, setDragOverBreadcrumbPath] = useState(null);
-
-
   const [itemToEdit, setItemToEdit] = useState(null);
-
-
   const [isEditCredentialModalOpen, setIsEditCredentialModalOpen] = useState(false);
-
-
   const [folderToEdit, setFolderToEdit] = useState(null);
-
-
   const [isEditFolderModalOpen, setIsEditFolderModalOpen] = useState(false);
-
-
       const [selectedTags, setSelectedTags] = useState([]);
-
-
-    
-
-
       const allTags = Array.from(
-
-
         Object.values(fileSystem)
-
-
           .flat()
-
-
           .filter(item => item.tags)
-
-
           .flatMap(item => item.tags)
-
-
           .reduce((map, tag) => {
-
-
             if (!map.has(tag.name)) {
-
-
               map.set(tag.name, tag);
-
-
             }
-
-
             return map;
-
-
           }, new Map()).values()
-
-
       );
-
-
-    
-
-
         const displayedItems = selectedTags.length > 0
-
-
-    
-
-
           ? Object.values(fileSystem).flat().filter(item => 
-
-
-    
-
-
               item.tags && selectedTags.every(selectedTag => item.tags.some(itemTag => itemTag.name === selectedTag))
-
-
-    
-
-
             )
-
-
-    
-
-
           : items;
-
-
-
-
-
     useEffect(() => {
-
-
-
-
-
       setItems(fileSystem[currentPath]);
-
-
-
-
-
       setSelectedTags([]); // Reset tag filter on path change
-
-
-
-
-
     }, [currentPath, fileSystem]);
-
-
-
-
-
-  
-
-
-
-
-
     const handleTagClick = (tag) => {
-
-
-
-
-
       setSelectedTags(prevTags => 
-
-
-
-
-
         prevTags.includes(tag) 
-
-
-
-
-
           ? prevTags.filter(t => t !== tag) 
-
-
-
-
-
           : [...prevTags, tag]
-
-
-
-
-
       );
-
-
-
-
-
     };
-
   useEffect(() => {
     const handleOutsideClick = () => {
       if (activeItemId !== null) {
