@@ -75,7 +75,14 @@ def delete_compartilhamentos_by_user(db: Session, user_id: int):
 
 
 def delete_dados_by_user(db: Session, user_id: int):
-    """Deleta todos os Dado' (senhas e arquivos) de um usuário."""
+    """Deleta todos os Dados (senhas e arquivos) de um usuário."""
     db.query(models.Dado).filter(models.Dado.usuario_id == user_id).delete(
+        synchronize_session=False
+    )
+
+
+def delete_user(db: Session, user_id: int):
+    """Deleta todos a conta de um usuário."""
+    db.query(models.Usuario).filter(models.Usuario.id == user_id).delete(
         synchronize_session=False
     )
