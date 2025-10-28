@@ -120,3 +120,20 @@ class DataUpdateFile(BaseModel):
     nome_aplicacao: Optional[str] = None
     descricao: Optional[str] = None
     arquivo: Optional[FileUpdate] = None
+
+
+# Schemas para atualizar credencial
+class CredentialUpdate(BaseModel):
+    """Schema para atualizar os detalhes de uma Senha (campos opcionais)"""
+
+    senha_cripto: Optional[str] = None
+    host_url: Optional[str] = None
+    email: Optional[EmailStr] = None
+
+
+class DataUpdateCredential(BaseModel):
+    """Schema para atualizar um Dado do tipo Senha (campos opcionais)"""
+
+    nome_aplicacao: Optional[str] = None
+    descricao: Optional[str] = None
+    senha: Optional[CredentialUpdate] = None

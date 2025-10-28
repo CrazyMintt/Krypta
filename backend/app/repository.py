@@ -207,3 +207,35 @@ def update_file_data(
     except Exception as e:
         db.rollback()
         raise e
+
+
+def update_credential_data(
+    db: Session,
+    db_dado: models.Dado,
+    db_senha: models.Senha,
+    update_data: schemas.DataUpdateCredential,
+) -> models.Dado:
+    """
+    Aplica atualizações parciais a um Dado do tipo Senha e sua Senha filha
+    """
+    try:
+        # Atualizar campos do Dado pai
+        dado_update_dict = update_data.model_dump(exclude={"senha"}, exclude_unset=True)
+        for key, value in dado_update_dict.items():
+            setattr(db_dado, key, value)
+
+        # Atualizar a Senha filha (se fornecido)
+        if update_data.senha:
+            senha_update_dict = update_data.senha.model_dump(exclude_unset=True)
+
+            for key, value in senha_update_dict.items():
+                setattr(db_senha, key, value)
+
+        db.commit()
+
+        db.refresh(db_dado)
+        return db_dado
+
+    except Exception as e:
+        db.rollback()
+        raise e

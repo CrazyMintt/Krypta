@@ -251,8 +251,6 @@ def delete_data_by_id(db: Session, user_id: int, dado_id: int):
     except Exception as e:
         # Se algo der errado, desfaz tudo
         db.rollback()
-        print(f"Erro ao deletar dado {dado_id} do usuário {user_id}: {e}")
-        # Re-levanta a exceção para a camada da API tratar
         raise e
 
 
@@ -292,5 +290,33 @@ def edit_file_data(
         )
         return updated_dado
     except Exception as e:
-        print(f"Erro ao atualizar arquivo para Dado {data_id}: {e}")
+        raise e
+
+
+def edit_credential_data(
+    db: Session, user_id: int, data_id: int, update_data: schemas.DataUpdateCredential
+) -> models.Dado:
+    """
+    Serviço para editar um Dado do tipo Senha.
+    """
+    # Buscar o Dado
+    db_dado = repository.get_dado_by_id_and_user_id(
+        db, dado_id=data_id, user_id=user_id
+    )
+    if not db_dado:
+        raise DataNotFoundError(
+            f"Dado com id {data_id} não encontrado ou não pertence ao usuário."
+        )
+    if db_dado.tipo != models.TipoDado.SENHA:
+        raise ValueError(f"Dado com id {data_id} não é do tipo Senha.")
+
+    try:
+        updated_dado = repository.update_credential_data(
+            db=db,
+            db_dado=db_dado,
+            db_senha=db_dado.senha,
+            update_data=update_data,
+        )
+        return updated_dado
+    except Exception as e:
         raise e

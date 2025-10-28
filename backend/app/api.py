@@ -186,6 +186,38 @@ def create_credential(
         )
 
 
+@router.patch(
+    "/data/credentials/{data_id}",
+    response_model=schemas.DataResponse,
+    tags=["Credentials"],
+)
+def update_credential_entry(
+    data_id: int,
+    update_data: schemas.DataUpdateCredential,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Atualiza um Dado existente do tipo Senha pertencente ao usuário logado.
+    Permite alterar nome, descrição, nota, senha criptografada, url e email associado.
+    """
+    try:
+        updated_dado = services.edit_credential_data(
+            db=db, user_id=current_user.id, data_id=data_id, update_data=update_data
+        )
+        return updated_dado
+
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ocorreu um erro ao atualizar a credencial: {e}",
+        )
+
+
 @router.post(
     "/data/files",
     status_code=status.HTTP_201_CREATED,
