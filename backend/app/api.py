@@ -114,7 +114,7 @@ def delete_user_data(
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
     db=Depends(get_db),
 ):
-    "Apaga todos os dados do usuário logado, mantendo a conta"
+    """Apaga todos os dados do usuário logado, mantendo a conta"""
     success = services.clear_all_user_data(db=db, user_id=current_user.id)
     if not success:
         raise HTTPException(
@@ -129,7 +129,7 @@ def delete_user_me(
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
     db=Depends(get_db),
 ):
-    "Apaga a conta do usuário logado"
+    """Apaga a conta do usuário logado"""
     success = services.delete_user(db=db, user_id=current_user.id)
     if not success:
         raise HTTPException(
