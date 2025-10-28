@@ -109,13 +109,28 @@ def update_user_me(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
 
 
-@router.delete("/users/me", status_code=HTTP_204_NO_CONTENT, tags=["Users"])
-def delete_user_me(
+@router.delete("/users/me/data", status_code=HTTP_204_NO_CONTENT, tags=["Users"])
+def delete_user_data(
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
     db=Depends(get_db),
 ):
     "Apaga todos os dados do usuário logado, mantendo a conta"
     success = services.clear_all_user_data(db=db, user_id=current_user.id)
+    if not success:
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Não foi possível apagar os dados do usuário.",
+        )
+    return current_user
+
+
+@router.delete("/users/me", status_code=HTTP_204_NO_CONTENT, tags=["Users"])
+def delete_user_me(
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+    db=Depends(get_db),
+):
+    "Apaga a conta do usuário logado"
+    success = services.delete_user(db=db, user_id=current_user.id)
     if not success:
         raise HTTPException(
             status_code=HTTP_500_INTERNAL_SERVER_ERROR,

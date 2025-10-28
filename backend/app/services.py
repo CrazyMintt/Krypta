@@ -67,7 +67,8 @@ def edit_user(
     return repository.update_user(db=db, db_user=user, update_data=update_data)
 
 
-def clear_all_user_data(db: Session, user_id: int) -> bool:
+# Função criada para não precisar repetir
+def try_clear_all_user_data(db: Session, user_id: int):
     """
     Orquestra a exclusão de todos os dados de um usuário, mantendo a conta.
 
@@ -77,26 +78,40 @@ def clear_all_user_data(db: Session, user_id: int) -> bool:
     3. Compartilhamentos (referenciam Usuário)
     4. Dados (referenciam Usuário)
     """
+    # Busca os IDs dos dados
+    dado_ids = repository.get_dado_ids_by_user(db, user_id=user_id)
+
+    # Deleta os logs
+    if dado_ids:
+        repository.delete_logs_by_user_and_dados(db, user_id=user_id, dado_ids=dado_ids)
+
+    # Deleta o restante
+    repository.delete_eventos_by_user(db, user_id=user_id)
+    repository.delete_compartilhamentos_by_user(db, user_id=user_id)
+    repository.delete_dados_by_user(db, user_id=user_id)
+
+
+def clear_all_user_data(db: Session, user_id: int) -> bool:
     try:
-        # Busca os IDs dos dados
-        dado_ids = repository.get_dado_ids_by_user(db, user_id=user_id)
-
-        # Deleta os logs
-        if dado_ids:
-            repository.delete_logs_by_user_and_dados(
-                db, user_id=user_id, dado_ids=dado_ids
-            )
-
-        # Deleta o restante
-        repository.delete_eventos_by_user(db, user_id=user_id)
-        repository.delete_compartilhamentos_by_user(db, user_id=user_id)
-        repository.delete_dados_by_user(db, user_id=user_id)
-
+        try_clear_all_user_data(db=db, user_id=user_id)
         db.commit()
         return True
-
-    except Exception as e:
+    except Exception:
         # Se qualquer passo falhar, desfaz tudo
         db.rollback()
-        print(f"Erro ao limpar dados do usuário {user_id}: {e}")
+        return False
+
+
+def delete_user(db: Session, user_id: int) -> bool:
+    """
+    Deleta conta de um usuário
+    """
+    try:
+        try_clear_all_user_data(db=db, user_id=user_id)
+        repository.delete_user(db=db, user_id=user_id)
+        db.commit()
+        return True
+    except Exception:
+        # Se qualquer passo falhar, desfaz tudo
+        db.rollback()
         return False
