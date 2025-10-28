@@ -3,6 +3,12 @@ from typing import Optional, List
 from datetime import datetime
 
 
+#Schema de entrada para filtro e pagina
+class FilterPageConfig(BaseModel):
+    pageSize: int
+    pageNumber:int
+    # lista de ids dos separadores
+    idSeparators: list[int]
 # Schemas de Dados
 class PasswordBase(BaseModel):
     id: int

@@ -4,6 +4,94 @@ from sqlalchemy.orm import Session
 from sqlalchemy import update
 from sqlalchemy.sql import or_
 
+from sqlalchemy import text
+from sqlalchemy.orm import Session
+
+def get_paginated_data(db: Session, pageSize: int, pageNumber: int,id_user:int):
+    """
+    Retorna dados paginados filtrados por separadores.
+    """
+    # Calcular offset da página (ex: página 1 -> offset 0)
+    offset = (pageNumber - 1) * pageSize
+    query = f"""
+    SELECT
+        d.id,
+        d.usuario_id,
+        d.nome_aplicacao,
+        d.descricao,
+        d.tipo,
+        d.criado_em,
+        d.nota,
+        s.senha_cripto,
+        s.email,
+        s.host_url,
+        a.arquivo,
+        a.extensao,
+        a.nome_arquivo,
+        GROUP_CONCAT(DISTINCT ds_all.separador_id ORDER BY ds_all.separador_id) AS separadores
+    FROM dados AS d
+    INNER JOIN usuario u ON u.id = d.usuario_id
+    LEFT JOIN senhas s ON s.id = d.id
+    LEFT JOIN arquivos a ON a.id = d.id
+    LEFT JOIN dados_separadores ds_all ON ds_all.dado_id = d.id
+    WHERE d.usuario_id = :user_id
+    GROUP BY d.id
+    ORDER BY d.criado_em DESC
+    LIMIT :limit OFFSET :offset;
+    """
+
+    params = ({"limit": pageSize, "offset": offset, "user_id": id_user})
+    # Executa query e retorna resultado
+    result = db.execute(text(query), params)
+    rows = result.mappings().all()  # retorna lista de dicionários
+
+    return rows
+def get_paginated_filtered_data(db: Session, pageSize: int, pageNumber: int, idSeparators: list[int], id_user: int):
+    """
+    Retorna dados paginados filtrados por separadores e pelo usuário.
+    """
+    offset = (pageNumber - 1) * pageSize
+
+    # Cria placeholders seguros (:sep_0, :sep_1, ...)
+    in_placeholders = ", ".join([f":sep_{i}" for i in range(len(idSeparators))])
+
+    query = f"""
+    SELECT
+        d.id,
+        d.usuario_id,
+        d.nome_aplicacao,
+        d.descricao,
+        d.tipo,
+        d.criado_em,
+        d.nota,
+        s.senha_cripto,
+        s.email,
+        s.host_url,
+        a.arquivo,
+        a.extensao,
+        a.nome_arquivo,
+        GROUP_CONCAT(DISTINCT ds_all.separador_id ORDER BY ds_all.separador_id) AS separadores
+    FROM dados AS d
+    LEFT JOIN senhas s ON s.id = d.id
+    LEFT JOIN arquivos a ON a.id = d.id
+    INNER JOIN dados_separadores ds_all ON ds_all.dado_id = d.id
+        AND ds_all.separador_id IN ({in_placeholders})
+    WHERE d.usuario_id = :user_id
+    GROUP BY d.id
+    ORDER BY d.criado_em DESC
+    LIMIT :limit OFFSET :offset;
+    """
+
+    # Monta os parâmetros dinamicamente
+    params = {f"sep_{i}": val for i, val in enumerate(idSeparators)}
+    params.update({"limit": pageSize, "offset": offset, "user_id": id_user})
+
+    # Executa query e retorna resultado
+    result = db.execute(text(query), params)
+    rows = result.mappings().all()  # retorna lista de dicionários
+
+    return rows
+
 def create_user(db: Session, user_data: models.Usuario) -> models.Usuario:
     db_user = models.Usuario(
         email=user_data.email,
