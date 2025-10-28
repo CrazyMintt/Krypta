@@ -5,11 +5,16 @@ import logging
 import os
 import sys
 from sqlalchemy import update, text
+import base64
+
 # ==============================
 # Função principal
 # ==============================
 
-def create_credential(db: Session, user: models.Usuario, credential_data: schemas.CredentialBase) -> bool:
+
+def create_credential(
+    db: Session, user: models.Usuario, credential_data: schemas.CredentialBase
+) -> bool:
     nome_aplicacao = getattr(credential_data, "nome_aplicacao", None)
     if not nome_aplicacao:
         raise ValueError("Campo 'nome_aplicacao' é obrigatório.")
@@ -21,7 +26,6 @@ def create_credential(db: Session, user: models.Usuario, credential_data: schema
 
     email = getattr(credential_data, "email", None)
     host_url = getattr(credential_data, "host_url", None)
-
 
     try:
         call_sql = text(
@@ -49,15 +53,14 @@ def create_credential(db: Session, user: models.Usuario, credential_data: schema
         if not novo_dado_id:
             raise ValueError("Procedure retornou NULL ou falhou ao criar o dado.")
 
-  
         return novo_dado_id
 
     except Exception as e:
         try:
             db.rollback()
         except Exception as rb_err:
-            pass # colocar logger
-        #colocar logger
+            pass  # colocar logger
+        # colocar logger
         raise ValueError(f"Erro ao criar credential via procedure: {e}")
 
 
@@ -173,3 +176,38 @@ def delete_user(db: Session, user_id: int) -> bool:
         # Se qualquer passo falhar, desfaz tudo
         db.rollback()
         return False
+
+
+def create_file(
+    db: Session, user_id: int, file_data: schemas.DataCreateFile
+) -> models.Dado:
+    """
+    Serviço para criar um novo Dado do tipo Arquivo.
+    """
+
+    # Decodificar a string Base64 para bytes
+    try:
+        encrypted_bytes = base64.b64decode(file_data.arquivo.arquivo_data)
+    except Exception as e:
+        # Se a string Base64 for inválida, levanta um ValueError
+        # que a API vai capturar como um erro 400 (Bad Request).
+        raise ValueError(f"Codificação Base64 inválida: {e}")
+
+    # Criar os objetos de modelo
+
+    # Dado
+    db_dado = models.Dado(
+        usuario_id=user_id,
+        nome_aplicacao=file_data.nome_arquivo,
+        descricao=file_data.descricao,
+        tipo=models.TipoDado.ARQUIVO,  # Define o tipo
+    )
+
+    # Arquivo
+    db_arquivo = models.Arquivo(
+        arquivo=encrypted_bytes,  # Salva os bytes decodificados
+        nome_arquivo=file_data.arquivo.nome_arquivo,
+        extensao=file_data.arquivo.extensao,
+    )
+    created_data = repository.create_file(db=db, dado=db_dado, arquivo=db_arquivo)
+    return created_data.arquivo

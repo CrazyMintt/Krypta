@@ -1,8 +1,8 @@
-
 from . import models, schemas
 from sqlalchemy.orm import Session
-from sqlalchemy import update
+from sqlalchemy import except_, update
 from sqlalchemy.sql import or_
+
 
 def create_user(db: Session, user_data: models.Usuario) -> models.Usuario:
     db_user = models.Usuario(
@@ -86,3 +86,17 @@ def delete_user(db: Session, user_id: int):
     db.query(models.Usuario).filter(models.Usuario.id == user_id).delete(
         synchronize_session=False
     )
+
+
+def create_file(db: Session, dado: models.Dado, arquivo: models.Arquivo) -> models.Dado:
+    try:
+        db.add(dado)
+        db.flush()
+        arquivo.id = dado.id
+        db.add(arquivo)
+        db.commit()
+        db.refresh(dado)
+        return dado
+    except Exception as e:
+        db.rollback()
+        raise e

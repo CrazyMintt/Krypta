@@ -187,6 +187,28 @@ def create_credential(
 @router.post(
     "/data/files",
     status_code=status.HTTP_201_CREATED,
+    response_model=schemas.FileResponse,
     tags=["Files"],
 )
-
+def create_file(
+    file_data: schemas.DataCreateFile,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Cria um novo arquivo.
+    O frontend deve enviar a informação 'arquivo_details.arquivo_data'
+    como uma string codificada em Base64.
+    """
+    try:
+        created_file = services.create_file(
+            db=db, user_id=current_user.id, file_data=file_data
+        )
+        return created_file
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao salvar o arquivo.",
+        )
