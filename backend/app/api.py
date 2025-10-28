@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import Annotated
 from jose import ExpiredSignatureError, JWTError
 from starlette.status import HTTP_204_NO_CONTENT, HTTP_500_INTERNAL_SERVER_ERROR
-
+from fastapi import Body
 from . import schemas, services, repository, core, models
 from .database import get_db
 from .exceptions import UserNotFoundError, EmailAlreadyExistsError
@@ -137,3 +137,47 @@ def delete_user_me(
             detail="Não foi possível apagar os dados do usuário.",
         )
     return current_user
+
+
+
+@router.post(
+    "/data/credentials",
+    status_code=status.HTTP_201_CREATED,
+    tags=["credentials"],
+)
+def create_credential(
+    credential_data: Annotated[schemas.CredentialBase, Body(...)] ,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Cria uma nova credential para o usuário logado.
+    - `email` e `host_url` são opcionais (definidos no schema).
+    - Retorna o objeto criado.
+    """
+    try:
+        # chame o serviço responsável por criar a credential
+        created = services.create_credential(db=db, user=current_user, credential_data=credential_data)
+
+        # Se o serviço retornar None ou False, convertemos para erro HTTP apropriado
+        if not created:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Não foi possível criar a credential."
+            )
+
+        return {"message": "credencial criado com sucesso!","id":created}
+
+    except HTTPException:
+        # re-levanta HTTPExceptions sem modificar (ex: validações de serviço)
+        raise
+    except ValueError as e:
+        # erro de validação simples vindo do serviço
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        # Log opcional aqui (print ou logger)
+        # print(f"Erro ao criar credential: {e}")
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao criar credential."
+        )

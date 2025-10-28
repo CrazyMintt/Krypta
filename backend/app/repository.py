@@ -1,8 +1,8 @@
+
 from . import models, schemas
 from sqlalchemy.orm import Session
 from sqlalchemy import update
 from sqlalchemy.sql import or_
-
 
 def create_user(db: Session, user_data: models.Usuario) -> models.Usuario:
     db_user = models.Usuario(

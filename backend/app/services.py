@@ -1,6 +1,64 @@
 from sqlalchemy.orm import Session
 from . import models, schemas, repository, core
 from .exceptions import UserNotFoundError, EmailAlreadyExistsError
+import logging
+import os
+import sys
+from sqlalchemy import update, text
+# ==============================
+# Função principal
+# ==============================
+
+def create_credential(db: Session, user: models.Usuario, credential_data: schemas.CredentialBase) -> bool:
+    nome_aplicacao = getattr(credential_data, "nome_aplicacao", None)
+    if not nome_aplicacao:
+        raise ValueError("Campo 'nome_aplicacao' é obrigatório.")
+
+    descricao = getattr(credential_data, "descricao", None)
+    senha_cripto = getattr(credential_data, "senha_cripto", None)
+    if not senha_cripto:
+        raise ValueError("Campo 'senha_cripto' é obrigatório para tipo 'senha'.")
+
+    email = getattr(credential_data, "email", None)
+    host_url = getattr(credential_data, "host_url", None)
+
+
+    try:
+        call_sql = text(
+            "CALL create_credential(:p_usuario_id, :p_nome_aplicacao, :p_descricao, "
+            ":p_tipo, :p_senha_cripto, :p_email, :p_host_url, @p_dado_id)"
+        )
+
+        db.execute(
+            call_sql,
+            {
+                "p_usuario_id": int(user.id),
+                "p_nome_aplicacao": nome_aplicacao,
+                "p_descricao": descricao,
+                "p_tipo": "senha",
+                "p_senha_cripto": senha_cripto,
+                "p_email": email,
+                "p_host_url": host_url,
+            },
+        )
+        db.commit()
+
+        out = db.execute(text("SELECT @p_dado_id")).fetchone()
+        novo_dado_id = out[0] if out else None
+
+        if not novo_dado_id:
+            raise ValueError("Procedure retornou NULL ou falhou ao criar o dado.")
+
+  
+        return novo_dado_id
+
+    except Exception as e:
+        try:
+            db.rollback()
+        except Exception as rb_err:
+            pass # colocar logger
+        #colocar logger
+        raise ValueError(f"Erro ao criar credential via procedure: {e}")
 
 
 def register_user(db: Session, user_data: schemas.UserCreate) -> models.Usuario | None:
