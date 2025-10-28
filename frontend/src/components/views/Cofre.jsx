@@ -484,8 +484,14 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, index)}
-                onClick={() => item.type === 'credential' && openReadCredentialModal(item)}
-                onDoubleClick={() => item.type === 'folder' && navigateTo(item.name)}>
+                onClick={() => {
+                  if (item.type === 'folder') {
+                    navigateTo(item.name);
+                  } else if (item.type === 'credential') {
+                    openReadCredentialModal(item);
+                  }
+                }}>
+
                 <div className="file-info">
                   {item.type === 'folder' && <Folder size={20} />}
                   {item.type === 'file' && <File size={20} />}
