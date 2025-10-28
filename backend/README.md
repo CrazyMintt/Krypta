@@ -1,4 +1,4 @@
-# Estrutura do Projeto:
+1# Estrutura do Projeto:
 ```
 backend/
 ├── app/
@@ -17,7 +17,7 @@ backend/
 ```
 # Instruções
 
-O backend pode ser [executado](#executando-a-aplicação) com **Docker** (recomendado) ou diretamente com **Python**.
+O backend pode ser [executado](#executando-a-aplicação) com **Docker** (recomendado) ou diretamente com **[Python](#configuração-do-python-para-execução-sem-docker)**.
 
 > Em ambos os casos, é necessário:
 > - Configurar corretamente o arquivo [.env](#variáveis-de-ambiente)
@@ -58,7 +58,8 @@ mkcert localhost 127.0.0.1
 
 ---
 
-## Configuração do Python
+## Configuração do Python Para Execução Sem Docker
+> Essa parte é necessária apenas se for executar o backend **sem o Docker**, apenas com o Python
 
 ### Ambiente Virtual e Dependências
 

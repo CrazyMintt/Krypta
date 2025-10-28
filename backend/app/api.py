@@ -139,14 +139,13 @@ def delete_user_me(
     return current_user
 
 
-
 @router.post(
     "/data/credentials",
     status_code=status.HTTP_201_CREATED,
-    tags=["credentials"],
+    tags=["Credentials"],
 )
 def create_credential(
-    credential_data: Annotated[schemas.CredentialBase, Body(...)] ,
+    credential_data: Annotated[schemas.CredentialBase, Body(...)],
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
 ):
@@ -157,16 +156,18 @@ def create_credential(
     """
     try:
         # chame o serviço responsável por criar a credential
-        created = services.create_credential(db=db, user=current_user, credential_data=credential_data)
+        created = services.create_credential(
+            db=db, user=current_user, credential_data=credential_data
+        )
 
         # Se o serviço retornar None ou False, convertemos para erro HTTP apropriado
         if not created:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Não foi possível criar a credential."
+                detail="Não foi possível criar a credential.",
             )
 
-        return {"message": "credencial criado com sucesso!","id":created}
+        return {"message": "credencial criado com sucesso!", "id": created}
 
     except HTTPException:
         # re-levanta HTTPExceptions sem modificar (ex: validações de serviço)
@@ -179,5 +180,13 @@ def create_credential(
         # print(f"Erro ao criar credential: {e}")
         raise HTTPException(
             status_code=HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno ao criar credential."
+            detail="Erro interno ao criar credential.",
         )
+
+
+@router.post(
+    "/data/files",
+    status_code=status.HTTP_201_CREATED,
+    tags=["Files"],
+)
+
