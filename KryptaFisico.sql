@@ -1,3 +1,4 @@
+DROP DATABASE IF EXISTS `KryptaTeste`;
 CREATE DATABASE IF NOT EXISTS `KryptaTeste` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `KryptaTeste`;
 
@@ -80,7 +81,7 @@ PRIMARY KEY (`id`),
 KEY `compartilhamento_id` (`compartilhamento_id`),
 KEY `dado_origem_id` (`dado_origem_id`),
 CONSTRAINT `dados_compartilhados_ibfk_1` FOREIGN KEY (`compartilhamento_id`) REFERENCES `compartilhamento` (`id`) ON DELETE CASCADE,
-CONSTRAINT `dados_compartilhados_ibfk_2` FOREIGN KEY (`dado_origem_id`) REFERENCES `dados` (`id`) ON DELETE SET NULL
+CONSTRAINT `dados_compartilhados_ibfk_2` FOREIGN KEY (`dado_origem_id`) REFERENCES `dados` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `dados_separadores` (

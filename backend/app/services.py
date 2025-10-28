@@ -213,29 +213,44 @@ def create_file(
     return created_data.arquivo
 
 
-def delete_data_by_id(db: Session, user_id: int, data_id: int):
+def delete_data_by_id(db: Session, user_id: int, dado_id: int):
     """
-    Operação de remoção de um Dado específico e os Logs associados
+    Operação de remoção de um Dado específico, Logs associados
+    e limpa Compartilhamentos órfãos
     """
-    dado = repository.get_data_by_id_and_user_id(
-        db=db, user_id=user_id, data_id=data_id
+    dado = repository.get_dado_by_id_and_user_id(
+        db=db, user_id=user_id, data_id=dado_id
     )
     if not dado:
         raise DataNotFoundError(
-            f"Dado com id {data_id} não encontrado ou não pertence ao usuário."
+            f"Dado com id {dado_id} não encontrado ou não pertence ao usuário."
         )
     try:
+        # IDs dos compartilhamentos afetados pela remoção desse dado
+        compartilhamento_ids = repository.get_compartilhamento_ids_by_dado_id(
+            db, dado_id=dado_id
+        )
+
         # Deletar os Logs associados primeiro
-        repository.delete_logs_by_dado_id(db, data_id=data_id)
+        repository.delete_logs_by_dado_id(db, data_id=dado_id)
 
         # O SQLAlchemy/DB cuida do cascade para Senha/Arquivo/Separadores
         repository.delete_dado(db, db_dado=dado)
+
+        # depois deletar o Dado, deleta os Compartilhamentos afetados
+        for comp_id in compartilhamento_ids:
+            # Verifica se o compartilhamento tinha outros dados
+            remaining_items_count = repository.count_remaining_dados_compartilhados(
+                db, comp_id=comp_id, excluding_dado_id=dado_id
+            )
+            if remaining_items_count == 0:
+                repository.delete_compartilhamento_by_id(db, comp_id=comp_id)
 
         db.commit()
 
     except Exception as e:
         # Se algo der errado, desfaz tudo
         db.rollback()
-        print(f"Erro ao deletar dado {data_id} do usuário {user_id}: {e}")
+        print(f"Erro ao deletar dado {dado_id} do usuário {user_id}: {e}")
         # Re-levanta a exceção para a camada da API tratar
         raise e

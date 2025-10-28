@@ -228,7 +228,7 @@ def delete_data(
     Apaga um Dado específico (credencial ou arquivo) pertencente ao usuário logado.
     """
     try:
-        services.delete_data_by_id(db=db, user_id=current_user.id, data_id=data_id)
+        services.delete_data_by_id(db=db, user_id=current_user.id, dado_id=data_id)
         # Se o serviço não levantar exceção, a exclusão foi bem-sucedida.
         # Retorna None para gerar a resposta 204 No Content.
         return None

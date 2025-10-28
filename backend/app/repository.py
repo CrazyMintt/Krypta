@@ -1,6 +1,6 @@
 from . import models, schemas
 from sqlalchemy.orm import Session
-from sqlalchemy import except_, update
+from sqlalchemy import func
 from sqlalchemy.sql import or_
 
 
@@ -102,7 +102,7 @@ def create_file(db: Session, dado: models.Dado, arquivo: models.Arquivo) -> mode
         raise e
 
 
-def get_data_by_id_and_user_id(
+def get_dado_by_id_and_user_id(
     db: Session, data_id: int, user_id: int
 ) -> models.Dado | None:
     """Busca um Dado específico pelo seu ID e o ID do usuário proprietário."""
@@ -123,3 +123,40 @@ def delete_logs_by_dado_id(db: Session, data_id: int):
 def delete_dado(db: Session, db_dado: models.Dado):
     """Deleta um objeto Dado do banco de dados."""
     db.delete(db_dado)
+
+
+def get_compartilhamento_ids_by_dado_id(db: Session, dado_id: int) -> list[int]:
+    """Busca IDs de Compartilhamentos que contêm um Dado específico."""
+    comp_ids = (
+        db.query(models.DadosCompartilhados.compartilhamento_id)
+        .filter(models.DadosCompartilhados.dado_origem_id == dado_id)
+        .distinct()
+        .all()
+    )
+    return [c[0] for c in comp_ids]
+
+
+def count_remaining_dados_compartilhados(
+    db: Session, comp_id: int, excluding_dado_id: int
+) -> int:
+    """
+    Conta quantos DadosCompartilhados restam em um Compartilhamento,
+    EXCLUINDO aquele que está associado a um dado_origem_id específico.
+    """
+    count = (
+        db.query(func.count(models.DadosCompartilhados.id))
+        .filter(
+            models.DadosCompartilhados.compartilhamento_id == comp_id,
+            # Não conta o dado que será deletado
+            models.DadosCompartilhados.dado_origem_id != excluding_dado_id,
+        )
+        .scalar()
+    )
+    return count or 0
+
+
+def delete_compartilhamento_by_id(db: Session, comp_id: int):
+    """Deleta um Compartilhamento pelo ID."""
+    db.query(models.Compartilhamento).filter(
+        models.Compartilhamento.id == comp_id
+    ).delete(synchronize_session=False)
