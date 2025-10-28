@@ -7,31 +7,198 @@ import NewCredentialForm from '../forms/NewCredentialForm';
 import RenameFolderForm from "../forms/RenameFolderForm";
 
 
-const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, currentPath, setCurrentPath }) => {
+const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, currentPath, setCurrentPath, changeView }) => {
+
+
   const [items, setItems] = useState(fileSystem[currentPath]);
+
+
   const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
+
+
   const [isNewCredentialModalOpen, setIsNewCredentialModalOpen] = useState(false);
+
+
   const [newFolderName, setNewFolderName] = useState('');
-  const [activeItemIndex, setActiveItemIndex] = useState(null);
+
+
+  const [activeItemId, setActiveItemId] = useState(null);
+
+
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+
   const [itemToDelete, setItemToDelete] = useState(null);
+
+
   const [draggedItemIndex, setDraggedItemIndex] = useState(null);
+
+
   const [dragOverFolderIndex, setDragOverFolderIndex] = useState(null);
+
+
   const [dragOverBreadcrumbPath, setDragOverBreadcrumbPath] = useState(null);
+
+
   const [itemToEdit, setItemToEdit] = useState(null);
+
+
   const [isEditCredentialModalOpen, setIsEditCredentialModalOpen] = useState(false);
+
+
   const [folderToEdit, setFolderToEdit] = useState(null);
+
+
   const [isEditFolderModalOpen, setIsEditFolderModalOpen] = useState(false);
 
 
-  useEffect(() => {
-    setItems(fileSystem[currentPath]);
-  }, [currentPath, fileSystem]);
+      const [selectedTags, setSelectedTags] = useState([]);
+
+
+    
+
+
+      const allTags = Array.from(
+
+
+        Object.values(fileSystem)
+
+
+          .flat()
+
+
+          .filter(item => item.tags)
+
+
+          .flatMap(item => item.tags)
+
+
+          .reduce((map, tag) => {
+
+
+            if (!map.has(tag.name)) {
+
+
+              map.set(tag.name, tag);
+
+
+            }
+
+
+            return map;
+
+
+          }, new Map()).values()
+
+
+      );
+
+
+    
+
+
+        const displayedItems = selectedTags.length > 0
+
+
+    
+
+
+          ? Object.values(fileSystem).flat().filter(item => 
+
+
+    
+
+
+              item.tags && selectedTags.every(selectedTag => item.tags.some(itemTag => itemTag.name === selectedTag))
+
+
+    
+
+
+            )
+
+
+    
+
+
+          : items;
+
+
+
+
+
+    useEffect(() => {
+
+
+
+
+
+      setItems(fileSystem[currentPath]);
+
+
+
+
+
+      setSelectedTags([]); // Reset tag filter on path change
+
+
+
+
+
+    }, [currentPath, fileSystem]);
+
+
+
+
+
+  
+
+
+
+
+
+    const handleTagClick = (tag) => {
+
+
+
+
+
+      setSelectedTags(prevTags => 
+
+
+
+
+
+        prevTags.includes(tag) 
+
+
+
+
+
+          ? prevTags.filter(t => t !== tag) 
+
+
+
+
+
+          : [...prevTags, tag]
+
+
+
+
+
+      );
+
+
+
+
+
+    };
 
   useEffect(() => {
     const handleOutsideClick = () => {
-      if (activeItemIndex !== null) {
-        setActiveItemIndex(null);
+      if (activeItemId !== null) {
+        setActiveItemId(null);
       }
     };
 
@@ -39,7 +206,7 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
     return () => {
       window.removeEventListener('click', handleOutsideClick);
     };
-  }, [activeItemIndex]);
+  }, [activeItemId]);
 
   const handleDragStart = (e, index) => {
     setDraggedItemIndex(index);
@@ -173,7 +340,7 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
 
   const handleCreateFolder = () => {
     if (newFolderName.trim() === '') return;
-    const newFolder = { type: 'folder', name: newFolderName.trim() };
+    const newFolder = { id: Date.now(), type: 'folder', name: newFolderName.trim() };
     const newPath = `${currentPath}${newFolderName.trim()}/`;
     const updatedFileSystem = { ...fileSystem, [currentPath]: [...fileSystem[currentPath], newFolder], [newPath]: [] };
     setFileSystem(updatedFileSystem);
@@ -189,7 +356,7 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
   };
 
   const addPassword = (newPassword) => {
-    const newCredential = { type: 'credential', name: newPassword.name, email: newPassword.email };
+    const newCredential = { id: Date.now(), type: 'credential', ...newPassword };
     const updatedFileSystem = { ...fileSystem, [currentPath]: [...fileSystem[currentPath], newCredential] };
     setFileSystem(updatedFileSystem);
 
@@ -203,10 +370,10 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
     closeNewCredentialModal();
   };
 
-  const openDeleteModal = (index) => {
-    setItemToDelete(index);
+  const openDeleteModal = (item) => {
+    setItemToDelete(item);
     setIsDeleteModalOpen(true);
-    setActiveItemIndex(null);
+    setActiveItemId(null);
   };
 
   const closeDeleteModal = () => {
@@ -215,43 +382,54 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
   };
 
   const confirmDelete = () => {
-    if (itemToDelete === null) return;
+    if (!itemToDelete) return;
 
-    const item = items[itemToDelete];
-    // For now, only allow deleting files, credentials, and empty folders
-    if (item.type === 'folder') {
-      const folderPath = `${currentPath}${item.name}/`;
-      if (fileSystem[folderPath] && fileSystem[folderPath].length > 0) {
-        alert('Não é possível excluir pastas que não estão vazias.');
-        closeDeleteModal();
-        return;
+    const newFileSystem = { ...fileSystem };
+    let itemPath = null;
+    let itemIndex = -1;
+
+    // Find the item in the file system
+    for (const path in newFileSystem) {
+      const index = newFileSystem[path].findIndex(i => i.id === itemToDelete.id);
+      if (index !== -1) {
+        itemPath = path;
+        itemIndex = index;
+        break;
       }
     }
 
-    const updatedItems = items.filter((_, index) => index !== itemToDelete);
-    const updatedFileSystem = { ...fileSystem, [currentPath]: updatedItems };
-    // If it was a folder, remove its own path from the file system
-    if (item.type === 'folder') {
-      const folderPath = `${currentPath}${item.name}/`;
-      delete updatedFileSystem[folderPath];
+    if (itemPath !== null) {
+      const item = newFileSystem[itemPath][itemIndex];
+
+      if (item.type === 'folder') {
+        const folderPath = `${itemPath}${item.name}/`;
+        if (newFileSystem[folderPath] && newFileSystem[folderPath].length > 0) {
+          alert('Não é possível excluir pastas que não estão vazias.');
+          closeDeleteModal();
+          return;
+        }
+        delete newFileSystem[folderPath];
+      }
+
+      const updatedItems = newFileSystem[itemPath].filter((_, index) => index !== itemIndex);
+      newFileSystem[itemPath] = updatedItems;
+      setFileSystem(newFileSystem);
+
+      const newLogEntry = {
+        type: 'delete',
+        title: `Item "${item.name}" excluído`,
+        time: new Date().toLocaleString(),
+      };
+      setActivityLog([newLogEntry, ...activityLog]);
     }
-
-    setFileSystem(updatedFileSystem);
-
-    const newLogEntry = {
-      type: 'delete', // Or a more specific type
-      title: `Item "${item.name}" excluído`,
-      time: new Date().toLocaleString(),
-    };
-    setActivityLog([newLogEntry, ...activityLog]);
 
     closeDeleteModal();
   };
 
-  const openEditModal = (index) => {
-    setItemToEdit({ ...items[index], index });
+  const openEditModal = (item) => {
+    setItemToEdit(item);
     setIsEditCredentialModalOpen(true);
-    setActiveItemIndex(null);
+    setActiveItemId(null);
   };
 
   const closeEditModal = () => {
@@ -260,43 +438,44 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
   };
 
   const updatePassword = (updatedItem) => {
-    if (!updatedItem || updatedItem.index === undefined) return;
+    if (!updatedItem || updatedItem.id === undefined) return;
 
-    const updatedItems = [...items];
-    const originalItem = updatedItems[updatedItem.index];
+    const newFileSystem = { ...fileSystem };
+    let itemPath = null;
+    let itemIndex = -1;
 
-    // Atualiza os campos editáveis
-    updatedItems[updatedItem.index] = {
-      ...originalItem,
-      name: updatedItem.name,
-      email: updatedItem.email
-    };
+    // Find the item in the file system
+    for (const path in newFileSystem) {
+      const index = newFileSystem[path].findIndex(i => i.id === updatedItem.id);
+      if (index !== -1) {
+        itemPath = path;
+        itemIndex = index;
+        break;
+      }
+    }
 
-    // Salvar no fileSystem
-    const updatedFileSystem = {
-      ...fileSystem,
-      [currentPath]: updatedItems
-    };
+    if (itemPath !== null) {
+      const updatedItems = [...newFileSystem[itemPath]];
+      updatedItems[itemIndex] = updatedItem;
+      newFileSystem[itemPath] = updatedItems;
+      setFileSystem(newFileSystem);
 
-    setFileSystem(updatedFileSystem);
-
-    // Log de edição
-    const logEntry = {
-      type: 'edit',
-      title: `Credencial "${updatedItem.name}" alterada`,
-      time: new Date().toLocaleString(),
-    };
-
-    setActivityLog([logEntry, ...activityLog]);
+      const logEntry = {
+        type: 'edit',
+        title: `Credencial "${updatedItem.name}" alterada`,
+        time: new Date().toLocaleString(),
+      };
+      setActivityLog([logEntry, ...activityLog]);
+    }
 
     closeEditModal();
   };
 
-  const openEditFolderModal = (index) => {
-    setFolderToEdit({ ...items[index], index });
-    setNewFolderName(items[index].name); // preencher input
+  const openEditFolderModal = (item) => {
+    setFolderToEdit(item);
+    setNewFolderName(item.name); // preencher input
     setIsEditFolderModalOpen(true);
-    setActiveItemIndex(null);
+    setActiveItemId(null);
   };
 
   const closeEditFolderModal = () => {
@@ -306,35 +485,44 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
   };
 
   const updateFolderName = (updatedFolder) => {
-    const updatedItems = [...items];
-    updatedItems[updatedFolder.index].name = updatedFolder.name;
+    const newFileSystem = { ...fileSystem };
+    let itemPath = null;
+    let itemIndex = -1;
 
-    const oldPath = `${currentPath}${folderToEdit.name}/`;
-    const newPath = `${currentPath}${updatedFolder.name}/`;
-
-    let updatedFileSystem = { ...fileSystem };
-
-    updatedFileSystem[currentPath] = updatedItems;
-
-    if (updatedFileSystem[oldPath]) {
-      updatedFileSystem[newPath] = updatedFileSystem[oldPath];
-      delete updatedFileSystem[oldPath];
-
-      for (const path in updatedFileSystem) {
-        if (path.startsWith(oldPath)) {
-          const newSubPath = path.replace(oldPath, newPath);
-          updatedFileSystem[newSubPath] = updatedFileSystem[path];
-          delete updatedFileSystem[path];
-        }
+    for (const path in newFileSystem) {
+      const index = newFileSystem[path].findIndex(i => i.id === updatedFolder.id);
+      if (index !== -1) {
+        itemPath = path;
+        itemIndex = index;
+        break;
       }
     }
 
-    setFileSystem(updatedFileSystem);
+    if (itemPath) {
+      const oldFolder = newFileSystem[itemPath][itemIndex];
+      const oldPath = `${itemPath}${oldFolder.name}/`;
+      const newPath = `${itemPath}${updatedFolder.name}/`;
 
-    setActivityLog([
-      { type: 'edit', title: `Pasta renomeada para "${updatedFolder.name}"`, time: new Date().toLocaleString() },
-      ...activityLog
-    ]);
+      newFileSystem[itemPath][itemIndex] = updatedFolder;
+
+      if (newFileSystem[oldPath]) {
+        newFileSystem[newPath] = newFileSystem[oldPath];
+        delete newFileSystem[oldPath];
+
+        for (const path in newFileSystem) {
+          if (path.startsWith(oldPath)) {
+            const newSubPath = path.replace(oldPath, newPath);
+            newFileSystem[newSubPath] = newFileSystem[path];
+            delete newFileSystem[path];
+          }
+        }
+      }
+      setFileSystem(newFileSystem);
+      setActivityLog([
+        { type: 'edit', title: `Pasta renomeada para "${updatedFolder.name}"`, time: new Date().toLocaleString() },
+        ...activityLog
+      ]);
+    }
 
     closeEditFolderModal();
   };
@@ -395,20 +583,31 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
         <div className="tags">
           <div className="tag-title">Tags</div>
           <div className="tag-list">
-            <div className="tag" style={{ borderLeftColor: 'red' }}>Email</div>
-            <div className="tag" style={{ borderLeftColor: 'blue' }}>Apps</div>
+            {allTags.map(tag => (
+              <div 
+                key={tag.name} 
+                className={`tag ${selectedTags.includes(tag.name) ? 'selected' : ''}`}
+                onClick={() => handleTagClick(tag.name)} 
+                style={{ borderLeftColor: tag.color }}>
+                {tag.name}
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
       <div className="main-content">
-        <Header title="Meu Cofre" onNewFolder={openNewFolderModal} onNewCredential={openNewCredentialModal} />
+        <Header 
+          title={selectedTags.length > 0 ? `Itens com as tags "${selectedTags.join(', ')}"` : "Meu Cofre"} 
+          onNewFolder={openNewFolderModal} 
+          onNewCredential={openNewCredentialModal} 
+        />
         <div className="file-manager">
-          <Breadcrumbs />
+          {selectedTags.length === 0 && <Breadcrumbs />}
           <div className="file-list">
-            {items.map((item, index) => (
+            {displayedItems.map((item, index) => (
               <div 
-                key={index} 
+                key={item.id} 
                 className={`file-item ${dragOverFolderIndex === index ? 'drag-over' : ''}`}
                 draggable="true"
                 onDragStart={(e) => handleDragStart(e, index)}
@@ -426,13 +625,13 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
                   </div>
                 </div>
                 <div className="file-actions">
-                  <button onClick={(e) => { e.stopPropagation(); setActiveItemIndex(index === activeItemIndex ? null : index); }}><MoreVertical size={16} /></button>
-                  {activeItemIndex === index && (
+                  <button onClick={(e) => { e.stopPropagation(); setActiveItemId(item.id === activeItemId ? null : item.id); }}><MoreVertical size={16} /></button>
+                  {activeItemId === item.id && (
                     <ItemActionsMenu
-                      onEditCredential={() => openEditModal(index)}
-                      onEditFolder={() => openEditFolderModal(index)}
-                      onDelete={() => openDeleteModal(index)}
-                      itemType={items[index].type}
+                      onEditCredential={() => openEditModal(item)}
+                      onEditFolder={() => openEditFolderModal(item)}
+                      onDelete={() => openDeleteModal(item)}
+                      itemType={item.type}
                     />
                   )}
                 </div>
@@ -461,7 +660,7 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
     </Modal>
 
     <Modal title="Novo Item" isOpen={isNewCredentialModalOpen} onCancel={closeNewCredentialModal}>
-      <NewCredentialForm onCancel={closeNewCredentialModal} addPassword={addPassword} />
+      <NewCredentialForm onCancel={closeNewCredentialModal} addPassword={addPassword} allTags={allTags} />
     </Modal>
 
     <Modal title="Editar Item" isOpen={isEditCredentialModalOpen} onCancel={closeEditModal}>
@@ -469,6 +668,7 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
         onCancel={closeEditModal}
         editItem={itemToEdit}
         updatePassword={updatePassword}
+        allTags={allTags}
       />
     </Modal>
 

@@ -296,8 +296,40 @@
   justify-content: center;
   opacity: 0.7;
   transition: opacity 0.2s;
+  font-size: 16px;
+  font-weight: bold;
+  margin-left: 4px;
 }
 
 .tag-item-modal button:hover {
   opacity: 1;
+}
+
+.existing-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #3a3a3a;
+  margin-top: 16px;
+}
+
+.existing-tag-pill {
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.existing-tag-pill:hover {
+  filter: brightness(1.2);
+}
+
+.existing-tag-pill.selected {
+  color: #fff;
+  border-color: #fff;
+  background-color: rgba(255, 255, 255, 0.1);
 }
