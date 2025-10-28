@@ -213,6 +213,20 @@ def create_file(
     return created_data
 
 
+def get_specific_data(db: Session, user_id: int, data_id: int) -> models.Dado:
+    """
+    Busca um Dado específico pelo seu ID, garantindo que pertença ao usuário.
+    """
+    db_dado = repository.get_dado_by_id_and_user_id(
+        db, dado_id=data_id, user_id=user_id
+    )
+    if not db_dado:
+        raise DataNotFoundError(
+            f"Dado com id {data_id} não encontrado ou não pertence ao usuário."
+        )
+    return db_dado
+
+
 def delete_data_by_id(db: Session, user_id: int, dado_id: int):
     """
     Operação de remoção de um Dado específico, Logs associados

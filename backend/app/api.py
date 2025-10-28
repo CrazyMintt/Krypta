@@ -309,3 +309,32 @@ def delete_data(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ocorreu um erro ao tentar apagar o dado: {e}",
         )
+
+
+@router.get(
+    "/data/{data_id}",
+    response_model=schemas.DataResponse,
+    tags=["Data"],
+)
+def get_single_data_entry(
+    data_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Busca e retorna um Dado específico (arquivo ou credencial)
+    pertencente ao usuário logado.
+    """
+    try:
+        db_dado = services.get_specific_data(
+            db=db, user_id=current_user.id, data_id=data_id
+        )
+        return db_dado
+
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ocorreu um erro ao buscar o dado: {e}",
+        )
