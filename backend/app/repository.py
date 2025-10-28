@@ -1,3 +1,4 @@
+from typing import Optional
 from . import models, schemas
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -103,12 +104,12 @@ def create_file(db: Session, dado: models.Dado, arquivo: models.Arquivo) -> mode
 
 
 def get_dado_by_id_and_user_id(
-    db: Session, data_id: int, user_id: int
+    db: Session, dado_id: int, user_id: int
 ) -> models.Dado | None:
     """Busca um Dado específico pelo seu ID e o ID do usuário proprietário."""
     return (
         db.query(models.Dado)
-        .filter(models.Dado.id == data_id, models.Dado.usuario_id == user_id)
+        .filter(models.Dado.id == dado_id, models.Dado.usuario_id == user_id)
         .first()
     )
 
@@ -160,3 +161,49 @@ def delete_compartilhamento_by_id(db: Session, comp_id: int):
     db.query(models.Compartilhamento).filter(
         models.Compartilhamento.id == comp_id
     ).delete(synchronize_session=False)
+
+
+def update_file_data(
+    db: Session,
+    db_dado: models.Dado,
+    db_arquivo: models.Arquivo,
+    update_data: schemas.DataUpdateFile,
+    decoded_bytes: Optional[bytes],
+) -> models.Dado:
+    """
+    Aplica atualizações parciais a um Dado do tipo Arquivo e seu Arquivo filho,
+    e commita as alterações no banco de dados.
+    """
+    try:
+        # Atualizar campos do Dado pai
+        dado_update_dict = update_data.model_dump(
+            exclude={"arquivo"}, exclude_unset=True
+        )
+        for key, value in dado_update_dict.items():
+            setattr(db_dado, key, value)
+
+        # Atualizar o Arquivo filho
+        if update_data.arquivo:
+            # Pega o dicionário do schema, mas ignora 'arquivo_data' (string)
+            file_update_dict = update_data.arquivo.model_dump(
+                exclude={"arquivo_data"}, exclude_unset=True
+            )
+
+            # Atualiza o blob
+            if decoded_bytes is not None:
+                db_arquivo.arquivo = decoded_bytes
+
+            # Atualizar outros campos do Arquivo (nome, extensão)
+            if "nome_arquivo" in file_update_dict:
+                db_arquivo.nome_arquivo = file_update_dict["nome_arquivo"]
+            if "extensao" in file_update_dict:
+                db_arquivo.extensao = file_update_dict["extensao"]
+
+        db.commit()
+
+        db.refresh(db_dado)
+        return db_dado
+
+    except Exception as e:
+        db.rollback()
+        raise e

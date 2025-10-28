@@ -210,7 +210,7 @@ def create_file(
         extensao=file_data.arquivo.extensao,
     )
     created_data = repository.create_file(db=db, dado=db_dado, arquivo=db_arquivo)
-    return created_data.arquivo
+    return created_data
 
 
 def delete_data_by_id(db: Session, user_id: int, dado_id: int):
@@ -219,7 +219,7 @@ def delete_data_by_id(db: Session, user_id: int, dado_id: int):
     e limpa Compartilhamentos órfãos
     """
     dado = repository.get_dado_by_id_and_user_id(
-        db=db, user_id=user_id, data_id=dado_id
+        db=db, user_id=user_id, dado_id=dado_id
     )
     if not dado:
         raise DataNotFoundError(
@@ -253,4 +253,44 @@ def delete_data_by_id(db: Session, user_id: int, dado_id: int):
         db.rollback()
         print(f"Erro ao deletar dado {dado_id} do usuário {user_id}: {e}")
         # Re-levanta a exceção para a camada da API tratar
+        raise e
+
+
+def edit_file_data(
+    db: Session, user_id: int, data_id: int, update_data: schemas.DataUpdateFile
+) -> models.Dado:
+    """
+    Serviço para editar um Dado do tipo Arquivo.
+    Valida, decodifica Base64 (se necessário) e chama o repositório para salvar.
+    """
+    db_dado = repository.get_dado_by_id_and_user_id(
+        db, dado_id=data_id, user_id=user_id
+    )
+    if not db_dado:
+        raise DataNotFoundError(
+            f"Dado com id {data_id} não encontrado ou não pertence ao usuário."
+        )
+    if db_dado.tipo != models.TipoDado.ARQUIVO:
+        raise ValueError(f"Dado com id {data_id} não é do tipo Arquivo.")
+
+    # Variável para armazenar os bytes decodificados, se houver
+    decoded_bytes: bytes | None = None
+
+    # 2. Pré-processar a atualização do arquivo (decodificar Base64)
+    if update_data.arquivo and update_data.arquivo.arquivo_data:
+        try:
+            decoded_bytes = base64.b64decode(update_data.arquivo.arquivo_data)
+        except Exception as e:
+            raise ValueError(f"Codificação Base64 inválida fornecida: {e}")
+    try:
+        updated_dado = repository.update_file_data(
+            db=db,
+            db_dado=db_dado,
+            db_arquivo=db_dado.arquivo,
+            update_data=update_data,
+            decoded_bytes=decoded_bytes,
+        )
+        return updated_dado
+    except Exception as e:
+        print(f"Erro ao atualizar arquivo para Dado {data_id}: {e}")
         raise e

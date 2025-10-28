@@ -31,7 +31,7 @@ class DataResponse(BaseModel):
     usuario_id: int
     nome_aplicacao: Optional[str]
     descricao: Optional[str]
-    tipo_dado: TipoDado
+    tipo: TipoDado
     criado_em: datetime
     # Relcionamentos
     arquivo: Optional[FileResponse]
@@ -48,6 +48,8 @@ class PasswordBase(BaseModel):
 
 
 class FileCreate(BaseModel):
+    """Schema para criação de um arquivo"""
+
     arquivo_data: str
     extensao: Optional[str] = None
     nome_arquivo: Optional[str] = None
@@ -101,3 +103,20 @@ class LoginResponse(UserResponse):
     access_token: str
     saltKDF: str
     token_type: str = "bearer"
+
+
+# Schemas para atualizar os dados de um arquivo
+class FileUpdate(BaseModel):
+    """Schema para atualizar os detalhes de um Arquivo (campos opcionais)"""
+
+    arquivo_data: Optional[str] = None
+    extensao: Optional[str] = None
+    nome_arquivo: Optional[str] = None
+
+
+class DataUpdateFile(BaseModel):
+    """Schema para atualizar um Dado do tipo Arquivo (campos opcionais)"""
+
+    nome_aplicacao: Optional[str] = None
+    descricao: Optional[str] = None
+    arquivo: Optional[FileUpdate] = None

@@ -107,6 +107,8 @@ def update_user_me(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except EmailAlreadyExistsError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @router.delete("/users/me/data", status_code=HTTP_204_NO_CONTENT, tags=["Users"])
@@ -187,7 +189,7 @@ def create_credential(
 @router.post(
     "/data/files",
     status_code=status.HTTP_201_CREATED,
-    response_model=schemas.FileResponse,
+    response_model=schemas.DataResponse,
     tags=["Files"],
 )
 def create_file(
@@ -211,6 +213,40 @@ def create_file(
         raise HTTPException(
             status_code=HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao salvar o arquivo.",
+        )
+
+
+@router.patch(
+    "/data/files/{data_id}",
+    response_model=schemas.DataResponse,
+    tags=["Files"],
+)
+def update_file_entry(
+    data_id: int,
+    update_data: schemas.DataUpdateFile,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Atualiza um Dado existente do tipo Arquivo pertencente ao usuário logado.
+    Permite alterar nome, descrição, nota e/ou substituir o conteúdo do arquivo
+    (enviando 'arquivo.arquivo_data' como Base64).
+    """
+    try:
+        updated_dado = services.edit_file_data(
+            db=db, user_id=current_user.id, data_id=data_id, update_data=update_data
+        )
+        return updated_dado
+
+    # Traduz erros de negócio do serviço para erros HTTP
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ocorreu um erro ao atualizar o arquivo: {e}",
         )
 
 
