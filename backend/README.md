@@ -17,12 +17,12 @@ backend/
 ```
 # Instruções
 
-O backend pode ser executado com **Docker** (recomendado) ou diretamente com **Python**.
+O backend pode ser [executado](#executando-a-aplicação) com **Docker** (recomendado) ou diretamente com **Python**.
 
 > Em ambos os casos, é necessário:
-> - Configurar corretamente o arquivo `.env` (ver seção abaixo)
-> - Ter o banco de dados criado localmente com um usuário com acesso externo (necessário se usar Docker)
-> - Gerar certificados locais com `mkcert` para que o HTTPS funcione corretamente
+> - Configurar corretamente o arquivo [.env](#variáveis-de-ambiente)
+> - Ter o [banco de dados criado localmente](#banco-de-dados-local) com um usuário com acesso externo (necessário se usar Docker)
+> - [Gerar certificados locais](#configurando-https-com-mkcert) com `mkcert` para que o HTTPS funcione corretamente
 
 
 ## Configurando HTTPS com mkcert
@@ -34,7 +34,8 @@ Para rodar a API localmente com HTTPS, é necessário o [mkcert](https://github.
 No Windows (usando Chocolatey):
 
 ```bash
-choco install mkcert```
+choco install mkcert
+```
 Ou faça o build a partir do repositório oficial https://github.com/FiloSottile/mkcert
 
 No Arch Linux:
@@ -46,12 +47,14 @@ sudo pacman -S mkcert
 1. Instale a autoridade de certificação local (só precisa ser feito uma vez):
 
 ```bash
-mkcert -install```
+mkcert -install
+```
 
 2. Gere os certificados na pasta raiz do projeto:
 
 ```bash
-mkcert localhost 127.0.0.1```
+mkcert localhost 127.0.0.1
+```
 
 ---
 
@@ -127,7 +130,8 @@ python main.py
 
 Para executar o backend com docker, é necessário executar o seguinte comando **na raiz do projeto**
 ```bash
-docker compose up backend --build```
+docker compose up backend --build
+```
 
 
 A API estará disponível em `https://127.0.0.1:8000`.
