@@ -63,6 +63,7 @@ CONSTRAINT `arquivos_ibfk_1` FOREIGN KEY (`id`) REFERENCES `dados` (`id`) ON DEL
 
 CREATE TABLE IF NOT EXISTS `senhas` (
 `id` int(11) NOT NULL,
+`email` varchar(255),
 `senha_cripto` varchar(1024) NOT NULL,
 `host_url` varchar(1024) DEFAULT NULL,
 PRIMARY KEY (`id`),
