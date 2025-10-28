@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 
-const NewCredentialForm = ({ onCancel, addPassword, editItem, updatePassword }) => {
+const NewCredentialForm = ({ onCancel, addPassword, editItem, updatePassword, allTags = [] }) => {
   const passwordInputRef = useRef(null);
   const eyeIconRef = useRef(null);
 
@@ -53,8 +53,14 @@ const NewCredentialForm = ({ onCancel, addPassword, editItem, updatePassword }) 
     }
   };
 
+  const isTagAdded = tags.find(tag => tag.name === tagInput);
+
   const handleAddTag = () => {
-    if (tagInput && !tags.find(tag => tag.name === tagInput)) {
+    if (!tagInput) return;
+
+    if (isTagAdded) {
+      handleRemoveTag(tagInput);
+    } else {
       setTags([...tags, { name: tagInput, color: tagColor }]);
       setTagInput("");
     }
@@ -62,6 +68,22 @@ const NewCredentialForm = ({ onCancel, addPassword, editItem, updatePassword }) 
 
   const handleRemoveTag = (name) => {
     setTags(tags.filter(tag => tag.name !== name));
+  };
+
+  const handleExistingTagClick = (existingTag) => {
+    const isAlreadySelected = tags.find(tag => tag.name === existingTag.name);
+    if (isAlreadySelected) {
+      handleRemoveTag(existingTag.name);
+    } else {
+      setTags([...tags, existingTag]);
+    }
+  };
+
+  const handleTagInputKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddTag();
+    }
   };
 
   const handleFormSubmit = (e) => {
@@ -80,7 +102,8 @@ const NewCredentialForm = ({ onCancel, addPassword, editItem, updatePassword }) 
 
     if (isEditing) {
       updatePassword(data);
-    } else {
+    }
+    else {
       addPassword(data);
     }
   };
@@ -187,14 +210,19 @@ const NewCredentialForm = ({ onCancel, addPassword, editItem, updatePassword }) 
               placeholder="Nova tag"
               value={tagInput}
               onChange={e => setTagInput(e.target.value)}
+              onKeyDown={handleTagInputKeyDown}
             />
             <input
               type="color"
               value={tagColor}
               onChange={e => setTagColor(e.target.value)}
             />
-            <button type="button" className="btn btn-primary" onClick={handleAddTag}>
-              Adicionar
+            <button 
+              type="button" 
+              className={`btn ${isTagAdded ? 'btn-danger' : 'btn-primary'}`}
+              onClick={handleAddTag}
+            >
+              {isTagAdded ? 'Remover' : 'Adicionar'}
             </button>
           </div>
           <div className="tag-list-modal">
@@ -204,6 +232,17 @@ const NewCredentialForm = ({ onCancel, addPassword, editItem, updatePassword }) 
                 <button type="button" onClick={() => handleRemoveTag(tag.name)}>
                   ✕
                 </button>
+              </div>
+            ))}
+          </div>
+          <div className="existing-tags-list">
+            {allTags.map(tag => (
+              <div 
+                key={tag.name} 
+                className={`existing-tag-pill ${tags.find(t => t.name === tag.name) ? 'selected' : ''}`}
+                style={{ backgroundColor: tag.color, borderColor: tags.find(t => t.name === tag.name) ? tag.color : 'transparent' }}
+                onClick={() => handleExistingTagClick(tag)}>
+                {tag.name}
               </div>
             ))}
           </div>
@@ -219,6 +258,6 @@ const NewCredentialForm = ({ onCancel, addPassword, editItem, updatePassword }) 
       </div>
     </form>
   );
-};
+}
 
 export default NewCredentialForm;
