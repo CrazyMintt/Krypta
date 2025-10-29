@@ -71,7 +71,7 @@ def get_data_paginated_filtered(db:Session,user_data: models.Usuario,fpData:sche
         except:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="leitura",
+                detail="Erro na leitura dos parametros, contate um desenvolvedor",
             )  
         if pageSize is None or pageNumber is None:
             raise HTTPException(
@@ -119,7 +119,7 @@ def get_data_paginated_filtered(db:Session,user_data: models.Usuario,fpData:sche
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"{e}",
+                detail=f"erro interno",
             ) 
         # assegura que cada linha seja serializável (mappings() -> dict). 
         # repository já retorna lista de dicts conforme seu código.
@@ -129,7 +129,7 @@ def get_data_paginated_filtered(db:Session,user_data: models.Usuario,fpData:sche
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"FILTRO {e}",
+                detail=f"erro na filtragem, contate um desenvolvedor",
             )
 
         return {
