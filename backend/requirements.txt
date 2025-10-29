@@ -9,3 +9,4 @@ pydantic-settings
 passlib[argon2]
 python-jose
 python-multipart
+cryptography
