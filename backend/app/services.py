@@ -5,6 +5,7 @@ import logging
 import os
 import sys
 from sqlalchemy import update, text
+from fastapi import HTTPException,status
 import base64
 
 # ==============================
@@ -63,6 +64,82 @@ def create_credential(
         # colocar logger
         raise ValueError(f"Erro ao criar credential via procedure: {e}")
 
+
+def get_data_paginated_filtered(db:Session,user_data: models.Usuario,fpData:schemas.FilterPageConfig):
+        # extrai parâmetros do body com validação básica
+        try:
+            pageSize = getattr(fpData,"pageSize",None)
+            pageNumber = getattr(fpData,"pageNumber",None)
+            idSeparators = getattr(fpData,"idSeparators", []) or []
+        except:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Erro na leitura dos parametros, contate um desenvolvedor",
+            )  
+        if pageSize is None or pageNumber is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Os campos 'pageSize' e 'pageNumber' são obrigatórios.",
+            )
+
+        try:
+            pageSize = int(pageSize)
+            pageNumber = int(pageNumber)
+        except (TypeError, ValueError):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="'pageSize' e 'pageNumber' devem ser inteiros.",
+            )
+
+        if pageSize <= 0 or pageNumber <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="'pageSize' e 'pageNumber' devem ser maiores que zero.",
+            )
+
+        if not isinstance(idSeparators, list):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="'idSeparators' deve ser uma lista de inteiros.",
+            )
+
+        # garante que os separadores sejam inteiros
+        try:
+            idSeparators = [int(x) for x in idSeparators]
+        except:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Elementos de 'idSeparators' devem ser inteiros.",
+            )
+
+        try:
+            # chama a função de repositório adequada
+            raw_rows = []
+            if idSeparators:
+                raw_rows = repository.get_paginated_filtered_data(db, pageSize, pageNumber, idSeparators,user_data.id)
+            else:
+                raw_rows = repository.get_paginated_data(db, pageSize, pageNumber,user_data.id)
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"erro interno",
+            ) 
+        # assegura que cada linha seja serializável (mappings() -> dict). 
+        # repository já retorna lista de dicts conforme seu código.
+        # Filtra pelo usuário atual caso a query não aplique o filtro
+        try:
+            filtered = [r for r in raw_rows if int(r.get("usuario_id", -1)) == int(user_data.id)]
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"erro na filtragem, contate um desenvolvedor",
+            )
+
+        return {
+            "pageNumber": pageNumber,
+            "pageSize": pageSize,
+            "items": filtered,
+        }
 
 def register_user(db: Session, user_data: schemas.UserCreate) -> models.Usuario | None:
     """

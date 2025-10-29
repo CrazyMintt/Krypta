@@ -14,6 +14,7 @@ router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 
+
 def get_current_user(
     db: Annotated[Session, Depends(get_db)],
     token: Annotated[str, Depends(oauth2_scheme)],
@@ -337,4 +338,38 @@ def get_single_data_entry(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ocorreu um erro ao buscar o dado: {e}",
+        )
+
+@router.post("/data/search", tags=["data"])
+def search_data_paginated(
+    payload: Annotated[schemas.FilterPageConfig, Body(...)],
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Busca paginada de dados.
+    Body esperado:
+    {
+      "pageSize": <int>,
+      "pageNumber": <int>,
+      "idSeparators": [<int>, ...]   // opcional
+    }
+
+    Retorna:
+    {
+      "pageNumber": int,
+      "pageSize": int,
+      "items": [ ... ]
+    }
+    """
+    try:
+        data = services.get_data_paginated_filtered(db,current_user,payload)
+        return data
+    except HTTPException:
+        raise
+    except Exception as e:
+        # log opcional: print(f"Erro em busca paginada: {e}")
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"{e}"
         )

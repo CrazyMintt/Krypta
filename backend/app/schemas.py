@@ -4,6 +4,13 @@ from datetime import datetime
 from .models import TipoDado
 
 
+#Schema de entrada para filtro e pagina
+class FilterPageConfig(BaseModel):
+    pageSize: int
+    pageNumber:int
+    # lista de ids dos separadores
+    idSeparators: list[int]
+
 # Schema de resposta
 class SeparatorSchema(BaseModel):
     id: int
@@ -11,7 +18,7 @@ class SeparatorSchema(BaseModel):
     cor: Optional[str]
     model_config = ConfigDict(from_attributes=True)
 
-
+# Schemas de Dados
 class CredentialResponse(BaseModel):
     id: int
     host_url: Optional[str]
