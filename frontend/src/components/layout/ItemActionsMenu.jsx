@@ -23,7 +23,7 @@ const ItemActionsMenu = React.forwardRef(
           </>
         )}
         {itemType === 'folder' && (
-          <div className="dropdown-item" onClick={(e) => handleActionClick(e, onEditFolder)}>
+          <div className="dropdown-item" onClick={(e) => { e.stopPropagation(); onEditFolder(); }}>
             <Edit size={16} />
             <span>Renomear</span>
           </div>
