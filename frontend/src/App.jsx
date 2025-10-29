@@ -17,19 +17,19 @@ import Dashboard from './components/views/Dashboard';
 // Mock data para simular uma estrutura de arquivos
 const initialFileSystem = {
   '/': [
-    { type: 'folder', name: 'Trabalho' },
-    { type: 'folder', name: 'Pessoal' },
-    { type: 'credential', name: 'senha_wifi', email: 'user@example.com' },
+    { id: Date.now() + 1, type: 'folder', name: 'Trabalho' },
+    { id: Date.now() + 2, type: 'folder', name: 'Pessoal' },
+    { id: Date.now() + 3, type: 'credential', name: 'senha_wifi', email: 'user@example.com' },
   ],
   '/Trabalho/': [
-    { type: 'file', name: 'relatorio_q3.pdf' },
-    { type: 'folder', name: 'Projetos' },
+    { id: Date.now() + 4, type: 'file', name: 'relatorio_q3.pdf' },
+    { id: Date.now() + 5, type: 'folder', name: 'Projetos' },
   ],
   '/Trabalho/Projetos/': [
-    { type: 'file', name: 'projeto_krypta.docx' },
+    { id: Date.now() + 6, type: 'file', name: 'projeto_krypta.docx' },
   ],
   '/Pessoal/': [
-    { type: 'file', name: 'lista_compras.txt' },
+    { id: Date.now() + 7, type: 'file', name: 'lista_compras.txt' },
   ],
 };
 
@@ -71,7 +71,17 @@ const MainApp = () => {
     <div className="container">
       <Sidebar changeView={changeView} />
       
-      {view === 'cofre' && <Cofre {...commonProps} />}
+      {view === 'cofre' && 
+        <Cofre 
+          fileSystem={fileSystem} 
+          setFileSystem={setFileSystem} 
+          activityLog={activityLog} 
+          setActivityLog={setActivityLog} 
+          currentPath={currentPath} 
+          setCurrentPath={setCurrentPath}
+          changeView={changeView} // Pass changeView to Cofre
+        />
+      }
       {view === 'dashboard' && <Dashboard {...commonProps} />}
     </div>
   );

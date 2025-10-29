@@ -4,14 +4,15 @@ from sqlalchemy.orm import Session
 from typing import Annotated
 from jose import ExpiredSignatureError, JWTError
 from starlette.status import HTTP_204_NO_CONTENT, HTTP_500_INTERNAL_SERVER_ERROR
-
+from fastapi import Body
 from . import schemas, services, repository, core, models
 from .database import get_db
-from .exceptions import UserNotFoundError, EmailAlreadyExistsError
+from .exceptions import UserNotFoundError, EmailAlreadyExistsError, DataNotFoundError
 
 router = APIRouter()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
+
 
 
 def get_current_user(
@@ -107,14 +108,16 @@ def update_user_me(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except EmailAlreadyExistsError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-@router.delete("/users/me", status_code=HTTP_204_NO_CONTENT, tags=["Users"])
-def delete_user_me(
+@router.delete("/users/me/data", status_code=HTTP_204_NO_CONTENT, tags=["Users"])
+def delete_user_data(
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
     db=Depends(get_db),
 ):
-    "Apaga todos os dados do usuário logado, mantendo a conta"
+    """Apaga todos os dados do usuário logado, mantendo a conta"""
     success = services.clear_all_user_data(db=db, user_id=current_user.id)
     if not success:
         raise HTTPException(
@@ -122,3 +125,251 @@ def delete_user_me(
             detail="Não foi possível apagar os dados do usuário.",
         )
     return current_user
+
+
+@router.delete("/users/me", status_code=HTTP_204_NO_CONTENT, tags=["Users"])
+def delete_user_me(
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+    db=Depends(get_db),
+):
+    """Apaga a conta do usuário logado"""
+    success = services.delete_user(db=db, user_id=current_user.id)
+    if not success:
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Não foi possível apagar os dados do usuário.",
+        )
+    return current_user
+
+
+@router.post(
+    "/data/credentials",
+    status_code=status.HTTP_201_CREATED,
+    tags=["Credentials"],
+)
+def create_credential(
+    credential_data: Annotated[schemas.CredentialBase, Body(...)],
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Cria uma nova credential para o usuário logado.
+    - `email` e `host_url` são opcionais (definidos no schema).
+    - Retorna o objeto criado.
+    """
+    try:
+        # chame o serviço responsável por criar a credential
+        created = services.create_credential(
+            db=db, user=current_user, credential_data=credential_data
+        )
+
+        # Se o serviço retornar None ou False, convertemos para erro HTTP apropriado
+        if not created:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Não foi possível criar a credential.",
+            )
+
+        return {"message": "credencial criado com sucesso!", "id": created}
+
+    except HTTPException:
+        # re-levanta HTTPExceptions sem modificar (ex: validações de serviço)
+        raise
+    except ValueError as e:
+        # erro de validação simples vindo do serviço
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        # Log opcional aqui (print ou logger)
+        # print(f"Erro ao criar credential: {e}")
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao criar credential.",
+        )
+
+
+@router.patch(
+    "/data/credentials/{data_id}",
+    response_model=schemas.DataResponse,
+    tags=["Credentials"],
+)
+def update_credential_entry(
+    data_id: int,
+    update_data: schemas.DataUpdateCredential,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Atualiza um Dado existente do tipo Senha pertencente ao usuário logado.
+    Permite alterar nome, descrição, nota, senha criptografada, url e email associado.
+    """
+    try:
+        updated_dado = services.edit_credential_data(
+            db=db, user_id=current_user.id, data_id=data_id, update_data=update_data
+        )
+        return updated_dado
+
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ocorreu um erro ao atualizar a credencial: {e}",
+        )
+
+
+@router.post(
+    "/data/files",
+    status_code=status.HTTP_201_CREATED,
+    response_model=schemas.DataResponse,
+    tags=["Files"],
+)
+def create_file(
+    file_data: schemas.DataCreateFile,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Cria um novo arquivo.
+    O frontend deve enviar a informação 'arquivo_details.arquivo_data'
+    como uma string codificada em Base64.
+    """
+    try:
+        created_file = services.create_file(
+            db=db, user_id=current_user.id, file_data=file_data
+        )
+        return created_file
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao salvar o arquivo.",
+        )
+
+
+@router.patch(
+    "/data/files/{data_id}",
+    response_model=schemas.DataResponse,
+    tags=["Files"],
+)
+def update_file_entry(
+    data_id: int,
+    update_data: schemas.DataUpdateFile,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Atualiza um Dado existente do tipo Arquivo pertencente ao usuário logado.
+    Permite alterar nome, descrição, nota e/ou substituir o conteúdo do arquivo
+    (enviando 'arquivo.arquivo_data' como Base64).
+    """
+    try:
+        updated_dado = services.edit_file_data(
+            db=db, user_id=current_user.id, data_id=data_id, update_data=update_data
+        )
+        return updated_dado
+
+    # Traduz erros de negócio do serviço para erros HTTP
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ocorreu um erro ao atualizar o arquivo: {e}",
+        )
+
+
+@router.delete(
+    "/data/{data_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["Data"],
+)
+def delete_data(
+    data_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Apaga um Dado específico (credencial ou arquivo) pertencente ao usuário logado.
+    """
+    try:
+        services.delete_data_by_id(db=db, user_id=current_user.id, dado_id=data_id)
+        # Se o serviço não levantar exceção, a exclusão foi bem-sucedida.
+        # Retorna None para gerar a resposta 204 No Content.
+        return None
+
+    except DataNotFoundError as e:
+        # Traduz o erro de negócio para HTTP 404
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ocorreu um erro ao tentar apagar o dado: {e}",
+        )
+
+
+@router.get(
+    "/data/{data_id}",
+    response_model=schemas.DataResponse,
+    tags=["Data"],
+)
+def get_single_data_entry(
+    data_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Busca e retorna um Dado específico (arquivo ou credencial)
+    pertencente ao usuário logado.
+    """
+    try:
+        db_dado = services.get_specific_data(
+            db=db, user_id=current_user.id, data_id=data_id
+        )
+        return db_dado
+
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ocorreu um erro ao buscar o dado: {e}",
+        )
+
+@router.post("/data/search", tags=["data"])
+def search_data_paginated(
+    payload: Annotated[schemas.FilterPageConfig, Body(...)],
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Busca paginada de dados.
+    Body esperado:
+    {
+      "pageSize": <int>,
+      "pageNumber": <int>,
+      "idSeparators": [<int>, ...]   // opcional
+    }
+
+    Retorna:
+    {
+      "pageNumber": int,
+      "pageSize": int,
+      "items": [ ... ]
+    }
+    """
+    try:
+        data = services.get_data_paginated_filtered(db,current_user,payload)
+        return data
+    except HTTPException:
+        raise
+    except Exception as e:
+        # log opcional: print(f"Erro em busca paginada: {e}")
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"{e}"
+        )

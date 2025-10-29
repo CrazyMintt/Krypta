@@ -117,7 +117,7 @@ class Senha(Base):
     )
     senha_cripto: Mapped[str] = mapped_column(String(1024))
     host_url: Mapped[Optional[str]] = mapped_column(String(1024))
-
+    email: Mapped[str] = mapped_column(String(255))
     dado: Mapped["Dado"] = relationship(back_populates="senha")
 
 

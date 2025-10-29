@@ -40,6 +40,12 @@
     border-left-style: solid;
     padding: 5px 10px;
     background-color: #2a2d35;
+    border-radius: 5px;
+}
+
+.tag.selected {
+    background-color: #8b5cf6; /* Cor de fundo roxa para destaque */
+    color: #ffffff;           /* Cor do texto branca para contraste */
 }
 
 .main-content {
