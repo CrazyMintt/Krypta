@@ -156,6 +156,36 @@
     background: #2a2a2a;
 }
 
+.password-input-wrapper.two-buttons .form-input {
+    padding-right: 80px; /* More space for two buttons */
+}
+
+.password-input-wrapper.two-buttons .toggle-password {
+    right: 48px;
+}
+
+.copy-btn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    transition: color 0.2s;
+    border-radius: 4px;
+}
+
+.copy-btn:hover {
+    color: #999;
+    background: #2a2a2a;
+}
+
 .modal-actions {
     display: flex;
     gap: 12px;

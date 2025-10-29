@@ -12,7 +12,7 @@ const RenameFolderForm = ({ folder, onCancel, updateFolderName }) => {
     if (name.trim() === "") return;
     
     updateFolderName({
-      index: folder.index,
+      ...folder,
       name: name.trim()
     });
   };
