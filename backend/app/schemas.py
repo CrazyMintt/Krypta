@@ -138,8 +138,8 @@ class FileResponse(BaseSchema):
     """Schema para retornar os detalhes de um Arquivo (filho)."""
 
     id: int
-    extensao: Optional[str]
-    nome_arquivo: Optional[str]
+    extensao: str
+    nome_arquivo: str
 
 
 # --- Schema de Output Principal (Pai) ---
@@ -150,7 +150,7 @@ class DataResponse(BaseSchema):
 
     id: int
     usuario_id: int
-    nome_aplicacao: Optional[str]
+    nome_aplicacao: str
     descricao: Optional[str]
     tipo: TipoDado
     criado_em: datetime
@@ -180,7 +180,7 @@ class CredentialCreate(BaseModel):
     """Schema aninhado para os detalhes de uma nova credencial (senha)."""
 
     senha_cripto: str = Field(..., min_length=1)
-    email: str = Field(..., min_length=1)
+    email: Optional[str] = Field(default=None, min_length=1)
     host_url: Optional[str] = Field(default=None, min_length=1)
 
 
