@@ -10,6 +10,7 @@ import ReadCredentialModal from "../views/ReadCredentialModal";
 
 const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, currentPath, setCurrentPath, changeView, openNewFolderModal, openNewCredentialModal }) => {
   const [items, setItems] = useState(fileSystem[currentPath]);
+  const [newFolderName, setNewFolderName] = useState('');
   const [activeItemId, setActiveItemId] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
