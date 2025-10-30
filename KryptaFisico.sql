@@ -46,7 +46,6 @@ CREATE TABLE IF NOT EXISTS `dados` (
 `descricao` text DEFAULT NULL,
 `tipo` enum('arquivo','senha') NOT NULL,
 `criado_em` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-`nota` varchar(1000) DEFAULT NULL,
 PRIMARY KEY (`id`),
 KEY `idx_dados_usuario_tipo` (`usuario_id`,`tipo`),
 CONSTRAINT `dados_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuario` (`id`) ON DELETE CASCADE

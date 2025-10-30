@@ -80,7 +80,6 @@ class Dado(Base):
         MysqlEnum("arquivo", "senha", name="tipo_enum")
     )
     criado_em: Mapped[datetime] = mapped_column(server_default=func.now())
-    nota: Mapped[Optional[str]] = mapped_column(String(1000))
 
     usuario: Mapped["Usuario"] = relationship(back_populates="dados")
     arquivo: Mapped[Optional["Arquivo"]] = relationship(
