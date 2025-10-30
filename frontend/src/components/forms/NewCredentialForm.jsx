@@ -153,7 +153,9 @@ const NewCredentialForm = ({ onCancel, addPassword, editItem, updatePassword, al
           />
         </div>
         <div className="form-group">
-          <label className="form-label">Senha</label>
+          <label className="form-label">
+            Senha <span className="required">*</span>
+          </label>
           <div className="password-input-wrapper">
             <input
               type="password"
@@ -162,6 +164,7 @@ const NewCredentialForm = ({ onCancel, addPassword, editItem, updatePassword, al
               placeholder="Digite a senha"
               value={password}
               onChange={e => setPassword(e.target.value)}
+              required
             />
             <button type="button" className="toggle-password" onClick={togglePassword}>
               <svg
