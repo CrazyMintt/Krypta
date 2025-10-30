@@ -338,7 +338,7 @@ def delete_data(
         )
 
 
-@router.post("/data/search", response_model=schemas.DataResponse, tags=["Dados"])
+@router.post("/data/search", response_model=list[schemas.DataResponse], tags=["Dados"])
 def search_data_paginated(
     payload: schemas.FilterPageConfig,
     db: Annotated[Session, Depends(get_db)],
