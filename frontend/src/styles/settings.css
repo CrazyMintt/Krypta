@@ -5,6 +5,7 @@
 
 .settings-sidebar {
   width: 200px;
+  min-width: 200px;
   background-color: #202328;
   padding: 20px;
   border-right: 1px solid #3a3a3a;
