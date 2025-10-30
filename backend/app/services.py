@@ -14,7 +14,7 @@ def create_credential(
     db: Session, user: models.Usuario, credential_data: schemas.DataCreateCredential
 ) -> models.Dado:
     """
-    Serviço para criar um novo Dado do tipo Senha, usando o ORM.
+    Serviço para criar um novo Dado do tipo Senha
     """
     try:
         # Criar os objetos de modelo
