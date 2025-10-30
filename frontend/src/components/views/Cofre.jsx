@@ -8,11 +8,8 @@ import RenameFolderForm from "../forms/RenameFolderForm";
 import ReadCredentialModal from "../views/ReadCredentialModal";
 
 
-const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, currentPath, setCurrentPath, changeView }) => {
+const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, currentPath, setCurrentPath, changeView, openNewFolderModal, openNewCredentialModal }) => {
   const [items, setItems] = useState(fileSystem[currentPath]);
-  const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
-  const [isNewCredentialModalOpen, setIsNewCredentialModalOpen] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
   const [activeItemId, setActiveItemId] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
@@ -197,48 +194,6 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
   const closeReadCredentialModal = () => {
     setCredentialToRead(null);
     setIsReadCredentialModalOpen(false);
-  };
-
-  const openNewFolderModal = () => setIsNewFolderModalOpen(true);
-  const closeNewFolderModal = () => {
-    setIsNewFolderModalOpen(false);
-    setNewFolderName('');
-  };
-
-  const openNewCredentialModal = () => setIsNewCredentialModalOpen(true);
-  const closeNewCredentialModal = () => setIsNewCredentialModalOpen(false);
-
-  const handleCreateFolder = (e) => {
-    e.preventDefault();
-    if (newFolderName.trim() === '') return;
-    const newFolder = { id: Date.now(), type: 'folder', name: newFolderName.trim() };
-    const newPath = `${currentPath}${newFolderName.trim()}/`;
-    const updatedFileSystem = { ...fileSystem, [currentPath]: [...fileSystem[currentPath], newFolder], [newPath]: [] };
-    setFileSystem(updatedFileSystem);
-
-    const newLogEntry = {
-      type: 'add',
-      title: `Pasta "${newFolderName.trim()}" criada`,
-      time: new Date().toLocaleString(),
-    };
-    setActivityLog([newLogEntry, ...activityLog]);
-
-    closeNewFolderModal();
-  };
-
-  const addPassword = (newPassword) => {
-    const newCredential = { id: Date.now(), type: 'credential', ...newPassword };
-    const updatedFileSystem = { ...fileSystem, [currentPath]: [...fileSystem[currentPath], newCredential] };
-    setFileSystem(updatedFileSystem);
-
-    const newLogEntry = {
-      type: 'add',
-      title: `Credencial "${newPassword.name}" criada`,
-      time: new Date().toLocaleString(),
-    };
-    setActivityLog([newLogEntry, ...activityLog]);
-
-    closeNewCredentialModal();
   };
 
   const openDeleteModal = (item) => {
@@ -470,8 +425,8 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
       <div className="main-content">
         <Header 
           title={selectedTags.length > 0 ? `Itens com as tags "${selectedTags.join(', ')}"` : "Meu Cofre"} 
-          onNewFolder={openNewFolderModal} 
-          onNewCredential={openNewCredentialModal} 
+          onNewFolder={openNewFolderModal}
+          onNewCredential={openNewCredentialModal}
         />
         <div className="file-manager">
           {selectedTags.length === 0 && <Breadcrumbs />}
@@ -520,30 +475,6 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
         </div>
       </div>
       
-    <Modal title="Nova Pasta" isOpen={isNewFolderModalOpen} onCancel={closeNewFolderModal}>
-      <form onSubmit={handleCreateFolder}>
-        <div className="form-group">
-          <label className="form-label">Nome da Pasta</label>
-          <input 
-            type="text"
-            className="form-input"
-            placeholder="Digite o nome da pasta"
-            value={newFolderName}
-            onChange={(e) => setNewFolderName(e.target.value)}
-            autoFocus
-          />
-        </div>
-        <div className="modal-actions">
-          <button type="button" className="btn btn-secondary" onClick={closeNewFolderModal}>Cancelar</button>
-          <button type="submit" className="btn btn-primary">Criar</button>
-        </div>
-      </form>
-    </Modal>
-
-    <Modal title="Novo Item" isOpen={isNewCredentialModalOpen} onCancel={closeNewCredentialModal}>
-      <NewCredentialForm onCancel={closeNewCredentialModal} addPassword={addPassword} allTags={allTags} />
-    </Modal>
-
     <Modal title="Editar Item" isOpen={isEditCredentialModalOpen} onCancel={closeEditModal}>
       <NewCredentialForm 
         onCancel={closeEditModal}
