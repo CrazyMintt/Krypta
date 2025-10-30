@@ -7,6 +7,7 @@ import './styles/modal.css';
 import './styles/auth.css';
 import './styles/notifications.css';
 import './styles/dropdown-menu.css';
+import './styles/settings.css';
 
 import Login from './components/auth/Login';
 import Signup from './components/auth/Signup';
@@ -15,6 +16,7 @@ import Cofre from './components/views/Cofre';
 import Dashboard from './components/views/Dashboard';
 import Modal from './components/layout/Modal';
 import NewCredentialForm from './components/forms/NewCredentialForm';
+import SettingsModal from './components/layout/SettingsModal';
 
 
 // Mock data para simular uma estrutura de arquivos
@@ -57,6 +59,7 @@ const MainApp = () => {
   const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
   const [isNewCredentialModalOpen, setIsNewCredentialModalOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   const changeView = (newView) => {
     if (view !== newView) {
@@ -72,6 +75,9 @@ const MainApp = () => {
 
   const openNewCredentialModal = () => setIsNewCredentialModalOpen(true);
   const closeNewCredentialModal = () => setIsNewCredentialModalOpen(false);
+
+  const openSettingsModal = () => setIsSettingsModalOpen(true);
+  const closeSettingsModal = () => setIsSettingsModalOpen(false);
 
   const handleCreateFolder = (e) => {
     e.preventDefault();
@@ -132,7 +138,7 @@ const MainApp = () => {
 
   return (
     <div className="container">
-      <Sidebar changeView={changeView} />
+      <Sidebar changeView={changeView} openSettingsModal={openSettingsModal} />
       
       {view === 'cofre' && 
         <Cofre 
@@ -165,6 +171,8 @@ const MainApp = () => {
       <Modal title="Novo Item" isOpen={isNewCredentialModalOpen} onCancel={closeNewCredentialModal}>
         <NewCredentialForm onCancel={closeNewCredentialModal} addPassword={addPassword} allTags={allTags} />
       </Modal>
+
+      <SettingsModal isOpen={isSettingsModalOpen} onCancel={closeSettingsModal} />
     </div>
   );
 };

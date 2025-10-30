@@ -1,0 +1,78 @@
+.settings-modal {
+  display: flex;
+  height: 450px;
+}
+
+.settings-sidebar {
+  width: 200px;
+  background-color: #202328;
+  padding: 20px;
+  border-right: 1px solid #3a3a3a;
+  border-radius: 16px 0 0 16px;
+}
+
+.settings-sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.settings-sidebar li {
+  padding: 12px 18px;
+  cursor: pointer;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  font-weight: 500;
+  color: #a0a0a0;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.settings-sidebar li.active {
+  background-color: #3a3d44;
+  color: #fff;
+}
+
+.settings-content {
+  flex-grow: 1;
+  padding: 40px;
+}
+
+.settings-content h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #e5e5e5;
+    margin-bottom: 24px;
+}
+
+.settings-section {
+  margin-top: 20px;
+}
+
+.settings-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 0;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.settings-item:last-child {
+  border-bottom: none;
+}
+
+.settings-item h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #e5e5e5;
+}
+
+.settings-item p {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: #888;
+}
+
+.settings-item .btn {
+    flex: 0 1 120px; /* Adjust button width */
+}

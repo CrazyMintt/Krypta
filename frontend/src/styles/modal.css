@@ -26,6 +26,10 @@
     position: relative;
 }
 
+.modal.settings {
+    max-width: 800px;
+}
+
 /* Custom Scrollbar for Modal */
 .modal::-webkit-scrollbar {
     width: 8px;
