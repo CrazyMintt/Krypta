@@ -208,7 +208,8 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
   const openNewCredentialModal = () => setIsNewCredentialModalOpen(true);
   const closeNewCredentialModal = () => setIsNewCredentialModalOpen(false);
 
-  const handleCreateFolder = () => {
+  const handleCreateFolder = (e) => {
+    e.preventDefault();
     if (newFolderName.trim() === '') return;
     const newFolder = { id: Date.now(), type: 'folder', name: newFolderName.trim() };
     const newPath = `${currentPath}${newFolderName.trim()}/`;
@@ -520,21 +521,23 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
       </div>
       
     <Modal title="Nova Pasta" isOpen={isNewFolderModalOpen} onCancel={closeNewFolderModal}>
-      <div className="form-group">
-        <label className="form-label">Nome da Pasta</label>
-        <input 
-          type="text"
-          className="form-input"
-          placeholder="Digite o nome da pasta"
-          value={newFolderName}
-          onChange={(e) => setNewFolderName(e.target.value)}
-          autoFocus
-        />
-      </div>
-      <div className="modal-actions">
-        <button type="button" className="btn btn-secondary" onClick={closeNewFolderModal}>Cancelar</button>
-        <button type="button" className="btn btn-primary" onClick={handleCreateFolder}>Criar</button>
-      </div>
+      <form onSubmit={handleCreateFolder}>
+        <div className="form-group">
+          <label className="form-label">Nome da Pasta</label>
+          <input 
+            type="text"
+            className="form-input"
+            placeholder="Digite o nome da pasta"
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            autoFocus
+          />
+        </div>
+        <div className="modal-actions">
+          <button type="button" className="btn btn-secondary" onClick={closeNewFolderModal}>Cancelar</button>
+          <button type="submit" className="btn btn-primary">Criar</button>
+        </div>
+      </form>
     </Modal>
 
     <Modal title="Novo Item" isOpen={isNewCredentialModalOpen} onCancel={closeNewCredentialModal}>
