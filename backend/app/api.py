@@ -14,7 +14,6 @@ router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 
-
 def get_current_user(
     db: Annotated[Session, Depends(get_db)],
     token: Annotated[str, Depends(oauth2_scheme)],
@@ -92,7 +91,7 @@ def get_user_me(current_user: Annotated[models.Usuario, Depends(get_current_user
 
 @router.patch("/users/me", response_model=schemas.UserResponse, tags=["Users"])
 def update_user_me(
-    update_data: schemas.UserBase,
+    update_data: schemas.UserUpdate,
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
     db=Depends(get_db),
 ):
@@ -148,7 +147,7 @@ def delete_user_me(
     tags=["Credentials"],
 )
 def create_credential(
-    credential_data: Annotated[schemas.CredentialBase, Body(...)],
+    credential_data: schemas.DataCreateCredential,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
 ):
@@ -170,7 +169,7 @@ def create_credential(
                 detail="Não foi possível criar a credential.",
             )
 
-        return {"message": "credencial criado com sucesso!", "id": created}
+        return {"message": "credencial criado com sucesso!", "id": created.id}
 
     except HTTPException:
         # re-levanta HTTPExceptions sem modificar (ex: validações de serviço)
@@ -340,6 +339,7 @@ def get_single_data_entry(
             detail=f"Ocorreu um erro ao buscar o dado: {e}",
         )
 
+
 @router.post("/data/search", tags=["data"])
 def search_data_paginated(
     payload: Annotated[schemas.FilterPageConfig, Body(...)],
@@ -363,13 +363,10 @@ def search_data_paginated(
     }
     """
     try:
-        data = services.get_data_paginated_filtered(db,current_user,payload)
+        data = services.get_data_paginated_filtered(db, current_user, payload)
         return data
     except HTTPException:
         raise
     except Exception as e:
         # log opcional: print(f"Erro em busca paginada: {e}")
-        raise HTTPException(
-            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"{e}"
-        )
+        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=f"{e}")
