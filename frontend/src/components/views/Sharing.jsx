@@ -31,7 +31,7 @@ const Sharing = () => {
               </button>
               {activeItemId === share.id && (
                 <div className="item-actions-menu">
-                  <div className="menu-item">Alterar</div>
+                  <div className="menu-item">Editar</div>
                   <div className="menu-item">Remover</div>
                 </div>
               )}
