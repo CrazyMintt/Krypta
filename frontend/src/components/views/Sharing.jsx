@@ -3,14 +3,40 @@ import Header from '../layout/Header';
 import { MoreVertical } from 'lucide-react';
 import '../../styles/sharing.css';
 import { useSharedItems } from '../../context/SharedItemsContext';
+import DeleteConfirmationModal from '../modals/DeleteConfirmationModal';
 
 const Sharing = () => {
-  const { sharedItems } = useSharedItems();
+  const { sharedItems, removeSharedItem, activityLog, setActivityLog } = useSharedItems();
   const [activeItemId, setActiveItemId] = useState(null);
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
 
   const handleActionClick = (e, itemId) => {
     e.stopPropagation();
     setActiveItemId(itemId === activeItemId ? null : itemId);
+  };
+
+  const openDeleteConfirmation = (item) => {
+    setItemToDelete(item);
+    setIsDeleteConfirmationOpen(true);
+  };
+
+  const closeDeleteConfirmation = () => {
+    setItemToDelete(null);
+    setIsDeleteConfirmationOpen(false);
+  };
+
+  const confirmDelete = () => {
+    if (itemToDelete) {
+      removeSharedItem(itemToDelete.id);
+      const newLogEntry = {
+        type: 'remove',
+        title: `Compartilhamento do item "${itemToDelete.name}" removido`,
+        time: new Date().toLocaleString(),
+      };
+      setActivityLog([newLogEntry, ...activityLog]);
+      closeDeleteConfirmation();
+    }
   };
 
   return (
@@ -31,14 +57,19 @@ const Sharing = () => {
               </button>
               {activeItemId === share.id && (
                 <div className="item-actions-menu">
-                  <div className="menu-item">Editar</div>
-                  <div className="menu-item">Remover</div>
+                  <div className="menu-item" onClick={() => openDeleteConfirmation(share)}>Remover</div>
                 </div>
               )}
             </div>
           </div>
         ))}
       </div>
+
+      <DeleteConfirmationModal
+        isOpen={isDeleteConfirmationOpen}
+        onCancel={closeDeleteConfirmation}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 };

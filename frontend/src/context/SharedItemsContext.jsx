@@ -30,9 +30,14 @@ export const SharedItemsProvider = ({ children, activityLog, setActivityLog }) =
     setSharedItems((prevItems) => [item, ...prevItems]);
   };
 
+  const removeSharedItem = (itemId) => {
+    setSharedItems((prevItems) => prevItems.filter((item) => item.id !== itemId));
+  };
+
   const value = {
     sharedItems,
     addSharedItem,
+    removeSharedItem,
     activityLog,
     setActivityLog,
   };
