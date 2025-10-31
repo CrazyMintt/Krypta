@@ -16,3 +16,13 @@
   font-weight: 500;
   /* margin-bottom: 8px; */
 }
+
+.generated-link-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.generated-link-button {
+  width: 6rem;
+}

@@ -76,9 +76,9 @@ const ShareItemModal = ({ item, onCancel }) => {
         </>
       ) : (
         <div className="generated-link-container">
-          <p>Link de compartilhamento gerado:</p>
-          <input type="text" className="form-input" value={generatedLink} readOnly />
-          <button type="button" className="btn btn-primary" onClick={handleCopy}>
+          <p className="generated-link-label">Link de compartilhamento gerado:</p>
+          <input type="text" className="form-input generated-link-input" value={generatedLink} readOnly />
+          <button type="button" className="btn btn-primary generated-link-button" onClick={handleCopy}>
             {copied ? 'Copiado!' : 'Copiar'}
           </button>
         </div>
