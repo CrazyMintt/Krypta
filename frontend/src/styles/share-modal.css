@@ -1,0 +1,18 @@
+.duration-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.duration-group input {
+  width: 70%;
+}
+
+.duration-group select {
+  width: 30%;
+}
+
+.share-modal {
+  font-size: 14px;
+  font-weight: 500;
+  /* margin-bottom: 8px; */
+}

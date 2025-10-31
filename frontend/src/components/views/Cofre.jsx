@@ -6,6 +6,8 @@ import ItemActionsMenu from '../layout/ItemActionsMenu';
 import NewCredentialForm from '../forms/NewCredentialForm';
 import RenameFolderForm from "../forms/RenameFolderForm";
 import ReadCredentialModal from "../views/ReadCredentialModal";
+import ShareItemModal from '../modals/ShareItemModal';
+import '../../styles/share-modal.css';
 
 
 const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, currentPath, setCurrentPath, changeView, openNewFolderModal, openNewCredentialModal }) => {
@@ -23,6 +25,8 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
   const [isEditFolderModalOpen, setIsEditFolderModalOpen] = useState(false);
   const [isReadCredentialModalOpen, setIsReadCredentialModalOpen] = useState(false);
   const [credentialToRead, setCredentialToRead] = useState(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [itemToShare, setItemToShare] = useState(null);
       const [selectedTags, setSelectedTags] = useState([]);
       const allTags = Array.from(
         Object.values(fileSystem)
@@ -195,6 +199,32 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
   const closeReadCredentialModal = () => {
     setCredentialToRead(null);
     setIsReadCredentialModalOpen(false);
+  };
+
+  const openShareModal = (item) => {
+    setItemToShare(item);
+    setIsShareModalOpen(true);
+    setActiveItemId(null);
+  };
+
+  const closeShareModal = () => {
+    setItemToShare(null);
+    setIsShareModalOpen(false);
+  };
+
+  const confirmShare = ({ shareWith, duration }) => {
+    if (!itemToShare || !shareWith || !duration) return;
+
+    console.log(`Compartilhando ${itemToShare.name} com ${shareWith} por ${duration}`);
+
+    const newLogEntry = {
+      type: 'edit',
+      title: `"${itemToShare.name}" compartilhado com ${shareWith}`,
+      time: new Date().toLocaleString(),
+    };
+    setActivityLog([newLogEntry, ...activityLog]);
+
+    closeShareModal();
   };
 
   const openDeleteModal = (item) => {
@@ -466,6 +496,7 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
                       onEditCredential={() => openEditModal(item)}
                       onEditFolder={() => openEditFolderModal(item)}
                       onDelete={() => openDeleteModal(item)}
+                      onShare={() => openShareModal(item)}
                       itemType={item.type}
                     />
                   )}
@@ -512,6 +543,10 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
 
       <Modal title="Visualizar Item" isOpen={isReadCredentialModalOpen} onCancel={closeReadCredentialModal}>
         <ReadCredentialModal credential={credentialToRead} />
+      </Modal>
+
+      <Modal title="Compartilhar Item" isOpen={isShareModalOpen} onCancel={closeShareModal}>
+        <ShareItemModal item={itemToShare} onCancel={closeShareModal} onConfirm={confirmShare} />
       </Modal>
     </>
   );
