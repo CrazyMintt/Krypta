@@ -3,9 +3,11 @@ from pydantic import (
     EmailStr,
     ConfigDict,
     Field,
+    field_validator,
     model_validator,
     PositiveInt,
 )
+from pydantic_extra_types.color import Color
 from typing import Optional, List, Self
 from datetime import datetime
 from .models import TipoDado, TipoSeparador
@@ -119,7 +121,17 @@ class TagCreate(BaseModel):
     """Schema para criar uma nova tag"""
 
     nome: str = Field(..., min_length=1, description="Nome da tag não pode ser vazio.")
-    cor: str = Field(..., min_length=1, description="Cor não pode ser vazia.")
+    cor: Color
+    @field_validator('cor', mode='after')
+    @classmethod
+    def convert_color_to_hex(cls, v: Color) -> str:
+        """
+        Pega o objeto 'Color' (que pode ter vindo de RGB, nome, etc.)
+        e o converte para uma string hexadecimal de 6 dígitos.
+        """
+        # O Pydantic já validou que 'v' é um objeto Color.
+        # Agora nós o convertemos para o formato do nosso banco de dados.
+        return v.as_hex()
 
 
 # --- Schemas de Output ---

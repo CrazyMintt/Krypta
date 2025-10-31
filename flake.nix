@@ -26,6 +26,7 @@
             pydantic-settings
             python-multipart
             argon2-cffi
+						pydantic-extra-types
           ]))
           
           # Frontend

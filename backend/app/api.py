@@ -162,7 +162,7 @@ def delete_user_me(
     "/data/credentials",
     response_model=schemas.DataResponse,
     status_code=status.HTTP_201_CREATED,
-    tags=["Dados"],
+    tags=["Credenciais"],
 )
 def create_credential(
     credential_data: schemas.DataCreateCredential,
@@ -253,7 +253,7 @@ def get_single_data_entry(
 @router.patch(
     "/data/credentials/{data_id}",
     response_model=schemas.DataResponse,
-    tags=["Dados"],
+    tags=["Credenciais"],
 )
 def update_credential_entry(
     data_id: int,
@@ -283,7 +283,7 @@ def update_credential_entry(
 @router.patch(
     "/data/files/{data_id}",
     response_model=schemas.DataResponse,
-    tags=["Dados", "Arquivo"],
+    tags=["Arquivos"],
 )
 def update_file_entry(
     data_id: int,
@@ -363,10 +363,10 @@ def search_data_paginated(
 
 
 @router.post(
-    "/separador",
+    "/separador/pasta",
     response_model=schemas.SeparatorResponse,
     status_code=status.HTTP_201_CREATED,
-    tags=["Separadores", "Pastas"],
+    tags=["Separadores"],
 )
 def create_folder(
     folder_data: schemas.FolderCreate,
@@ -389,4 +389,32 @@ def create_folder(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao criar pasta.",
+        )
+@router.post(
+    "/separador/tag",
+    response_model=schemas.SeparatorResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Separadores"],
+)
+def create_tag(
+    tag_data: schemas.TagCreate,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Cria uma nova tag para o usuário logado.
+    """
+    try:
+        created_tag = services.create_tag(
+            db=db, user_id=current_user.id, tag_data=tag_data
+        )
+
+        return created_tag
+
+    except (ValueError, DataNotFoundError) as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao criar tag.",
         )

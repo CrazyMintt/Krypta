@@ -190,6 +190,19 @@ def create_folder(
     return repository.create_separador(db, db_folder)
 
 
+def create_tag(
+    db: Session, user_id: int, tag_data: schemas.TagCreate
+) -> models.Separador:
+    db_tag= models.Separador(
+        nome=tag_data.nome,
+        tipo=models.TipoSeparador.TAG,
+        usuario_id=user_id,
+        cor=tag_data.cor,
+    )
+    return repository.create_separador(db, db_tag)
+
+
+
 # Funções EDIT
 def edit_user(
     db: Session, user: models.Usuario, update_data: schemas.UserUpdate
