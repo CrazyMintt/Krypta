@@ -6,7 +6,12 @@ from jose import ExpiredSignatureError, JWTError
 
 from . import schemas, services, repository, core, models
 from .database import get_db
-from .exceptions import UserNotFoundError, EmailAlreadyExistsError, DataNotFoundError
+from .exceptions import (
+    UserNotFoundError,
+    EmailAlreadyExistsError,
+    DataNotFoundError,
+    SeparatorNameTakenError,
+)
 
 router = APIRouter()
 
@@ -383,13 +388,17 @@ def create_folder(
 
         return created_folder
 
-    except (ValueError, DataNotFoundError) as e:
+    except SeparatorNameTakenError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    except (DataNotFoundError, ValueError) as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception:
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno ao criar pasta.",
+            detail="Erro ao criar pasta.",
         )
+
+
 @router.post(
     "/separador/tag",
     response_model=schemas.SeparatorResponse,
@@ -411,10 +420,10 @@ def create_tag(
 
         return created_tag
 
-    except (ValueError, DataNotFoundError) as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception:
+    except SeparatorNameTakenError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno ao criar tag.",
+            detail="Erro ao criar tag.",
         )
