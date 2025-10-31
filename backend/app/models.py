@@ -41,6 +41,11 @@ class TipoDado(str, enum.Enum):
     SENHA = "senha"
 
 
+class TipoSeparador(str, enum.Enum):
+    PASTA = "pasta"
+    TAG = "tag"
+
+
 # Mapeamento das Tabelas
 
 
@@ -66,6 +71,10 @@ class Usuario(Base):
         cascade="all, delete-orphan",
     )
     logs: Mapped[List["Log"]] = relationship(back_populates="usuario")
+
+    separadores: Mapped[List["Separador"]] = relationship(
+        back_populates="usuario", cascade="all, delete-orphan"
+    )
 
 
 class Dado(Base):
@@ -122,11 +131,31 @@ class Senha(Base):
 
 class Separador(Base):
     __tablename__ = "separadores"
+
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    usuario_id: Mapped[int] = mapped_column(
+        ForeignKey("usuario.id", ondelete="CASCADE")
+    )
+    id_pasta_raiz: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("separadores.id", ondelete="SET NULL", onupdate="CASCADE")
+    )
     nome: Mapped[str] = mapped_column(String(255))
     tipo: Mapped[str] = mapped_column(String(100))
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     cor: Mapped[Optional[str]] = mapped_column(String(100))
+
+    # RELACIONAMENTOS
+    usuario: Mapped["Usuario"] = relationship(back_populates="separadores")
+
+    # 'remote_side=[id]' é o argumento chave que diz ao SQLAlchemy:
+    # "O 'id' local é o lado 'Um' (o pai) desta relação."
+    pasta_raiz: Mapped[Optional["Separador"]] = relationship(
+        back_populates="filhos", remote_side=[id]
+    )
+
+    # Permite acessar a lista de Separadores filhos deste separador.
+    # O SQLAlchemy usa 'id_pasta_raiz' para encontrar os filhos.
+    filhos: Mapped[List["Separador"]] = relationship(back_populates="pasta_raiz")
 
     dados: Mapped[List["Dado"]] = relationship(
         secondary=dados_separadores_association, back_populates="separadores"
@@ -155,6 +184,9 @@ class Compartilhamento(Base):
 class DadosCompartilhados(Base):
     __tablename__ = "dados_compartilhados"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    usuario_id: Mapped[int] = mapped_column(
+        ForeignKey("usuario.id", ondelete="CASCADE")
+    )
     compartilhamento_id: Mapped[int] = mapped_column(
         ForeignKey("compartilhamento.id", ondelete="CASCADE")
     )

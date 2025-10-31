@@ -119,6 +119,15 @@ def count_remaining_dados_compartilhados(
     return count or 0
 
 
+def get_separador_by_id_and_user_id(
+    db: Session, separador_id: int, user_id: int
+) -> models.Separador:
+    stmt = select(models.Separador).filter(
+        models.Separador.id == separador_id, models.Separador.usuario_id == user_id
+    )
+    return db.execute(stmt).scalar_one_or_none()
+
+
 # Funções de Criação
 
 
@@ -155,6 +164,20 @@ def create_credential(
         db.commit()
         db.refresh(dado)
         return dado
+    except Exception as e:
+        db.rollback()
+        raise e
+
+
+def create_separador(db: Session, db_separador: models.Separador) -> models.Separador:
+    """
+    Cria um objeto Separador (pasta/tag) no banco de dados.
+    """
+    try:
+        db.add(db_separador)
+        db.commit()
+        db.refresh(db_separador)
+        return db_separador
     except Exception as e:
         db.rollback()
         raise e

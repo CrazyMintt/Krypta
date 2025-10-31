@@ -283,7 +283,7 @@ def update_credential_entry(
 @router.patch(
     "/data/files/{data_id}",
     response_model=schemas.DataResponse,
-    tags=["Dados"],
+    tags=["Dados", "Arquivo"],
 )
 def update_file_entry(
     data_id: int,
@@ -356,4 +356,37 @@ def search_data_paginated(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao buscar dados.",
+        )
+
+
+# Endpoints de Separadores (Pasta/TAG)
+
+
+@router.post(
+    "/separador",
+    response_model=schemas.SeparatorResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Separadores", "Pastas"],
+)
+def create_folder(
+    folder_data: schemas.FolderCreate,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Cria uma nova pasta para o usuário logado.
+    """
+    try:
+        created_folder = services.create_folder(
+            db=db, user_id=current_user.id, folder_data=folder_data
+        )
+
+        return created_folder
+
+    except (ValueError, DataNotFoundError) as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao criar pasta.",
         )

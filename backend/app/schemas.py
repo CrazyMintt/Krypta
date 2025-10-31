@@ -8,7 +8,7 @@ from pydantic import (
 )
 from typing import Optional, List, Self
 from datetime import datetime
-from .models import TipoDado
+from .models import TipoDado, TipoSeparador
 
 # Configuração Base
 
@@ -102,6 +102,50 @@ class LoginResponse(UserResponse):
     token_type: str = "bearer"
 
 
+# Domínio: Separadores
+# --- Schema de Input (Separadores) ---
+
+
+class FolderCreate(BaseModel):
+    """Schema para criar uma nova pasta."""
+
+    nome: str = Field(
+        ..., min_length=1, description="Nome da pasta não pode ser vazio."
+    )
+    id_pasta_raiz: Optional[int] = Field(default=None, alias="idPastaRaiz")
+
+
+class TagCreate(BaseModel):
+    """Schema para criar uma nova tag"""
+
+    nome: str = Field(..., min_length=1, description="Nome da tag não pode ser vazio.")
+    cor: str = Field(..., min_length=1, description="Cor não pode ser vazia.")
+
+
+# --- Schemas de Output ---
+
+
+class SeparatorResponse(BaseSchema):
+    """Schema para retornar dados planos de um Separador (Tag/Pasta)."""
+
+    id: int
+    nome: str
+    tipo: TipoSeparador
+    cor: Optional[str]
+    id_pasta_raiz: Optional[int]  # ID do pai
+
+
+class SeparatorHierarchyResponse(BaseSchema):
+    """Schema recursivo para retornar a árvore de pastas/tags completa."""
+
+    id: int
+    nome: str
+    tipo: TipoSeparador
+    cor: Optional[str]
+    id_pasta_raiz: Optional[int]
+    filhos: List["SeparatorHierarchyResponse"] = []  # Relação recursiva
+
+
 # Domínio: Dados, Arquivos e Credenciais
 
 # --- Schemas de Input (Filtros) ---
@@ -116,14 +160,6 @@ class FilterPageConfig(BaseModel):
 
 
 # --- Sub-Schemas de Output (Filhos) ---
-
-
-class SeparatorResponse(BaseSchema):
-    """Schema para retornar dados de um Separador (Tag/Pasta)."""
-
-    id: int
-    nome: str
-    cor: Optional[str]
 
 
 class CredentialResponse(BaseSchema):
@@ -194,6 +230,7 @@ class DataCreateFile(BaseModel):
     nome_aplicacao: str
     descricao: Optional[str] = Field(default=None, min_length=1)
     arquivo: FileCreate
+    idSeparadores: List[int] = Field(default_factory=list)
 
 
 class DataCreateCredential(BaseModel):
@@ -202,6 +239,7 @@ class DataCreateCredential(BaseModel):
     nome_aplicacao: str = Field(..., min_length=1)
     descricao: Optional[str] = Field(default=None, min_length=1)
     senha: CredentialCreate
+    idSeparadores: List[int] = Field(default_factory=list)
 
 
 # --- Sub-Schemas de Input (Update) ---
