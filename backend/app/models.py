@@ -133,6 +133,9 @@ class Separador(Base):
     __tablename__ = "separadores"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    usuario_id: Mapped[int] = mapped_column(
+        ForeignKey("usuario.id", ondelete="CASCADE")
+    )
     id_pasta_raiz: Mapped[Optional[int]] = mapped_column(
         ForeignKey("separadores.id", ondelete="SET NULL", onupdate="CASCADE")
     )
@@ -140,6 +143,9 @@ class Separador(Base):
     tipo: Mapped[str] = mapped_column(String(100))
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     cor: Mapped[Optional[str]] = mapped_column(String(100))
+
+    # RELACIONAMENTOS
+    usuario: Mapped["Usuario"] = relationship(back_populates="separadores")
 
     # 'remote_side=[id]' é o argumento chave que diz ao SQLAlchemy:
     # "O 'id' local é o lado 'Um' (o pai) desta relação."

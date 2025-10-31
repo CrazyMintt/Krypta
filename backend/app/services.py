@@ -5,34 +5,34 @@ import base64
 from typing import List
 
 
-def create_credential(
-    db: Session, user: models.Usuario, credential_data: schemas.DataCreateCredential
-) -> models.Dado:
+# AUTH
+def authenticate_and_login_user(
+    db: Session, email: str, password: str
+) -> schemas.LoginResponse | None:
     """
-    Serviço para criar um novo Dado do tipo Senha
+    Serviço para autenticar um usuário.
+    Contém a lógica de negócio completa para o processo de login.
     """
-    try:
-        # Criar os objetos de modelo
-        db_dado = models.Dado(
-            usuario_id=user.id,
-            nome_aplicacao=credential_data.nome_aplicacao,
-            descricao=credential_data.descricao,
-            tipo=models.TipoDado.SENHA,
-        )
+    user = repository.get_user_by_email(db, email)
 
-        db_senha = models.Senha(
-            senha_cripto=credential_data.senha.senha_cripto,
-            email=credential_data.senha.email,
-            host_url=credential_data.senha.host_url,
-        )
+    if not user or not core.verify_password(password, user.senha_mestre):
+        return None
 
-        # Chamar o repositório para salvar
-        created_data = repository.create_credential(db=db, dado=db_dado, senha=db_senha)
-        return created_data
+    access_token = core.create_access_token(
+        data={"sub": str(user.id)}
+    )  # tem que ser string
 
-    except Exception as e:
-        # Se o repositório fizer rollback e relançar, capturamos aqui
-        raise ValueError(f"Erro ao criar credencial: {e}")
+    return schemas.LoginResponse(
+        nome=user.nome,
+        id=user.id,
+        created_at=user.created_at,
+        email=user.email,
+        access_token=access_token,
+        saltKDF=user.saltKDF,
+    )
+
+
+# Funções GET
 
 
 def get_data_paginated_filtered(
@@ -64,6 +64,51 @@ def get_data_paginated_filtered(
         )
 
 
+def get_specific_data(db: Session, user_id: int, data_id: int) -> models.Dado:
+    """
+    Busca um Dado específico pelo seu ID, garantindo que pertença ao usuário.
+    """
+    db_dado = repository.get_dado_by_id_and_user_id(
+        db, dado_id=data_id, user_id=user_id
+    )
+    if not db_dado:
+        raise DataNotFoundError(
+            f"Dado com id {data_id} não encontrado ou não pertence ao usuário."
+        )
+    return db_dado
+
+
+# Funções CREATE
+def create_credential(
+    db: Session, user: models.Usuario, credential_data: schemas.DataCreateCredential
+) -> models.Dado:
+    """
+    Serviço para criar um novo Dado do tipo Senha
+    """
+    try:
+        # Criar os objetos de modelo
+        db_dado = models.Dado(
+            usuario_id=user.id,
+            nome_aplicacao=credential_data.nome_aplicacao,
+            descricao=credential_data.descricao,
+            tipo=models.TipoDado.SENHA,
+        )
+
+        db_senha = models.Senha(
+            senha_cripto=credential_data.senha.senha_cripto,
+            email=credential_data.senha.email,
+            host_url=credential_data.senha.host_url,
+        )
+
+        # Chamar o repositório para salvar
+        created_data = repository.create_credential(db=db, dado=db_dado, senha=db_senha)
+        return created_data
+
+    except Exception as e:
+        # Se o repositório fizer rollback e relançar, capturamos aqui
+        raise ValueError(f"Erro ao criar credencial: {e}")
+
+
 def register_user(db: Session, user_data: schemas.UserCreate) -> models.Usuario | None:
     """
     Serviço para registrar um novo usuário.
@@ -85,101 +130,6 @@ def register_user(db: Session, user_data: schemas.UserCreate) -> models.Usuario 
     )
 
     return repository.create_user(db, user_data=new_user)
-
-
-def authenticate_and_login_user(
-    db: Session, email: str, password: str
-) -> schemas.LoginResponse | None:
-    """
-    Serviço para autenticar um usuário.
-    Contém a lógica de negócio completa para o processo de login.
-    """
-    user = repository.get_user_by_email(db, email)
-
-    if not user or not core.verify_password(password, user.senha_mestre):
-        return None
-
-    access_token = core.create_access_token(
-        data={"sub": str(user.id)}
-    )  # tem que ser string
-
-    return schemas.LoginResponse(
-        nome=user.nome,
-        id=user.id,
-        created_at=user.created_at,
-        email=user.email,
-        access_token=access_token,
-        saltKDF=user.saltKDF,
-    )
-
-
-def edit_user(
-    db: Session, user: models.Usuario, update_data: schemas.UserUpdate
-) -> models.Usuario:
-    """
-    Serviço para editar um usuário.
-    """
-
-    # verificar se o email já não está em uso por outro usuario
-    if update_data.email and update_data.email != user.email:
-        existing_user = repository.get_user_by_email(db, email=update_data.email)
-        if existing_user:
-            raise EmailAlreadyExistsError(
-                f"O email {update_data.email} já está em uso."
-            )
-
-    return repository.update_user(db=db, db_user=user, update_data=update_data)
-
-
-# Função criada para não precisar repetir
-def try_clear_all_user_data(db: Session, user_id: int):
-    """
-    Orquestra a exclusão de todos os dados de um usuário, mantendo a conta.
-
-    A ordem é importante para respeitar as restrições de chave estrangeira:
-    1. Logs (referenciam Usuário e Dado)
-    2. Eventos (referenciam Usuário)
-    3. Compartilhamentos (referenciam Usuário)
-    4. Dados (referenciam Usuário)
-    """
-    # Busca os IDs dos dados
-    dado_ids = repository.get_dado_ids_by_user(db, user_id=user_id)
-
-    # Deleta os logs
-    if dado_ids:
-        repository.delete_logs_by_user_and_dados(db, user_id=user_id, dado_ids=dado_ids)
-
-    # Deleta o restante
-    repository.delete_eventos_by_user(db, user_id=user_id)
-    repository.delete_compartilhamentos_by_user(db, user_id=user_id)
-    repository.delete_dados_by_user(db, user_id=user_id)
-
-
-def clear_all_user_data(db: Session, user_id: int) -> bool:
-    try:
-        try_clear_all_user_data(db=db, user_id=user_id)
-        db.commit()
-        return True
-    except Exception as e:
-        print(e)
-        # Se qualquer passo falhar, desfaz tudo
-        db.rollback()
-        return False
-
-
-def delete_user(db: Session, user_id: int) -> bool:
-    """
-    Deleta conta de um usuário
-    """
-    try:
-        try_clear_all_user_data(db=db, user_id=user_id)
-        repository.delete_user_by_id(db=db, user_id=user_id)
-        db.commit()
-        return True
-    except Exception:
-        # Se qualquer passo falhar, desfaz tudo
-        db.rollback()
-        return False
 
 
 def create_file(
@@ -217,59 +167,46 @@ def create_file(
     return created_data
 
 
-def get_specific_data(db: Session, user_id: int, data_id: int) -> models.Dado:
-    """
-    Busca um Dado específico pelo seu ID, garantindo que pertença ao usuário.
-    """
-    db_dado = repository.get_dado_by_id_and_user_id(
-        db, dado_id=data_id, user_id=user_id
-    )
-    if not db_dado:
-        raise DataNotFoundError(
-            f"Dado com id {data_id} não encontrado ou não pertence ao usuário."
+def create_folder(
+    db: Session, user_id: int, folder_data: schemas.FolderCreate
+) -> models.Separador:
+    if folder_data.id_pasta_raiz is not None:
+        parent_folder = repository.get_separador_by_id_and_user_id(
+            db=db, separador_id=folder_data.id_pasta_raiz, user_id=user_id
         )
-    return db_dado
-
-
-def delete_data_by_id(db: Session, user_id: int, dado_id: int):
-    """
-    Operação de remoção de um Dado específico, Logs associados
-    e limpa Compartilhamentos órfãos
-    """
-    dado = repository.get_dado_by_id_and_user_id(
-        db=db, user_id=user_id, dado_id=dado_id
-    )
-    if not dado:
-        raise DataNotFoundError(
-            f"Dado com id {dado_id} não encontrado ou não pertence ao usuário."
-        )
-    try:
-        # IDs dos compartilhamentos afetados pela remoção desse dado
-        compartilhamento_ids = repository.get_compartilhamento_ids_by_dado_id(
-            db, dado_id=dado_id
-        )
-
-        # Deletar os Logs associados primeiro
-        repository.delete_logs_by_dado_id(db, dado_id=dado_id)
-
-        # O SQLAlchemy/DB cuida do cascade para Senha/Arquivo/Separadores
-        repository.delete_dado(db, db_dado=dado)
-
-        # depois deletar o Dado, deleta os Compartilhamentos afetados
-        for comp_id in compartilhamento_ids:
-            # Verifica se o compartilhamento tinha outros dados
-            remaining_items_count = repository.count_remaining_dados_compartilhados(
-                db, comp_id=comp_id, excluding_dado_id=dado_id
+        if not parent_folder:
+            raise DataNotFoundError(
+                "A pasta raiz especificada não existe ou não pertence à esse usuário"
             )
-            if remaining_items_count == 0:
-                repository.delete_compartilhamento_by_id(db, comp_id=comp_id)
+        if parent_folder.tipo != models.TipoSeparador.PASTA:
+            raise ValueError("Não é possível criar uma pasta dentro de uma TAG")
+    db_folder = models.Separador(
+        nome=folder_data.nome,
+        tipo=models.TipoSeparador.PASTA,
+        usuario_id=user_id,
+        id_pasta_raiz=folder_data.id_pasta_raiz,
+        cor=None,
+    )
+    return repository.create_separador(db, db_folder)
 
-        db.commit()
 
-    except Exception as e:
-        # Se algo der errado, desfaz tudo
-        db.rollback()
-        raise e
+# Funções EDIT
+def edit_user(
+    db: Session, user: models.Usuario, update_data: schemas.UserUpdate
+) -> models.Usuario:
+    """
+    Serviço para editar um usuário.
+    """
+
+    # verificar se o email já não está em uso por outro usuario
+    if update_data.email and update_data.email != user.email:
+        existing_user = repository.get_user_by_email(db, email=update_data.email)
+        if existing_user:
+            raise EmailAlreadyExistsError(
+                f"O email {update_data.email} já está em uso."
+            )
+
+    return repository.update_user(db=db, db_user=user, update_data=update_data)
 
 
 def edit_file_data(
@@ -340,4 +277,94 @@ def edit_credential_data(
         raise e
 
 
-# Separadores
+# Funções DELETE
+# Função criada para não precisar repetir
+def try_clear_all_user_data(db: Session, user_id: int):
+    """
+    Orquestra a exclusão de todos os dados de um usuário, mantendo a conta.
+
+    A ordem é importante para respeitar as restrições de chave estrangeira:
+    1. Logs (referenciam Usuário e Dado)
+    2. Eventos (referenciam Usuário)
+    3. Compartilhamentos (referenciam Usuário)
+    4. Dados (referenciam Usuário)
+    """
+    # Busca os IDs dos dados
+    dado_ids = repository.get_dado_ids_by_user(db, user_id=user_id)
+
+    # Deleta os logs
+    if dado_ids:
+        repository.delete_logs_by_user_and_dados(db, user_id=user_id, dado_ids=dado_ids)
+
+    # Deleta o restante
+    repository.delete_eventos_by_user(db, user_id=user_id)
+    repository.delete_compartilhamentos_by_user(db, user_id=user_id)
+    repository.delete_dados_by_user(db, user_id=user_id)
+
+
+def clear_all_user_data(db: Session, user_id: int) -> bool:
+    try:
+        try_clear_all_user_data(db=db, user_id=user_id)
+        db.commit()
+        return True
+    except Exception as e:
+        print(e)
+        # Se qualquer passo falhar, desfaz tudo
+        db.rollback()
+        return False
+
+
+def delete_user(db: Session, user_id: int) -> bool:
+    """
+    Deleta conta de um usuário
+    """
+    try:
+        try_clear_all_user_data(db=db, user_id=user_id)
+        repository.delete_user_by_id(db=db, user_id=user_id)
+        db.commit()
+        return True
+    except Exception:
+        # Se qualquer passo falhar, desfaz tudo
+        db.rollback()
+        return False
+
+
+def delete_data_by_id(db: Session, user_id: int, dado_id: int):
+    """
+    Operação de remoção de um Dado específico, Logs associados
+    e limpa Compartilhamentos órfãos
+    """
+    dado = repository.get_dado_by_id_and_user_id(
+        db=db, user_id=user_id, dado_id=dado_id
+    )
+    if not dado:
+        raise DataNotFoundError(
+            f"Dado com id {dado_id} não encontrado ou não pertence ao usuário."
+        )
+    try:
+        # IDs dos compartilhamentos afetados pela remoção desse dado
+        compartilhamento_ids = repository.get_compartilhamento_ids_by_dado_id(
+            db, dado_id=dado_id
+        )
+
+        # Deletar os Logs associados primeiro
+        repository.delete_logs_by_dado_id(db, dado_id=dado_id)
+
+        # O SQLAlchemy/DB cuida do cascade para Senha/Arquivo/Separadores
+        repository.delete_dado(db, db_dado=dado)
+
+        # depois deletar o Dado, deleta os Compartilhamentos afetados
+        for comp_id in compartilhamento_ids:
+            # Verifica se o compartilhamento tinha outros dados
+            remaining_items_count = repository.count_remaining_dados_compartilhados(
+                db, comp_id=comp_id, excluding_dado_id=dado_id
+            )
+            if remaining_items_count == 0:
+                repository.delete_compartilhamento_by_id(db, comp_id=comp_id)
+
+        db.commit()
+
+    except Exception as e:
+        # Se algo der errado, desfaz tudo
+        db.rollback()
+        raise e
