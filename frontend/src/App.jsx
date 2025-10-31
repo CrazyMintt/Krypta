@@ -53,7 +53,7 @@ const initialActivityLog = [
   },
 ];
 
-const MainApp = () => {
+const MainApp = ({ onLogout }) => {
   const [view, setView] = useState('cofre');
   const [fileSystem, setFileSystem] = useState(initialFileSystem);
   const [activityLog, setActivityLog] = useState(initialActivityLog);
@@ -146,9 +146,10 @@ const MainApp = () => {
         <Cofre 
           {...commonProps}
           changeView={changeView}
+          onLogout={onLogout}
         />
       }
-      {view === 'dashboard' && <Dashboard {...commonProps} />}
+      {view === 'dashboard' && <Dashboard {...commonProps} onLogout={onLogout} />}
 
       <Modal title="Nova Pasta" isOpen={isNewFolderModalOpen} onCancel={closeNewFolderModal}>
         <form onSubmit={handleCreateFolder}>
@@ -185,6 +186,12 @@ function KryptaApp() {
 
   const handleLoginSuccess = () => setIsAuthenticated(true);
 
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    setIsAuthenticated(false);
+    setCurrentView('landing');
+  };
+
   if (!isAuthenticated) {
     if (currentView === 'landing') {
       return <Landing onNavigateToLogin={() => setCurrentView('login')} onNavigateToSignup={() => setCurrentView('signup')} />;
@@ -197,7 +204,7 @@ function KryptaApp() {
     }
   }
 
-  return <MainApp />;
+  return <MainApp onLogout={handleLogout} />;
 }
 
 export default KryptaApp;

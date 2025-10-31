@@ -8,7 +8,7 @@ import RenameFolderForm from "../forms/RenameFolderForm";
 import ReadCredentialModal from "../views/ReadCredentialModal";
 
 
-const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, currentPath, setCurrentPath, changeView, openNewFolderModal, openNewCredentialModal }) => {
+const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, currentPath, setCurrentPath, changeView, openNewFolderModal, openNewCredentialModal, onLogout }) => {
   const [items, setItems] = useState(fileSystem[currentPath]);
   const [newFolderName, setNewFolderName] = useState('');
   const [activeItemId, setActiveItemId] = useState(null);
@@ -428,6 +428,7 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
           title={selectedTags.length > 0 ? `Itens com as tags "${selectedTags.join(', ')}"` : "Meu Cofre"} 
           onNewFolder={openNewFolderModal}
           onNewCredential={openNewCredentialModal}
+          onLogout={onLogout}
         />
         <div className="file-manager">
           {selectedTags.length === 0 && <Breadcrumbs />}
