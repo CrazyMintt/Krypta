@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 
-const Login = ({ onNavigateToSignup, onLoginSuccess }) => {
+const Login = ({ onNavigateToSignup, onLoginSuccess, onNavigateToLanding }) => {
     const passwordInputRef = useRef(null);
     const eyeIconRef = useRef(null);
 
@@ -61,7 +61,7 @@ const Login = ({ onNavigateToSignup, onLoginSuccess }) => {
             <div className="form-container login-form-container">
                 <div className="form-header">
                     <div className="form-header-row">
-                        <div className="form-subtitle">Bem-vindo ao <a href="#">Krypta</a></div>
+                        <div className="form-subtitle">Bem-vindo ao <a href="#" onClick={(e) => { e.preventDefault(); onNavigateToLanding(); }}>Krypta</a></div>
 
                         <div className="account-link">
                             <span className="account-link-text">Não possui conta?</span>

@@ -17,6 +17,8 @@ import Dashboard from './components/views/Dashboard';
 import Modal from './components/layout/Modal';
 import NewCredentialForm from './components/forms/NewCredentialForm';
 import SettingsModal from './components/layout/SettingsModal';
+import Landing from './components/views/Landing';
+import './styles/landing.css';
 
 
 // Mock data para simular uma estrutura de arquivos
@@ -177,19 +179,25 @@ const MainApp = () => {
   );
 };
 
-function App() {
+function KryptaApp() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authView, setAuthView] = useState('login');
+  const [currentView, setCurrentView] = useState('landing');
 
   const handleLoginSuccess = () => setIsAuthenticated(true);
 
   if (!isAuthenticated) {
-    return authView === 'login'
-      ? <Login onNavigateToSignup={() => setAuthView('signup')} onLoginSuccess={handleLoginSuccess} />
-      : <Signup onNavigateToLogin={() => setAuthView('login')} />;
+    if (currentView === 'landing') {
+      return <Landing onNavigateToLogin={() => setCurrentView('login')} onNavigateToSignup={() => setCurrentView('signup')} />;
+    }
+    if (currentView === 'login') {
+      return <Login onNavigateToSignup={() => setCurrentView('signup')} onLoginSuccess={handleLoginSuccess} onNavigateToLanding={() => setCurrentView('landing')} />;
+    }
+    if (currentView === 'signup') {
+      return <Signup onNavigateToLogin={() => setCurrentView('login')} onNavigateToLanding={() => setCurrentView('landing')} />;
+    }
   }
 
   return <MainApp />;
 }
 
-export default App;
+export default KryptaApp;
