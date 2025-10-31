@@ -1,15 +1,39 @@
 import React, { useState } from 'react';
+import { useSharedItems } from '../../context/SharedItemsContext';
 
-const ShareItemModal = ({ item, onCancel, onConfirm }) => {
+const ShareItemModal = ({ item, onCancel }) => {
   const [accessCount, setAccessCount] = useState(1);
   const [durationValue, setDurationValue] = useState(1);
   const [durationUnit, setDurationUnit] = useState('horas');
   const [generatedLink, setGeneratedLink] = useState('');
+  const [copied, setCopied] = useState(false);
+  const { addSharedItem, activityLog, setActivityLog } = useSharedItems();
 
   const handleGenerateLink = () => {
-    // Mock link generation
     const mockLink = `https://krypta.com/share/${Math.random().toString(36).substring(2, 15)}`;
     setGeneratedLink(mockLink);
+    addSharedItem({
+      id: Math.random(),
+      name: item.name,
+      sharedWith: 'link',
+      accessesLeft: accessCount,
+      expiresIn: `${durationValue} ${durationUnit}`,
+    });
+
+    const newLogEntry = {
+      type: 'add',
+      title: `Item "${item.name}" compartilhado`,
+      time: new Date().toLocaleString(),
+    };
+    setActivityLog([newLogEntry, ...activityLog]);
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(generatedLink);
+    setCopied(true);
+    setTimeout(() => {
+      setCopied(false);
+    }, 2000);
   };
 
   return (
@@ -54,7 +78,9 @@ const ShareItemModal = ({ item, onCancel, onConfirm }) => {
         <div className="generated-link-container">
           <p>Link de compartilhamento gerado:</p>
           <input type="text" className="form-input" value={generatedLink} readOnly />
-          <button type="button" className="btn btn-primary" onClick={() => navigator.clipboard.writeText(generatedLink)}>Copiar</button>
+          <button type="button" className="btn btn-primary" onClick={handleCopy}>
+            {copied ? 'Copiado!' : 'Copiar'}
+          </button>
         </div>
       )}
     </div>

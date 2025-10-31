@@ -19,6 +19,7 @@ import Sharing from './components/views/Sharing';
 import Modal from './components/layout/Modal';
 import NewCredentialForm from './components/forms/NewCredentialForm';
 import SettingsModal from './components/layout/SettingsModal';
+import { SharedItemsProvider } from './context/SharedItemsContext';
 
 
 // Mock data para simular uma estrutura de arquivos
@@ -139,44 +140,46 @@ const MainApp = () => {
   };
 
   return (
-    <div className="container">
-      <Sidebar changeView={changeView} openSettingsModal={openSettingsModal} />
-      
-      {view === 'cofre' && 
-        <Cofre 
-          {...commonProps}
-          changeView={changeView}
-        />
-      }
-      {view === 'dashboard' && <Dashboard {...commonProps} />}
-      {view === 'sharing' && <Sharing />}
+    <SharedItemsProvider activityLog={activityLog} setActivityLog={setActivityLog}>
+      <div className="container">
+        <Sidebar changeView={changeView} openSettingsModal={openSettingsModal} />
+        
+        {view === 'cofre' && 
+          <Cofre 
+            {...commonProps}
+            changeView={changeView}
+          />
+        }
+        {view === 'dashboard' && <Dashboard {...commonProps} />}
+        {view === 'sharing' && <Sharing />}
 
-      <Modal title="Nova Pasta" isOpen={isNewFolderModalOpen} onCancel={closeNewFolderModal}>
-        <form onSubmit={handleCreateFolder}>
-          <div className="form-group">
-            <label className="form-label">Nome da Pasta</label>
-            <input 
-              type="text"
-              className="form-input"
-              placeholder="Digite o nome da pasta"
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              autoFocus
-            />
-          </div>
-          <div className="modal-actions">
-            <button type="button" className="btn btn-secondary" onClick={closeNewFolderModal}>Cancelar</button>
-            <button type="submit" className="btn btn-primary">Criar</button>
-          </div>
-        </form>
-      </Modal>
+        <Modal title="Nova Pasta" isOpen={isNewFolderModalOpen} onCancel={closeNewFolderModal}>
+          <form onSubmit={handleCreateFolder}>
+            <div className="form-group">
+              <label className="form-label">Nome da Pasta</label>
+              <input 
+                type="text"
+                className="form-input"
+                placeholder="Digite o nome da pasta"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="modal-actions">
+              <button type="button" className="btn btn-secondary" onClick={closeNewFolderModal}>Cancelar</button>
+              <button type="submit" className="btn btn-primary">Criar</button>
+            </div>
+          </form>
+        </Modal>
 
-      <Modal title="Novo Item" isOpen={isNewCredentialModalOpen} onCancel={closeNewCredentialModal}>
-        <NewCredentialForm onCancel={closeNewCredentialModal} addPassword={addPassword} allTags={allTags} />
-      </Modal>
+        <Modal title="Novo Item" isOpen={isNewCredentialModalOpen} onCancel={closeNewCredentialModal}>
+          <NewCredentialForm onCancel={closeNewCredentialModal} addPassword={addPassword} allTags={allTags} />
+        </Modal>
 
-      <SettingsModal isOpen={isSettingsModalOpen} onCancel={closeSettingsModal} />
-    </div>
+        <SettingsModal isOpen={isSettingsModalOpen} onCancel={closeSettingsModal} />
+      </div>
+    </SharedItemsProvider>
   );
 };
 
