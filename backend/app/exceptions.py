@@ -14,3 +14,9 @@ class DataNotFoundError(Exception):
     """Lançada quando um Dado não é encontrado ou não pertence ao usuário."""
 
     pass
+
+
+class SeparatorNameTakenError(Exception):
+    """Lançada ao tentar criar uma Pasta ou Tag com um nome que já existe para aquele tipo."""
+
+    pass

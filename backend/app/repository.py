@@ -128,6 +128,21 @@ def get_separador_by_id_and_user_id(
     return db.execute(stmt).scalar_one_or_none()
 
 
+def get_separador_by_name_type_and_user(
+    db: Session, nome: str, tipo: models.TipoSeparador, user_id: int
+) -> models.Separador | None:
+    """
+    Busca um separador por nome, tipo (PASTA ou TAG) e dono.
+    Usado para verificar duplicatas.
+    """
+    stmt = select(models.Separador).filter(
+        models.Separador.nome == nome,
+        models.Separador.tipo == tipo,
+        models.Separador.usuario_id == user_id,
+    )
+    return db.execute(stmt).scalar_one_or_none()
+
+
 # Funções de Criação
 
 

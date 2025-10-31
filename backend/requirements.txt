@@ -10,3 +10,4 @@ passlib[argon2]
 python-jose
 python-multipart
 cryptography
+pydantic-extra-types

@@ -1,6 +1,10 @@
 from sqlalchemy.orm import Session
 from . import models, schemas, repository, core
-from .exceptions import UserNotFoundError, EmailAlreadyExistsError, DataNotFoundError
+from .exceptions import (
+    EmailAlreadyExistsError,
+    DataNotFoundError,
+    SeparatorNameTakenError,
+)
 import base64
 from typing import List
 
@@ -170,6 +174,15 @@ def create_file(
 def create_folder(
     db: Session, user_id: int, folder_data: schemas.FolderCreate
 ) -> models.Separador:
+
+    existing_folder = repository.get_separador_by_name_type_and_user(
+        db, nome=folder_data.nome, tipo=models.TipoSeparador.PASTA, user_id=user_id
+    )
+    if existing_folder:
+        raise SeparatorNameTakenError(
+            f"Já existe uma pasta com o nome '{folder_data.nome}'."
+        )
+
     if folder_data.id_pasta_raiz is not None:
         parent_folder = repository.get_separador_by_id_and_user_id(
             db=db, separador_id=folder_data.id_pasta_raiz, user_id=user_id
@@ -187,7 +200,29 @@ def create_folder(
         id_pasta_raiz=folder_data.id_pasta_raiz,
         cor=None,
     )
-    return repository.create_separador(db, db_folder)
+    return repository.create_separador(db, db_separador=db_folder)
+
+
+def create_tag(
+    db: Session, user_id: int, tag_data: schemas.TagCreate
+) -> models.Separador:
+
+    existing_tag = repository.get_separador_by_name_type_and_user(
+        db, nome=tag_data.nome, tipo=models.TipoSeparador.TAG, user_id=user_id
+    )
+    if existing_tag:
+        raise SeparatorNameTakenError(
+            f"Já existe uma tag com o nome '{tag_data.nome}'."
+        )
+
+    db_tag = models.Separador(
+        nome=tag_data.nome,
+        tipo=models.TipoSeparador.TAG,
+        usuario_id=user_id,
+        cor=tag_data.cor,
+        id_pasta_raiz=None,
+    )
+    return repository.create_separador(db, db_separador=db_tag)
 
 
 # Funções EDIT
