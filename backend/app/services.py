@@ -1,11 +1,6 @@
 from sqlalchemy.orm import Session
 from . import models, schemas, repository, core
 from .exceptions import UserNotFoundError, EmailAlreadyExistsError, DataNotFoundError
-import logging
-import os
-import sys
-from sqlalchemy import update, text
-from fastapi import HTTPException, status
 import base64
 from typing import List
 
@@ -343,3 +338,6 @@ def edit_credential_data(
         return updated_dado
     except Exception as e:
         raise e
+
+
+# Separadores
