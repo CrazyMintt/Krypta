@@ -1,25 +1,37 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Bell } from 'lucide-react';
+import { Plus, Bell, User } from 'lucide-react';
 import Notifications from './Notifications';
 import NewItemMenu from './NewItemMenu';
+import UserMenu from './UserMenu';
 
-const Header = ({ title, onNewFolder, onNewCredential }) => {
+const Header = ({ title, onNewFolder, onNewCredential, onLogout }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showNewItemMenu, setShowNewItemMenu] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   
   const notificationsRef = useRef(null);
   const bellRef = useRef(null);
   const newItemMenuRef = useRef(null);
   const newButtonRef = useRef(null);
+  const userMenuRef = useRef(null);
+  const userAvatarRef = useRef(null);
 
   const toggleNotifications = () => {
     setShowNotifications(!showNotifications);
     setShowNewItemMenu(false);
+    setShowUserMenu(false);
   };
 
   const toggleNewItemMenu = () => {
     setShowNewItemMenu(!showNewItemMenu);
     setShowNotifications(false);
+    setShowUserMenu(false);
+  };
+
+  const toggleUserMenu = () => {
+    setShowUserMenu(!showUserMenu);
+    setShowNotifications(false);
+    setShowNewItemMenu(false);
   };
 
   useEffect(() => {
@@ -33,14 +45,13 @@ const Header = ({ title, onNewFolder, onNewCredential }) => {
       ) {
         setShowNotifications(false);
       }
-      // Close new item menu
       if (
-        newItemMenuRef.current &&
-        !newItemMenuRef.current.contains(event.target) &&
-        newButtonRef.current &&
-        !newButtonRef.current.contains(event.target)
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target) &&
+        userAvatarRef.current &&
+        !userAvatarRef.current.contains(event.target)
       ) {
-        setShowNewItemMenu(false);
+        setShowUserMenu(false);
       }
     };
 
@@ -62,7 +73,12 @@ const Header = ({ title, onNewFolder, onNewCredential }) => {
           <button className="icon-button" onClick={toggleNotifications} ref={bellRef}><Bell size={20} /></button>
           {showNotifications && <Notifications ref={notificationsRef} />}
         </div>
-        <div className="user-avatar"></div>
+        <div className="header-action-item">
+            <button className="icon-button user-avatar" onClick={toggleUserMenu} ref={userAvatarRef}>
+                <User size={20} />
+            </button>
+            {showUserMenu && <UserMenu ref={userMenuRef} onLogout={onLogout} />}
+        </div>
       </div>
     </div>
   );
