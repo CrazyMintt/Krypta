@@ -8,12 +8,14 @@ import './styles/auth.css';
 import './styles/notifications.css';
 import './styles/dropdown-menu.css';
 import './styles/settings.css';
+import './styles/sharing.css';
 
 import Login from './components/auth/Login';
 import Signup from './components/auth/Signup';
 import Sidebar from './components/layout/Sidebar';
 import Cofre from './components/views/Cofre';
 import Dashboard from './components/views/Dashboard';
+import Sharing from './components/views/Sharing';
 import Modal from './components/layout/Modal';
 import NewCredentialForm from './components/forms/NewCredentialForm';
 import SettingsModal from './components/layout/SettingsModal';
@@ -147,6 +149,7 @@ const MainApp = () => {
         />
       }
       {view === 'dashboard' && <Dashboard {...commonProps} />}
+      {view === 'sharing' && <Sharing />}
 
       <Modal title="Nova Pasta" isOpen={isNewFolderModalOpen} onCancel={closeNewFolderModal}>
         <form onSubmit={handleCreateFolder}>
