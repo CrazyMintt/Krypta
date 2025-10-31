@@ -10,6 +10,10 @@ body {
     background: #171717;
     color: #fff;
     height: 100vh;
+}
+
+/* Disable scrolling only when the main app is rendered */
+body:has(div.container) {
     overflow: hidden;
 }
 

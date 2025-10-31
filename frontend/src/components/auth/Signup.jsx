@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Signup = ({ onNavigateToLogin }) => {
+const Signup = ({ onNavigateToLogin, onNavigateToLanding }) => {
   const handleSignup = async (e) => {
     e.preventDefault();
 
@@ -48,7 +48,7 @@ const Signup = ({ onNavigateToLogin }) => {
         <div className="form-header">
             <div className="form-header-row">
                 <div className="form-subtitle">
-                    Bem-vindo ao <a href="#">Krypta</a>
+                    Bem-vindo ao <a href="#" onClick={(e) => { e.preventDefault(); onNavigateToLanding(); }}>Krypta</a>
                 </div>
                 <div className="account-link">
                     <span className="account-link-text">Já possui uma conta?</span>
