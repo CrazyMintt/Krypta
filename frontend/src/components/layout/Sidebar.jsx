@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Sidebar = ({  changeView  }) => (
+const Sidebar = ({  changeView, openSettingsModal  }) => (
   <div className="sidebar">
     <div className="logo">
       <div className="logo-icon">
@@ -13,7 +13,7 @@ const Sidebar = ({  changeView  }) => (
       <div className="nav-item">Compartilhar</div>
       <div className="nav-item">Relatórios</div>
       <div className="nav-item" onClick={() => changeView('dashboard')}>Dashboard</div>
-      <div className="nav-item">Configurações</div>
+      <div className="nav-item" onClick={openSettingsModal}>Configurações</div>
     </nav>
   </div>
 );

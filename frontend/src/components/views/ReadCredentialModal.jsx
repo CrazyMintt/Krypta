@@ -38,6 +38,24 @@ const ReadCredentialModal = ({ credential }) => {
           </button>
         </div>
       </div>
+      {credential.url && (
+        <div className="form-group">
+          <label className="form-label">URL</label>
+          <input type="text" className="form-input" value={credential.url} readOnly />
+        </div>
+      )}
+      {credential.tags && credential.tags.length > 0 && (
+        <div className="form-group">
+          <label className="form-label">Tags</label>
+          <div className="tag-list-modal">
+            {credential.tags.map((tag) => (
+              <div key={tag.name} className="tag-item-modal" style={{ backgroundColor: tag.color }}>
+                {tag.name}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
