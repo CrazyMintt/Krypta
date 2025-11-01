@@ -50,20 +50,20 @@ def get_data_paginated_filtered(
     # tratada automaticamente pelo FastAPI/Pydantic na camada da API.
 
     # Se não houver filtros, chama a função paginada simples
-    if not fpData.idSeparators:
+    if not fpData.id_separadores:
         return repository.get_paginated_data(
             db,
-            pageSize=fpData.pageSize,
-            pageNumber=fpData.pageNumber,
+            pageSize=fpData.page_size,
+            pageNumber=fpData.page_number,
             id_user=user_data.id,
         )
     # Se houver filtros, chama a função filtrada
     else:
         return repository.get_paginated_filtered_data(
             db,
-            pageSize=fpData.pageSize,
-            pageNumber=fpData.pageNumber,
-            idSeparators=fpData.idSeparators,
+            pageSize=fpData.page_size,
+            pageNumber=fpData.page_number,
+            idSeparators=fpData.id_separadores,
             id_user=user_data.id,
         )
 
