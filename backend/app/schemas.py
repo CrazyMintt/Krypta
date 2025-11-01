@@ -114,7 +114,7 @@ class FolderCreate(BaseModel):
     nome: str = Field(
         ..., min_length=1, description="Nome da pasta não pode ser vazio."
     )
-    id_pasta_raiz: Optional[int] = Field(default=None, alias="idPastaRaiz")
+    id_pasta_raiz: Optional[int] = None
 
 
 class TagCreate(BaseModel):
@@ -156,9 +156,9 @@ class SeparatorResponse(BaseSchema):
 class FilterPageConfig(BaseModel):
     """Schema para filtros e paginação com validação."""
 
-    pageSize: PositiveInt
-    pageNumber: PositiveInt
-    idSeparators: List[int] = []
+    page_size: PositiveInt
+    page_number: PositiveInt
+    id_separadores: List[int] = []
 
 
 # --- Sub-Schemas de Output (Filhos) ---
@@ -232,7 +232,7 @@ class DataCreateFile(BaseModel):
     nome_aplicacao: str
     descricao: Optional[str] = Field(default=None, min_length=1)
     arquivo: FileCreate
-    idSeparadores: List[int] = Field(default_factory=list)
+    id_separadores: List[int] = Field(default_factory=list)
 
 
 class DataCreateCredential(BaseModel):
@@ -241,7 +241,7 @@ class DataCreateCredential(BaseModel):
     nome_aplicacao: str = Field(..., min_length=1)
     descricao: Optional[str] = Field(default=None, min_length=1)
     senha: CredentialCreate
-    idSeparadores: List[int] = Field(default_factory=list)
+    id_separadores: List[int] = Field(default_factory=list)
 
 
 # --- Sub-Schemas de Input (Update) ---
