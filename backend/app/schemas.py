@@ -114,7 +114,7 @@ class FolderCreate(BaseModel):
     nome: str = Field(
         ..., min_length=1, description="Nome da pasta não pode ser vazio."
     )
-    id_pasta_raiz: Optional[int] = Field(default=None, alias="idPastaRaiz")
+    id_pasta_raiz: Optional[int] = None
 
 
 class TagCreate(BaseModel):
@@ -140,9 +140,7 @@ class FolderUpdate(BaseModel):
     """Schema para atualizar uma Pasta."""
 
     nome: Optional[str] = Field(default=None, min_length=1)
-    id_pasta_raiz: Optional[int] = Field(
-        default=None, alias="idPastaRaiz"
-    )  # Aceita 'null' para mover para a raiz
+    id_pasta_raiz: Optional[int] = None
 
 
 class TagUpdate(BaseModel):
