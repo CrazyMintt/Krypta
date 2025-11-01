@@ -213,13 +213,21 @@ def create_folder(
     db: Session, user_id: int, folder_data: schemas.FolderCreate
 ) -> models.Separador:
 
-    existing_folder = repository.get_separador_by_name_type_and_user(
-        db, nome=folder_data.nome, tipo=models.TipoSeparador.PASTA, user_id=user_id
+    existing_folder = repository.get_folder_by_name_and_parent(
+        db,
+        nome=folder_data.nome,
+        user_id=user_id,
+        parent_id=folder_data.id_pasta_raiz,
     )
     if existing_folder:
-        raise SeparatorNameTakenError(
-            f"Já existe uma pasta com o nome '{folder_data.nome}'."
-        )
+        if folder_data.id_pasta_raiz is None:
+            raise SeparatorNameTakenError(
+                f"Já existe uma pasta raiz com o nome '{folder_data.nome}'."
+            )
+        else:
+            raise SeparatorNameTakenError(
+                f"A pasta '{folder_data.nome}' já existe dentro desta pasta pai."
+            )
 
     if folder_data.id_pasta_raiz is not None:
         parent_folder = repository.get_separador_by_id_and_user_id(
@@ -245,7 +253,7 @@ def create_tag(
     db: Session, user_id: int, tag_data: schemas.TagCreate
 ) -> models.Separador:
 
-    existing_tag = repository.get_separador_by_name_type_and_user(
+    existing_tag = repository.get_tag_by_name_and_user(
         db, nome=tag_data.nome, tipo=models.TipoSeparador.TAG, user_id=user_id
     )
     if existing_tag:

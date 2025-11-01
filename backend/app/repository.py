@@ -128,7 +128,24 @@ def get_separador_by_id_and_user_id(
     return db.execute(stmt).scalar_one_or_none()
 
 
-def get_separador_by_name_type_and_user(
+def get_folder_by_name_and_parent(
+    db: Session, nome: str, user_id: int, parent_id: Optional[int]
+) -> models.Separador | None:
+    """
+    Busca uma pasta por nome e ID da pasta pai,
+    garantindo que pertença ao usuário.
+    'parent_id=None' busca na raiz.
+    """
+    stmt = select(models.Separador).filter(
+        models.Separador.nome == nome,
+        models.Separador.tipo == models.TipoSeparador.PASTA,
+        models.Separador.usuario_id == user_id,
+        models.Separador.id_pasta_raiz == parent_id,  # A verificação de "irmão"
+    )
+    return db.execute(stmt).scalar_one_or_none()
+
+
+def get_tag_by_name_and_user(
     db: Session, nome: str, tipo: models.TipoSeparador, user_id: int
 ) -> models.Separador | None:
     """
