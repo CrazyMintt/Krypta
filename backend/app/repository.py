@@ -146,7 +146,7 @@ def get_folder_by_name_and_parent(
 
 
 def get_tag_by_name_and_user(
-    db: Session, nome: str, tipo: models.TipoSeparador, user_id: int
+    db: Session, nome: str, user_id: int
 ) -> models.Separador | None:
     """
     Busca um separador por nome, tipo (PASTA ou TAG) e dono.
@@ -154,7 +154,7 @@ def get_tag_by_name_and_user(
     """
     stmt = select(models.Separador).filter(
         models.Separador.nome == nome,
-        models.Separador.tipo == tipo,
+        models.Separador.tipo == models.Separador.TAG,
         models.Separador.usuario_id == user_id,
     )
     return db.execute(stmt).scalar_one_or_none()

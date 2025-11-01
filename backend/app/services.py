@@ -254,7 +254,7 @@ def create_tag(
 ) -> models.Separador:
 
     existing_tag = repository.get_tag_by_name_and_user(
-        db, nome=tag_data.nome, tipo=models.TipoSeparador.TAG, user_id=user_id
+        db, nome=tag_data.nome, user_id=user_id
     )
     if existing_tag:
         raise SeparatorNameTakenError(
