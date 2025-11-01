@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from typing import Annotated
+from typing import Annotated, List
 from jose import ExpiredSignatureError, JWTError
 
 from . import schemas, services, repository, core, models
@@ -201,7 +201,7 @@ def create_credential(
     "/data/files",
     status_code=status.HTTP_201_CREATED,
     response_model=schemas.DataResponse,
-    tags=["Dados"],
+    tags=["Arquivos"],
 )
 def create_file(
     file_data: schemas.DataCreateFile,
@@ -343,7 +343,7 @@ def delete_data(
         )
 
 
-@router.post("/data/search", response_model=list[schemas.DataResponse], tags=["Dados"])
+@router.post("/data/search", response_model=List[schemas.DataResponse], tags=["Dados"])
 def search_data_paginated(
     payload: schemas.FilterPageConfig,
     db: Annotated[Session, Depends(get_db)],
@@ -426,4 +426,78 @@ def create_tag(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro ao criar tag.",
+        )
+
+
+@router.get(
+    "/tags", response_model=List[schemas.SeparatorResponse], tags=["Separadores"]
+)
+def get_all_user_tags(
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Busca a lista plana de todas as Tags
+    do usuário logado. Feito para a barra lateral.
+    """
+    try:
+        tags = services.get_tags_by_user(db, user_id=current_user.id)
+        return tags
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao buscar tags: {e}",
+        )
+
+
+@router.get(
+    "/folders/root",
+    response_model=List[schemas.SeparatorResponse],
+    tags=["Separadores"],
+)
+def get_root_level_folders(
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Busca a lista de Pastas (tipo PASTA) que estão no
+    nível raiz (id_pasta_raiz é NULO) do usuário logado.
+    """
+    try:
+        folders = services.get_root_folders(db, user_id=current_user.id)
+        return folders
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro interno ao buscar pastas raiz.",
+        )
+
+
+@router.get(
+    "/folders/{folder_id}/children",
+    response_model=List[schemas.SeparatorResponse],
+    tags=["Separadores"],
+)
+def get_subfolders(
+    folder_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Busca a lista de Subpastas (tipo PASTA) que são
+    filhas de uma 'folder_id' específica.
+    """
+    try:
+        subfolders = services.get_child_folders(
+            db, user_id=current_user.id, parent_folder_id=folder_id
+        )
+        return subfolders
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except ValueError as e:  # Captura o erro "não é uma pasta"
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro interno ao buscar subpastas.",
         )

@@ -28,7 +28,7 @@ def get_dado_by_id_and_user_id(
     return db.execute(stmt).scalar_one_or_none()
 
 
-def get_dado_ids_by_user(db: Session, user_id: int) -> list[int]:
+def get_dado_ids_by_user(db: Session, user_id: int) -> List[int]:
     """Busca todos os IDs de Dados que pertencem a um usuário."""
     stmt = select(models.Dado.id).filter(models.Dado.usuario_id == user_id)
     result = db.execute(stmt).scalars().all()
@@ -38,7 +38,7 @@ def get_dado_ids_by_user(db: Session, user_id: int) -> list[int]:
 
 def get_paginated_data(
     db: Session, pageSize: int, pageNumber: int, id_user: int
-) -> list[models.Dado]:
+) -> List[models.Dado]:
     """
     Retorna dados paginados de um usuário
     """
@@ -92,7 +92,7 @@ def get_paginated_filtered_data(
     return list(result)
 
 
-def get_compartilhamento_ids_by_dado_id(db: Session, dado_id: int) -> list[int]:
+def get_compartilhamento_ids_by_dado_id(db: Session, dado_id: int) -> List[int]:
     """Busca IDs de Compartilhamentos que contêm um Dado específico."""
     stmt = (
         select(models.DadosCompartilhados.compartilhamento_id)
@@ -141,6 +141,61 @@ def get_separador_by_name_type_and_user(
         models.Separador.usuario_id == user_id,
     )
     return db.execute(stmt).scalar_one_or_none()
+
+
+def get_all_tags_by_user(db: Session, user_id: int) -> List[models.Separador]:
+    """
+    Busca todas as Tags (tipo TAG) de um usuário, ordenadas por nome.
+    """
+    stmt = (
+        select(models.Separador)
+        .filter(
+            models.Separador.usuario_id == user_id,
+            models.Separador.tipo == models.TipoSeparador.TAG,
+        )
+        .order_by(models.Separador.nome)
+    )
+
+    results = db.execute(stmt).scalars().all()
+    return list(results)
+
+
+def get_root_folders_by_user(db: Session, user_id: int) -> List[models.Separador]:
+    """
+    Busca todas as Pastas (tipo PASTA) do nível raiz (sem pai) de um usuário.
+    """
+    stmt = (
+        select(models.Separador)
+        .filter(
+            models.Separador.usuario_id == user_id,
+            models.Separador.tipo == models.TipoSeparador.PASTA,
+            models.Separador.id_pasta_raiz == None,  # Filtro para pastas raiz
+        )
+        .order_by(models.Separador.nome)
+    )
+
+    results = db.execute(stmt).scalars().all()
+    return list(results)
+
+
+def get_child_folders_by_parent_id(
+    db: Session, user_id: int, parent_folder_id: int
+) -> List[models.Separador]:
+    """
+    Busca todas as Subpastas (tipo PASTA) de uma pasta pai específica.
+    """
+    stmt = (
+        select(models.Separador)
+        .filter(
+            models.Separador.usuario_id == user_id,  # Segurança
+            models.Separador.tipo == models.TipoSeparador.PASTA,
+            models.Separador.id_pasta_raiz == parent_folder_id,  # Filtro pela pasta pai
+        )
+        .order_by(models.Separador.nome)
+    )
+
+    results = db.execute(stmt).scalars().all()
+    return list(results)
 
 
 # Funções de Criação
@@ -272,7 +327,7 @@ def update_credential_data(
 # Funções de Exclusão
 
 
-def delete_logs_by_user_and_dados(db: Session, user_id: int, dado_ids: list[int]):
+def delete_logs_by_user_and_dados(db: Session, user_id: int, dado_ids: List[int]):
     query = db.query(models.Log).filter(
         or_(models.Log.usuario_id == user_id, models.Log.id_dado.in_(dado_ids))
     )
