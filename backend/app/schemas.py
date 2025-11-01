@@ -135,6 +135,37 @@ class TagCreate(BaseModel):
         return v.as_hex()
 
 
+# --- Update ---
+class FolderUpdate(BaseModel):
+    """Schema para atualizar uma Pasta."""
+
+    nome: Optional[str] = Field(default=None, min_length=1)
+    id_pasta_raiz: Optional[int] = Field(
+        default=None, alias="idPastaRaiz"
+    )  # Aceita 'null' para mover para a raiz
+
+
+class TagUpdate(BaseModel):
+    """Schema para atualizar uma Tag."""
+
+    nome: Optional[str] = Field(default=None, min_length=1)
+    cor: Optional[Color] = None  # Aceita novos valores de cor
+
+    @model_validator(mode="after")
+    def check_at_least_one_value(self) -> Self:
+        if all(v is None for _, v in self):
+            raise ValueError("Pelo menos um campo (nome ou cor) deve ser fornecido.")
+        return self
+
+    @field_validator("cor", mode="after")
+    @classmethod
+    def convert_color_to_hex(cls, v: Optional[Color]) -> Optional[str]:
+        """Converte a nova cor para hex, se ela for fornecida."""
+        if v is not None:
+            return v.as_hex()
+        return None
+
+
 # --- Schemas de Output ---
 
 
@@ -169,7 +200,7 @@ class CredentialResponse(BaseSchema):
 
     id: int
     host_url: Optional[str]
-    email: str
+    email: Optional[str]
 
 
 class FileResponse(BaseSchema):
@@ -273,13 +304,6 @@ class DataUpdateFile(BaseModel):
     descricao: Optional[str] = Field(default=None, min_length=1)
     arquivo: Optional[FileUpdate] = None
 
-    @model_validator(mode="after")
-    def check_at_least_one_value(self) -> Self:
-        """Garante que o body da requisição PATCH não esteja vazio."""
-        if all(v is None for _, v in self):
-            raise ValueError("Pelo menos um campo deve ser fornecido para atualização.")
-        return self
-
 
 class DataUpdateCredential(BaseModel):
     """Schema para atualizar (PATCH) um Dado do tipo Senha."""
@@ -287,10 +311,3 @@ class DataUpdateCredential(BaseModel):
     nome_aplicacao: Optional[str] = Field(default=None, min_length=1)
     descricao: Optional[str] = Field(default=None, min_length=1)
     senha: Optional[CredentialUpdate] = None
-
-    @model_validator(mode="after")
-    def check_at_least_one_value(self) -> Self:
-        """Garante que o body da requisição PATCH não esteja vazio."""
-        if all(v is None for _, v in self):
-            raise ValueError("Pelo menos um campo deve ser fornecido para atualização.")
-        return self

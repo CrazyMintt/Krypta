@@ -341,6 +341,48 @@ def update_credential_data(
         raise e
 
 
+def update_folder(
+    db: Session, db_folder: models.Separador, update_data: schemas.FolderUpdate
+) -> models.Separador:
+    """
+    Aplica atualizações parciais a uma Pasta e commita no banco.
+    """
+    try:
+        update_dict = update_data.model_dump(exclude_unset=True)
+
+        for key, value in update_dict.items():
+            setattr(db_folder, key, value)
+
+        db.commit()
+        db.refresh(db_folder)
+        return db_folder
+
+    except Exception as e:
+        db.rollback()
+        raise e
+
+
+def update_tag(
+    db: Session, db_tag: models.Separador, update_data: schemas.TagUpdate
+) -> models.Separador:
+    """
+    Aplica atualizações parciais a uma Tag e commita no banco.
+    """
+    try:
+        update_dict = update_data.model_dump(exclude_unset=True)
+
+        for key, value in update_dict.items():
+            setattr(db_tag, key, value)
+
+        db.commit()
+        db.refresh(db_tag)
+        return db_tag
+
+    except Exception as e:
+        db.rollback()
+        raise e
+
+
 # Funções de Exclusão
 
 
