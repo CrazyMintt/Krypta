@@ -2,7 +2,7 @@
   description = "Ambiente de desenvolvimento backend+frontend";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05"; # ou sua versão preferida
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05"; # ou sua versão preferida
   };
 
   outputs = { self, nixpkgs }: 
@@ -53,8 +53,9 @@
           openssl
         ];
       shellHook = ''
-	export SHELL=$(which zsh)
-	exec zsh
+				export WEBKIT_DISABLE_COMPOSITING_MODE=1
+				export SHELL=$(which zsh)
+				exec zsh
       '';
       };
     };
