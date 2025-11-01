@@ -466,7 +466,7 @@ def get_root_level_folders(
     try:
         folders = services.get_root_folders(db, user_id=current_user.id)
         return folders
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro interno ao buscar pastas raiz.",
@@ -500,4 +500,63 @@ def get_subfolders(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro interno ao buscar subpastas.",
+        )
+
+
+@router.patch(
+    "/folders/{folder_id}",
+    response_model=schemas.SeparatorResponse,
+    tags=["Separadores"],
+)
+def update_folder(
+    folder_id: int,
+    update_data: schemas.FolderUpdate,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Atualiza uma pasta (muda nome e/ou pasta pai).
+    Para mover para a raiz, envie: { "idPastaRaiz": null }
+    """
+    try:
+        updated_folder = services.edit_folder(
+            db, user_id=current_user.id, folder_id=folder_id, update_data=update_data
+        )
+        return updated_folder
+    except SeparatorNameTakenError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    except (DataNotFoundError, ValueError) as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao editar pasta.",
+        )
+
+
+@router.patch(
+    "/tags/{tag_id}", response_model=schemas.SeparatorResponse, tags=["Separadores"]
+)
+def update_tag(
+    tag_id: int,
+    update_data: schemas.TagUpdate,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Atualiza uma tag (muda nome e/ou cor).
+    """
+    try:
+        updated_tag = services.edit_tag(
+            db, user_id=current_user.id, tag_id=tag_id, update_data=update_data
+        )
+        return updated_tag
+    except SeparatorNameTakenError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao editar tag.",
         )

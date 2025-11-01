@@ -297,6 +297,12 @@ def edit_file_data(
     Serviço para editar um Dado do tipo Arquivo.
     Valida, decodifica Base64 (se necessário) e chama o repositório para salvar.
     """
+    # Valida campos vazios
+
+    update_dict = update_data.model_dump(exclude_unset=True)
+    if not update_dict:
+        raise ValueError("Pelo menos um campo deve ser fornecido para atualização.")
+
     db_dado = repository.get_dado_by_id_and_user_id(
         db, dado_id=data_id, user_id=user_id
     )
@@ -307,10 +313,8 @@ def edit_file_data(
     if db_dado.tipo != models.TipoDado.ARQUIVO:
         raise ValueError(f"Dado com id {data_id} não é do tipo Arquivo.")
 
-    # Variável para armazenar os bytes decodificados, se houver
     decoded_bytes: bytes | None = None
 
-    # 2. Pré-processar a atualização do arquivo (decodificar Base64)
     if update_data.arquivo and update_data.arquivo.arquivo_data:
         try:
             decoded_bytes = base64.b64decode(update_data.arquivo.arquivo_data)
@@ -335,6 +339,11 @@ def edit_credential_data(
     """
     Serviço para editar um Dado do tipo Senha.
     """
+    # Valida campos vazios
+
+    update_dict = update_data.model_dump(exclude_unset=True)
+    if not update_dict:
+        raise ValueError("Pelo menos um campo deve ser fornecido para atualização.")
     # Buscar o Dado
     db_dado = repository.get_dado_by_id_and_user_id(
         db, dado_id=data_id, user_id=user_id
@@ -356,6 +365,88 @@ def edit_credential_data(
         return updated_dado
     except Exception as e:
         raise e
+
+
+def edit_folder(
+    db: Session, user_id: int, folder_id: int, update_data: schemas.FolderUpdate
+) -> models.Separador:
+
+    update_dict = update_data.model_dump(exclude_unset=True)
+
+    if not update_dict:
+        raise ValueError("Pelo menos um campo deve ser fornecido para atualização.")
+
+    #  Busca a pasta e valida a propriedade
+    db_folder = repository.get_separador_by_id_and_user_id(db, folder_id, user_id)
+    if not db_folder or db_folder.tipo != models.TipoSeparador.PASTA:
+        raise DataNotFoundError(f"Pasta com id {folder_id} não encontrada.")
+
+    if "nome" in update_dict and update_dict["nome"] != db_folder.nome:
+        parent_id_to_check = update_dict.get("id_pasta_raiz", db_folder.id_pasta_raiz)
+        existing = repository.get_folder_by_name_and_parent(
+            db, nome=update_dict["nome"], user_id=user_id, parent_id=parent_id_to_check
+        )
+        if existing:
+            raise SeparatorNameTakenError(
+                f"O nome '{update_dict['nome']}' já existe nesta localização."
+            )
+
+    if "id_pasta_raiz" in update_dict:
+        new_parent_id = update_dict["id_pasta_raiz"]  # Pode ser None ou int
+
+        if new_parent_id is None:
+            pass  # Mover para a raiz é sempre válido
+
+        elif new_parent_id == db_folder.id:
+            raise ValueError("Uma pasta não pode ser movida para dentro de si mesma.")
+
+        else:
+            # Verificação de Loop de Hierarquia
+            current_parent = repository.get_separador_by_id_and_user_id(
+                db, new_parent_id, user_id
+            )
+
+            if not current_parent or current_parent.tipo != models.TipoSeparador.PASTA:
+                raise DataNotFoundError(
+                    "A nova pasta pai não é válida ou não foi encontrada."
+                )
+
+            # Loop para verificar se o novo pai é um descendente da pasta que estamos movendo
+            temp_parent = current_parent
+            while temp_parent is not None:
+                if temp_parent.id_pasta_raiz == db_folder.id:
+                    raise ValueError(
+                        "Não é possível mover uma pasta para dentro de uma de suas próprias subpastas."
+                    )
+                if temp_parent.id_pasta_raiz is None:
+                    break  # Chegou à raiz, sem loop
+                temp_parent = repository.get_separador_by_id_and_user_id(
+                    db, temp_parent.id_pasta_raiz, user_id
+                )
+
+    return repository.update_folder(db, db_folder=db_folder, update_data=update_data)
+
+
+def edit_tag(
+    db: Session, user_id: int, tag_id: int, update_data: schemas.TagUpdate
+) -> models.Separador:
+    """Edita uma tag, permitindo mudança de nome ou cor."""
+
+    # Busca a tag e valida a propriedade
+    db_tag = repository.get_separador_by_id_and_user_id(db, tag_id, user_id)
+    if not db_tag or db_tag.tipo != models.TipoSeparador.TAG:
+        raise DataNotFoundError(f"Tag com id {tag_id} não encontrada.")
+
+    update_dict = update_data.model_dump(exclude_unset=True)
+
+    if "nome" in update_dict and update_dict["nome"] != db_tag.nome:
+        existing = repository.get_tag_by_name_and_user(db, update_dict["nome"], user_id)
+        if existing:
+            raise SeparatorNameTakenError(
+                f"O nome de tag '{update_dict['nome']}' já existe."
+            )
+
+    return repository.update_tag(db, db_tag=db_tag, update_data=update_data)
 
 
 # Funções DELETE
