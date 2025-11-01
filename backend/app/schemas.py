@@ -122,7 +122,8 @@ class TagCreate(BaseModel):
 
     nome: str = Field(..., min_length=1, description="Nome da tag não pode ser vazio.")
     cor: Color
-    @field_validator('cor', mode='after')
+
+    @field_validator("cor", mode="after")
     @classmethod
     def convert_color_to_hex(cls, v: Color) -> str:
         """
@@ -145,17 +146,6 @@ class SeparatorResponse(BaseSchema):
     tipo: TipoSeparador
     cor: Optional[str]
     id_pasta_raiz: Optional[int]  # ID do pai
-
-
-class SeparatorHierarchyResponse(BaseSchema):
-    """Schema recursivo para retornar a árvore de pastas/tags completa."""
-
-    id: int
-    nome: str
-    tipo: TipoSeparador
-    cor: Optional[str]
-    id_pasta_raiz: Optional[int]
-    filhos: List["SeparatorHierarchyResponse"] = []  # Relação recursiva
 
 
 # Domínio: Dados, Arquivos e Credenciais

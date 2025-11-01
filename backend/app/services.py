@@ -82,6 +82,44 @@ def get_specific_data(db: Session, user_id: int, data_id: int) -> models.Dado:
     return db_dado
 
 
+def get_tags_by_user(db: Session, user_id: int) -> List[models.Separador]:
+    """
+    Busca a lista de tags para a barra lateral do frontend.
+    """
+    return repository.get_all_tags_by_user(db, user_id=user_id)
+
+
+def get_root_folders(db: Session, user_id: int) -> List[models.Separador]:
+    """
+    Busca as pastas do nível raiz para o painel principal.
+    """
+    return repository.get_root_folders_by_user(db, user_id=user_id)
+
+
+def get_child_folders(
+    db: Session, user_id: int, parent_folder_id: int
+) -> List[models.Separador]:
+    """
+    Busca as subpastas de uma pasta pai, após validar o acesso.
+    """
+    # Validar se a pasta pai existe, pertence ao usuário e é uma pasta
+    parent_folder = repository.get_separador_by_id_and_user_id(
+        db, separador_id=parent_folder_id, user_id=user_id
+    )
+
+    if not parent_folder:
+        raise DataNotFoundError(
+            f"Pasta com id {parent_folder_id} não encontrada ou não pertence ao usuário."
+        )
+    if parent_folder.tipo != models.TipoSeparador.PASTA:
+        raise ValueError(f"O item com id {parent_folder_id} é uma Tag, não uma Pasta.")
+
+    # Se for válida, buscar as filhas
+    return repository.get_child_folders_by_parent_id(
+        db, user_id=user_id, parent_folder_id=parent_folder_id
+    )
+
+
 # Funções CREATE
 def create_credential(
     db: Session, user: models.Usuario, credential_data: schemas.DataCreateCredential
