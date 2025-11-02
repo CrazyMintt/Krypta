@@ -1,9 +1,9 @@
 import uvicorn
 from fastapi import FastAPI
-from app.api import router as api_router
+from app.routers import router_user, router_data, router_separador
 from fastapi.middleware.cors import CORSMiddleware
 
-origins = ["*"]  # Porta do frontend
+origins = ["*"]  # Aceita todas as origens
 
 app = FastAPI(
     title="Krypta API",
@@ -15,7 +15,9 @@ app.add_middleware(
     CORSMiddleware, allow_origins=origins, allow_methods=["*"], allow_headers=["*"]
 )
 # Inclui as rotas da API
-app.include_router(api_router)
+app.include_router(router_user.router)
+app.include_router(router_data.router)
+app.include_router(router_separador.router)
 
 
 @app.get("/", tags=["Root"])
