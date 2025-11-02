@@ -8,18 +8,20 @@ import './styles/auth.css';
 import './styles/notifications.css';
 import './styles/dropdown-menu.css';
 import './styles/settings.css';
+import './styles/sharing.css';
+import './styles/landing.css';
 
 import Login from './components/auth/Login';
 import Signup from './components/auth/Signup';
 import Sidebar from './components/layout/Sidebar';
 import Cofre from './components/views/Cofre';
 import Dashboard from './components/views/Dashboard';
+import Sharing from './components/views/Sharing';
 import Modal from './components/layout/Modal';
 import NewCredentialForm from './components/forms/NewCredentialForm';
 import SettingsModal from './components/layout/SettingsModal';
 import Landing from './components/views/Landing';
-import './styles/landing.css';
-
+import { SharedItemsProvider } from './context/SharedItemsContext';
 
 // Mock data para simular uma estrutura de arquivos
 const initialFileSystem = {
@@ -41,16 +43,8 @@ const initialFileSystem = {
 };
 
 const initialActivityLog = [
-  {
-    type: 'add',
-    title: 'Senha do github criada',
-    time: 'Há 1 minuto atrás',
-  },
-  {
-    type: 'edit',
-    title: 'Senha do gmail alterada',
-    time: 'Há 1 hora atrás',
-  },
+  { type: 'add', title: 'Senha do github criada', time: 'Há 1 minuto atrás' },
+  { type: 'edit', title: 'Senha do gmail alterada', time: 'Há 1 hora atrás' },
 ];
 
 const MainApp = ({ onLogout }) => {
@@ -64,9 +58,7 @@ const MainApp = ({ onLogout }) => {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   const changeView = (newView) => {
-    if (view !== newView) {
-      setView(newView);
-    }
+    if (view !== newView) setView(newView);
   };
 
   const openNewFolderModal = () => setIsNewFolderModalOpen(true);
@@ -77,7 +69,6 @@ const MainApp = ({ onLogout }) => {
 
   const openNewCredentialModal = () => setIsNewCredentialModalOpen(true);
   const closeNewCredentialModal = () => setIsNewCredentialModalOpen(false);
-
   const openSettingsModal = () => setIsSettingsModalOpen(true);
   const closeSettingsModal = () => setIsSettingsModalOpen(false);
 
@@ -95,7 +86,6 @@ const MainApp = ({ onLogout }) => {
       time: new Date().toLocaleString(),
     };
     setActivityLog([newLogEntry, ...activityLog]);
-
     closeNewFolderModal();
   };
 
@@ -110,7 +100,6 @@ const MainApp = ({ onLogout }) => {
       time: new Date().toLocaleString(),
     };
     setActivityLog([newLogEntry, ...activityLog]);
-
     closeNewCredentialModal();
   };
 
@@ -120,9 +109,7 @@ const MainApp = ({ onLogout }) => {
       .filter(item => item.tags)
       .flatMap(item => item.tags)
       .reduce((map, tag) => {
-        if (!map.has(tag.name)) {
-          map.set(tag.name, tag);
-        }
+        if (!map.has(tag.name)) map.set(tag.name, tag);
         return map;
       }, new Map()).values()
   );
@@ -139,44 +126,41 @@ const MainApp = ({ onLogout }) => {
   };
 
   return (
-    <div className="container">
-      <Sidebar changeView={changeView} openSettingsModal={openSettingsModal} />
-      
-      {view === 'cofre' && 
-        <Cofre 
-          {...commonProps}
-          changeView={changeView}
-          onLogout={onLogout}
-        />
-      }
-      {view === 'dashboard' && <Dashboard {...commonProps} onLogout={onLogout} />}
+    <SharedItemsProvider activityLog={activityLog} setActivityLog={setActivityLog}>
+      <div className="container">
+        <Sidebar changeView={changeView} openSettingsModal={openSettingsModal} />
 
-      <Modal title="Nova Pasta" isOpen={isNewFolderModalOpen} onCancel={closeNewFolderModal}>
-        <form onSubmit={handleCreateFolder}>
-          <div className="form-group">
-            <label className="form-label">Nome da Pasta</label>
-            <input 
-              type="text"
-              className="form-input"
-              placeholder="Digite o nome da pasta"
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              autoFocus
-            />
-          </div>
-          <div className="modal-actions">
-            <button type="button" className="btn btn-secondary" onClick={closeNewFolderModal}>Cancelar</button>
-            <button type="submit" className="btn btn-primary">Criar</button>
-          </div>
-        </form>
-      </Modal>
+        {view === 'cofre' && <Cofre {...commonProps} changeView={changeView} onLogout={onLogout} />}
+        {view === 'dashboard' && <Dashboard {...commonProps} onLogout={onLogout} />}
+        {view === 'sharing' && <Sharing />}
 
-      <Modal title="Novo Item" isOpen={isNewCredentialModalOpen} onCancel={closeNewCredentialModal}>
-        <NewCredentialForm onCancel={closeNewCredentialModal} addPassword={addPassword} allTags={allTags} />
-      </Modal>
+        <Modal title="Nova Pasta" isOpen={isNewFolderModalOpen} onCancel={closeNewFolderModal}>
+          <form onSubmit={handleCreateFolder}>
+            <div className="form-group">
+              <label className="form-label">Nome da Pasta</label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Digite o nome da pasta"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="modal-actions">
+              <button type="button" className="btn btn-secondary" onClick={closeNewFolderModal}>Cancelar</button>
+              <button type="submit" className="btn btn-primary">Criar</button>
+            </div>
+          </form>
+        </Modal>
 
-      <SettingsModal isOpen={isSettingsModalOpen} onCancel={closeSettingsModal} />
-    </div>
+        <Modal title="Novo Item" isOpen={isNewCredentialModalOpen} onCancel={closeNewCredentialModal}>
+          <NewCredentialForm onCancel={closeNewCredentialModal} addPassword={addPassword} allTags={allTags} />
+        </Modal>
+
+        <SettingsModal isOpen={isSettingsModalOpen} onCancel={closeSettingsModal} />
+      </div>
+    </SharedItemsProvider>
   );
 };
 

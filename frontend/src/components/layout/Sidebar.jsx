@@ -10,7 +10,7 @@ const Sidebar = ({  changeView, openSettingsModal  }) => (
     </div>
     <nav className="nav-menu">
       <div className="nav-item" onClick={() => changeView('cofre')}>Cofres</div>
-      <div className="nav-item">Compartilhar</div>
+      <div className="nav-item" onClick={() => changeView('sharing')}>Compartilhar</div>
       <div className="nav-item">Relatórios</div>
       <div className="nav-item" onClick={() => changeView('dashboard')}>Dashboard</div>
       <div className="nav-item" onClick={openSettingsModal}>Configurações</div>
