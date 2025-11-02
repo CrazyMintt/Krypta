@@ -1,6 +1,6 @@
 from typing import Optional, List
 from . import models, schemas
-from sqlalchemy.orm import Session, joinedload, contains_eager
+from sqlalchemy.orm import Session, joinedload, subqueryload
 from sqlalchemy import func, or_, select
 
 # Funções de Busca
@@ -79,13 +79,13 @@ def get_paginated_filtered_data(
         .options(
             joinedload(models.Dado.senha),
             joinedload(models.Dado.arquivo),
-            contains_eager(models.Dado.separadores),
+            subqueryload(models.Dado.separadores),
         )
         .order_by(models.Dado.criado_em.desc())
         .offset(offset)
         .limit(pageSize)
         .distinct()
-    )  # Adiciona distinct()
+    )
 
     result = db.execute(stmt).unique().scalars().all()
 
@@ -117,6 +117,31 @@ def count_remaining_dados_compartilhados(
 
     count = db.execute(stmt).scalar()
     return count or 0
+
+
+def get_folder_by_id_and_user(
+    db: Session, folder_id: int, user_id: int
+) -> models.Separador | None:
+    """Busca uma Pasta específica pelo ID, garantindo o tipo e o dono."""
+    stmt = select(models.Separador).filter(
+        models.Separador.id == folder_id,
+        models.Separador.usuario_id == user_id,
+        models.Separador.tipo == models.TipoSeparador.PASTA,
+    )
+    return db.execute(stmt).scalar_one_or_none()
+
+
+def get_tags_by_ids_and_user(
+    db: Session, tag_ids: List[int], user_id: int
+) -> List[models.Separador]:
+    """Busca uma lista de Tags, garantindo o tipo e o dono."""
+
+    stmt = select(models.Separador).filter(
+        models.Separador.usuario_id == user_id,
+        models.Separador.tipo == models.TipoSeparador.TAG,
+        models.Separador.id.in_(tag_ids),
+    )
+    return list(db.execute(stmt).scalars().all())
 
 
 def get_separador_by_id_and_user_id(
@@ -213,6 +238,29 @@ def get_child_folders_by_parent_id(
 
     results = db.execute(stmt).scalars().all()
     return list(results)
+
+
+def get_credential_by_name_and_optional_email(
+    db: Session, user_id: int, nome_aplicacao: str, email: Optional[str]
+) -> models.Dado | None:
+    """
+    Busca uma credencial (Dado) pelo nome_aplicacao e email da Senha filha,
+    pertencente a um usuário específico.
+    """
+    stmt = (
+        select(models.Dado)
+        .join(models.Senha)
+        .filter(
+            models.Dado.usuario_id == user_id,
+            models.Dado.nome_aplicacao == nome_aplicacao,
+            models.Dado.tipo == models.TipoDado.SENHA,
+        )
+    )
+    if email is not None:
+        stmt = stmt.filter(models.Senha.email == email)
+    else:
+        stmt = stmt.filter(models.Senha.email == None)
+    return db.execute(stmt).scalar_one_or_none()
 
 
 # Funções de Criação

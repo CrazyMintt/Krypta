@@ -184,9 +184,6 @@ class Compartilhamento(Base):
 class DadosCompartilhados(Base):
     __tablename__ = "dados_compartilhados"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    usuario_id: Mapped[int] = mapped_column(
-        ForeignKey("usuario.id", ondelete="CASCADE")
-    )
     compartilhamento_id: Mapped[int] = mapped_column(
         ForeignKey("compartilhamento.id", ondelete="CASCADE")
     )

@@ -20,3 +20,9 @@ class SeparatorNameTakenError(Exception):
     """Lançada ao tentar criar uma Pasta ou Tag com um nome que já existe para aquele tipo."""
 
     pass
+
+
+class DuplicateDataError(Exception):
+    """Lançada ao tentar criar um Dado que viola uma regra de unicidade."""
+
+    pass
