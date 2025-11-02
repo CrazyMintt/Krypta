@@ -15,16 +15,21 @@ UNIQUE KEY `email` (`email`)
 
 CREATE TABLE IF NOT EXISTS `separadores` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
+  `usuario_id` int(11) NOT NULL,
   `id_pasta_raiz` int(11) DEFAULT NULL,
   `nome` varchar(255) NOT NULL,
   `tipo` varchar(100) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `cor` varchar(100) DEFAULT NULL,
   PRIMARY KEY (`id`),
+  KEY `usuario_id` (`usuario_id`),
   CONSTRAINT `fk_pasta_raiz`
     FOREIGN KEY (`id_pasta_raiz`) REFERENCES `separadores`(`id`)
     ON DELETE SET NULL
-    ON UPDATE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `fk_separador_usuario`
+    FOREIGN KEY (`usuario_id`) REFERENCES `usuario`(`id`)
+    ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `compartilhamento` (
@@ -46,7 +51,6 @@ CREATE TABLE IF NOT EXISTS `dados` (
 `descricao` text DEFAULT NULL,
 `tipo` enum('arquivo','senha') NOT NULL,
 `criado_em` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-`nota` varchar(1000) DEFAULT NULL,
 PRIMARY KEY (`id`),
 KEY `idx_dados_usuario_tipo` (`usuario_id`,`tipo`),
 CONSTRAINT `dados_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuario` (`id`) ON DELETE CASCADE
@@ -118,44 +122,3 @@ KEY `idx_logs_usuario` (`usuario_id`),
 KEY `logs_dados_FK` (`id_dado`),
 CONSTRAINT `logs_dados_FK` FOREIGN KEY (`id_dado`) REFERENCES `dados` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-DELIMITER $$
-
-CREATE PROCEDURE create_credential(
-    IN p_usuario_id INT,
-    IN p_nome_aplicacao VARCHAR(255),
-    IN p_descricao TEXT,
-    IN p_tipo ENUM('arquivo','senha'),
-    IN p_senha_cripto VARCHAR(1024),
-    IN p_email VARCHAR(255),
-    IN p_host_url VARCHAR(1024),
-    OUT p_dado_id INT
-)
-BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        -- Em caso de erro, define p_dado_id como NULL
-        SET p_dado_id = NULL;
-        ROLLBACK;
-    END;
-
-    START TRANSACTION;
-
-    -- 1) Insere na tabela 'dados'
-    INSERT INTO dados (usuario_id, nome_aplicacao, descricao, tipo)
-    VALUES (p_usuario_id, p_nome_aplicacao, p_descricao, p_tipo);
-
-    -- Pega o ID do dado recém-inserido
-    SET p_dado_id = LAST_INSERT_ID();
-
-    -- 2) Se for senha, insere também em 'senhas'
-    IF p_tipo = 'senha' THEN
-        INSERT INTO senhas (id, senha_cripto, email, host_url)
-        VALUES (p_dado_id, p_senha_cripto, p_email, p_host_url);
-    END IF;
-
-    COMMIT;
-END$$
-
-DELIMITER ;
-

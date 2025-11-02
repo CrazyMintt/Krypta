@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from app.api import router as api_router
 from fastapi.middleware.cors import CORSMiddleware
 
-origins = ["http://localhost:1420"]  # Porta do frontend
+origins = ["*"]  # Porta do frontend
 
 app = FastAPI(
     title="Krypta API",

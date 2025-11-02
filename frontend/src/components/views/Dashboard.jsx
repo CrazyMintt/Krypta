@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import Header from '../layout/Header';
 
-const Dashboard = ({ openNewFolderModal, openNewCredentialModal, fileSystem, activityLog }) => {
+const Dashboard = ({ openNewFolderModal, openNewCredentialModal, fileSystem, activityLog, onLogout }) => {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -58,7 +58,7 @@ const Dashboard = ({ openNewFolderModal, openNewCredentialModal, fileSystem, act
 
   return (
     <div className="main-content dashboard-view">
-      <Header title="Dashboard" onNewFolder={openNewFolderModal} onNewCredential={openNewCredentialModal} />
+      <Header title="Dashboard" onNewFolder={openNewFolderModal} onNewCredential={openNewCredentialModal} onLogout={onLogout} />
         <div className="dashboard-grid">
           <div className="dashboard-section">
             <h2 className="section-title">Armazenamento</h2>

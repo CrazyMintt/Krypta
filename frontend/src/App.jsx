@@ -9,6 +9,7 @@ import './styles/notifications.css';
 import './styles/dropdown-menu.css';
 import './styles/settings.css';
 import './styles/sharing.css';
+import './styles/landing.css';
 
 import Login from './components/auth/Login';
 import Signup from './components/auth/Signup';
@@ -19,8 +20,8 @@ import Sharing from './components/views/Sharing';
 import Modal from './components/layout/Modal';
 import NewCredentialForm from './components/forms/NewCredentialForm';
 import SettingsModal from './components/layout/SettingsModal';
+import Landing from './components/views/Landing';
 import { SharedItemsProvider } from './context/SharedItemsContext';
-
 
 // Mock data para simular uma estrutura de arquivos
 const initialFileSystem = {
@@ -42,19 +43,11 @@ const initialFileSystem = {
 };
 
 const initialActivityLog = [
-  {
-    type: 'add',
-    title: 'Senha do github criada',
-    time: 'Há 1 minuto atrás',
-  },
-  {
-    type: 'edit',
-    title: 'Senha do gmail alterada',
-    time: 'Há 1 hora atrás',
-  },
+  { type: 'add', title: 'Senha do github criada', time: 'Há 1 minuto atrás' },
+  { type: 'edit', title: 'Senha do gmail alterada', time: 'Há 1 hora atrás' },
 ];
 
-const MainApp = () => {
+const MainApp = ({ onLogout }) => {
   const [view, setView] = useState('cofre');
   const [fileSystem, setFileSystem] = useState(initialFileSystem);
   const [activityLog, setActivityLog] = useState(initialActivityLog);
@@ -65,9 +58,7 @@ const MainApp = () => {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   const changeView = (newView) => {
-    if (view !== newView) {
-      setView(newView);
-    }
+    if (view !== newView) setView(newView);
   };
 
   const openNewFolderModal = () => setIsNewFolderModalOpen(true);
@@ -78,7 +69,6 @@ const MainApp = () => {
 
   const openNewCredentialModal = () => setIsNewCredentialModalOpen(true);
   const closeNewCredentialModal = () => setIsNewCredentialModalOpen(false);
-
   const openSettingsModal = () => setIsSettingsModalOpen(true);
   const closeSettingsModal = () => setIsSettingsModalOpen(false);
 
@@ -96,7 +86,6 @@ const MainApp = () => {
       time: new Date().toLocaleString(),
     };
     setActivityLog([newLogEntry, ...activityLog]);
-
     closeNewFolderModal();
   };
 
@@ -111,7 +100,6 @@ const MainApp = () => {
       time: new Date().toLocaleString(),
     };
     setActivityLog([newLogEntry, ...activityLog]);
-
     closeNewCredentialModal();
   };
 
@@ -121,9 +109,7 @@ const MainApp = () => {
       .filter(item => item.tags)
       .flatMap(item => item.tags)
       .reduce((map, tag) => {
-        if (!map.has(tag.name)) {
-          map.set(tag.name, tag);
-        }
+        if (!map.has(tag.name)) map.set(tag.name, tag);
         return map;
       }, new Map()).values()
   );
@@ -143,21 +129,16 @@ const MainApp = () => {
     <SharedItemsProvider activityLog={activityLog} setActivityLog={setActivityLog}>
       <div className="container">
         <Sidebar changeView={changeView} openSettingsModal={openSettingsModal} />
-        
-        {view === 'cofre' && 
-          <Cofre 
-            {...commonProps}
-            changeView={changeView}
-          />
-        }
-        {view === 'dashboard' && <Dashboard {...commonProps} />}
+
+        {view === 'cofre' && <Cofre {...commonProps} changeView={changeView} onLogout={onLogout} />}
+        {view === 'dashboard' && <Dashboard {...commonProps} onLogout={onLogout} />}
         {view === 'sharing' && <Sharing />}
 
         <Modal title="Nova Pasta" isOpen={isNewFolderModalOpen} onCancel={closeNewFolderModal}>
           <form onSubmit={handleCreateFolder}>
             <div className="form-group">
               <label className="form-label">Nome da Pasta</label>
-              <input 
+              <input
                 type="text"
                 className="form-input"
                 placeholder="Digite o nome da pasta"
@@ -183,19 +164,31 @@ const MainApp = () => {
   );
 };
 
-function App() {
+function KryptaApp() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authView, setAuthView] = useState('login');
+  const [currentView, setCurrentView] = useState('landing');
 
   const handleLoginSuccess = () => setIsAuthenticated(true);
 
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    setIsAuthenticated(false);
+    setCurrentView('landing');
+  };
+
   if (!isAuthenticated) {
-    return authView === 'login'
-      ? <Login onNavigateToSignup={() => setAuthView('signup')} onLoginSuccess={handleLoginSuccess} />
-      : <Signup onNavigateToLogin={() => setAuthView('login')} />;
+    if (currentView === 'landing') {
+      return <Landing onNavigateToLogin={() => setCurrentView('login')} onNavigateToSignup={() => setCurrentView('signup')} />;
+    }
+    if (currentView === 'login') {
+      return <Login onNavigateToSignup={() => setCurrentView('signup')} onLoginSuccess={handleLoginSuccess} onNavigateToLanding={() => setCurrentView('landing')} />;
+    }
+    if (currentView === 'signup') {
+      return <Signup onNavigateToLogin={() => setCurrentView('login')} onNavigateToLanding={() => setCurrentView('landing')} />;
+    }
   }
 
-  return <MainApp />;
+  return <MainApp onLogout={handleLogout} />;
 }
 
-export default App;
+export default KryptaApp;
