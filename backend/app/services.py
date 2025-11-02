@@ -39,10 +39,7 @@ def authenticate_and_login_user(
 
 # Funções HELPER
 def _validate_and_get_separadores_for_create(
-    db: Session, 
-    user_id: int, 
-    id_pasta: Optional[int], 
-    id_tags: List[int]
+    db: Session, user_id: int, id_pasta: Optional[int], id_tags: List[int]
 ) -> tuple[List[models.Separador], Optional[int]]:
     """
     Função helper para CRIAR dados.
@@ -51,7 +48,7 @@ def _validate_and_get_separadores_for_create(
     """
     final_separadores: List[models.Separador] = []
     parent_folder_id: Optional[int] = None
-    
+
     # 1. Validar e buscar Tags
     if id_tags:
         fetched_tags = repository.get_tags_by_ids_and_user(
@@ -62,7 +59,7 @@ def _validate_and_get_separadores_for_create(
                 "Uma ou mais tags fornecidas não foram encontradas ou não pertencem a este usuário."
             )
         final_separadores.extend(fetched_tags)
-        
+
     # 2. Validar e buscar Pasta
     if id_pasta is not None:
         fetched_pasta = repository.get_folder_by_id_and_user(
@@ -74,16 +71,18 @@ def _validate_and_get_separadores_for_create(
             )
         final_separadores.append(fetched_pasta)
         parent_folder_id = fetched_pasta.id
-        
+
     return final_separadores, parent_folder_id
 
 
 def _handle_separador_update(
-    db: Session, 
-    user_id: int, 
-    db_dado: models.Dado, # O objeto Dado existente
-    update_dict: dict, # O dicionário de 'update_data' (exclude_unset=True)
-    update_data: schemas.DataUpdateFile | schemas.DataUpdateCredential # O schema Pydantic
+    db: Session,
+    user_id: int,
+    db_dado: models.Dado,  # O objeto Dado existente
+    update_dict: dict,  # O dicionário de 'update_data' (exclude_unset=True)
+    update_data: (
+        schemas.DataUpdateFile | schemas.DataUpdateCredential
+    ),  # O schema Pydantic
 ) -> Optional[int]:
     """
     Função helper para ATUALIZAR dados.
@@ -91,8 +90,12 @@ def _handle_separador_update(
     Retorna o ID da pasta pai final para validação de duplicatas.
     """
     # Separa os separadores atuais
-    current_tags = [s for s in db_dado.separadores if s.tipo == models.TipoSeparador.TAG]
-    current_pasta_list = [s for s in db_dado.separadores if s.tipo == models.TipoSeparador.PASTA]
+    current_tags = [
+        s for s in db_dado.separadores if s.tipo == models.TipoSeparador.TAG
+    ]
+    current_pasta_list = [
+        s for s in db_dado.separadores if s.tipo == models.TipoSeparador.PASTA
+    ]
     current_parent_id = current_pasta_list[0].id if current_pasta_list else None
 
     final_separadores: List[models.Separador] = []
@@ -101,7 +104,7 @@ def _handle_separador_update(
     #  Atualizar Tags
     if "id_tags" in update_dict:
         # Usuário enviou uma nova lista de tags (pode ser [])
-        if update_data.id_tags: # Se a lista não for vazia, busca e valida
+        if update_data.id_tags:  # Se a lista não for vazia, busca e valida
             fetched_tags = repository.get_tags_by_ids_and_user(
                 db, update_data.id_tags, user_id
             )
@@ -113,7 +116,7 @@ def _handle_separador_update(
     else:
         # 'id_tags' não foi enviado, então mantenha as tags atuais
         final_separadores.extend(current_tags)
- 
+
     # Atualizar Pasta
     if "id_pasta" in update_dict:
         # Usuário enviou um novo 'id_pasta' (pode ser None)
@@ -132,8 +135,9 @@ def _handle_separador_update(
         final_separadores.extend(current_pasta_list)
         final_parent_id = current_parent_id
 
-    db_dado.separadores = final_separadores # Define a lista final no objeto Dado
-    return final_parent_id # Retorna o ID da pasta para validação
+    db_dado.separadores = final_separadores  # Define a lista final no objeto Dado
+    return final_parent_id  # Retorna o ID da pasta para validação
+
 
 # Funções GET
 
@@ -270,10 +274,10 @@ def create_credential(
             )
 
     final_separadores, _ = _validate_and_get_separadores_for_create(
-        db, 
-        user_id=user.id, 
-        id_pasta=credential_data.id_pasta, 
-        id_tags=credential_data.id_tags
+        db,
+        user_id=user.id,
+        id_pasta=credential_data.id_pasta,
+        id_tags=credential_data.id_tags,
     )
     try:
         db_dado = models.Dado(
@@ -302,13 +306,23 @@ def create_file(
     """
 
     final_separadores, parent_folder_id = _validate_and_get_separadores_for_create(
-        db, 
-        user_id=user_id, 
-        id_pasta=file_data.id_pasta, 
-        id_tags=file_data.id_tags
-    )    # Validar e buscar Pasta
-    # TODO: Validação de duplicata usando o parent_folder_id
+        db, user_id=user_id, id_pasta=file_data.id_pasta, id_tags=file_data.id_tags
+    )  # Validar e buscar Pasta
 
+    existing_duplicate = repository.find_file_duplicate(
+        db,
+        user_id=user_id,
+        nome_aplicacao=file_data.nome_aplicacao,
+        nome_arquivo=file_data.arquivo.nome_arquivo,
+        extensao=file_data.arquivo.extensao,
+        parent_folder_id=parent_folder_id
+    )
+    
+    if existing_duplicate:
+        raise DuplicateDataError(
+            f"O arquivo '{file_data.nome_aplicacao} / {file_data.arquivo.nome_arquivo}.{file_data.arquivo.extensao}' "
+            f"já existe nesta pasta."
+        )
     # Decodificar a string Base64 para bytes
     try:
         encrypted_bytes = base64.b64decode(file_data.arquivo.arquivo_data)
@@ -425,36 +439,67 @@ def edit_file_data(
     Valida, decodifica Base64 (se necessário) e chama o repositório para salvar.
     """
     # Valida campos vazios
-
     update_dict = update_data.model_dump(exclude_unset=True)
     if not update_dict:
         raise ValueError("Pelo menos um campo deve ser fornecido para atualização.")
 
+    # Busca o Dado
     db_dado = repository.get_dado_by_id_and_user_id(
         db, dado_id=data_id, user_id=user_id
     )
-    if not db_dado:
+    if not db_dado or db_dado.tipo != models.TipoDado.ARQUIVO or not db_dado.arquivo:
         raise DataNotFoundError(
-            f"Dado com id {data_id} não encontrado ou não pertence ao usuário."
+            f"Arquivo com id {data_id} inválido ou não pertence ao usuário."
         )
-    if db_dado.tipo != models.TipoDado.ARQUIVO:
-        raise ValueError(f"Dado com id {data_id} não é do tipo Arquivo.")
 
+    # Lógica de atualização de Pastas/Tags
+    # Isso atualiza 'db_dado.separadores' E retorna o ID da pasta final.
     final_parent_id = _handle_separador_update(
-        db, 
-        user_id=user_id, 
-        db_dado=db_dado, 
-        update_dict=update_dict, 
-        update_data=update_data
+        db,
+        user_id=user_id,
+        db_dado=db_dado,
+        update_dict=update_dict,
+        update_data=update_data,
     )
 
-    decoded_bytes: bytes | None = None
+    # Determina os valores finais para validação de duplicata
+    update_file_dict = (
+        update_data.arquivo.model_dump(exclude_unset=True)
+        if update_data.arquivo
+        else {}
+    )
 
-    if update_data.arquivo and update_data.arquivo.arquivo_data:
-        try:
-            decoded_bytes = base64.b64decode(update_data.arquivo.arquivo_data)
-        except Exception as e:
-            raise ValueError(f"Codificação Base64 inválida fornecida: {e}")
+    final_nome_app = update_dict.get("nome_aplicacao", db_dado.nome_aplicacao)
+    final_nome_arquivo = update_file_dict.get("nome_arquivo", db_dado.arquivo.nome_arquivo)
+    final_extensao = update_file_dict.get("extensao", db_dado.arquivo.extensao)
+
+    # Validação de Duplicata
+    # Só checa se um dos campos-chave (nome, ext, pasta, nome_app) mudou
+    if "nome_aplicacao" in update_dict or "nome_arquivo" in update_file_dict or "extensao" in update_file_dict or "id_pasta" in update_dict:
+        
+        existing_duplicate = repository.find_file_duplicate(
+            db,
+            user_id=user_id,
+            nome_aplicacao=final_nome_app,
+            nome_arquivo=final_nome_arquivo,
+            extensao=final_extensao,
+            parent_folder_id=final_parent_id
+        )
+        
+        if existing_duplicate and existing_duplicate.id != data_id:
+            raise DuplicateDataError(
+                f"O arquivo '{final_nome_app} / {final_nome_arquivo}.{final_extensao}' já existe nesta pasta."
+            )
+    # Decodificar Base64 (se fornecido)
+    decoded_bytes: bytes | None = None
+    if update_data.arquivo and "arquivo_data" in update_file_dict:
+
+        base64_string = update_data.arquivo.arquivo_data
+        if base64_string is not None:
+            try:
+                decoded_bytes = base64.b64decode(base64_string)
+            except Exception as e:
+                raise ValueError(f"Codificação Base64 inválida fornecida: {e}")
     try:
         updated_dado = repository.update_file_data(
             db=db,
@@ -487,13 +532,15 @@ def edit_credential_data(
         )
 
     # Validação de credencial Duplicada
-    update_senha_dict = update_data.senha.model_dump(exclude_unset=True) if update_data.senha else {}
+    update_senha_dict = (
+        update_data.senha.model_dump(exclude_unset=True) if update_data.senha else {}
+    )
     final_nome_app = update_dict.get("nome_aplicacao", db_dado.nome_aplicacao)
     if "email" in update_senha_dict:
-        final_email = update_senha_dict["email"] 
+        final_email = update_senha_dict["email"]
     else:
-        final_email = db_dado.senha.email 
-    if final_nome_app: 
+        final_email = db_dado.senha.email
+    if final_nome_app:
         existing = repository.get_credential_by_name_and_optional_email(
             db, user_id, final_nome_app, final_email
         )
@@ -509,11 +556,11 @@ def edit_credential_data(
 
     # Chama a função helper para atualizar os separadores
     _ = _handle_separador_update(
-        db, 
-        user_id=user_id, 
-        db_dado=db_dado, 
-        update_dict=update_dict, 
-        update_data=update_data
+        db,
+        user_id=user_id,
+        db_dado=db_dado,
+        update_dict=update_dict,
+        update_data=update_data,
     )
 
     try:

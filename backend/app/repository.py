@@ -263,6 +263,89 @@ def get_credential_by_name_and_optional_email(
     return db.execute(stmt).scalar_one_or_none()
 
 
+def get_files_by_name_and_ext(
+    db: Session, user_id: int, nome_arquivo: str, extensao: str
+) -> List[models.Dado]:
+    """
+    Busca todos os arquivos (Dados tipo ARQUIVO) de um usuário que
+    batem com um nome e extensão.
+    Carrega seus separadores para checagem no serviço.
+    """
+    stmt = (
+        select(models.Dado)
+        .join(models.Arquivo)
+        .filter(
+            models.Dado.usuario_id == user_id,
+            models.Arquivo.nome_arquivo == nome_arquivo,
+            models.Arquivo.extensao == extensao,
+            models.Dado.tipo == models.TipoDado.ARQUIVO,
+        )
+        .options(joinedload(models.Dado.separadores))  # Pré-carrega as pastas/tags
+    )
+
+    return list(db.execute(stmt).unique().scalars().all())
+
+
+def find_file_duplicate(
+    db: Session,
+    user_id: int,
+    nome_aplicacao: str,
+    nome_arquivo: str,
+    extensao: str,
+    parent_folder_id: Optional[int],
+) -> models.Dado | None:
+    """
+    Verifica se um arquivo duplicado (mesmo nome/extensão) já existe
+    dentro da mesma pasta pai.
+    """
+
+    # Encontra Dados + Arquivos que batem com o nome/extensão/usuário
+    stmt = (
+        select(models.Dado)
+        .join(models.Arquivo)
+        .filter(
+            models.Dado.usuario_id == user_id,
+            models.Dado.nome_aplicacao == nome_aplicacao,
+            models.Arquivo.nome_arquivo == nome_arquivo,
+            models.Arquivo.extensao == extensao,
+            models.Dado.tipo == models.TipoDado.ARQUIVO,
+        )
+    )
+
+    if parent_folder_id is None:
+        # Se a pasta pai for a 'raiz' (None)
+        # Procuramos um arquivo que NÃO esteja em NENHUMA pasta.
+
+        # Subquery para encontrar todos os 'dado_id' que estão em uma pasta
+        dados_em_pasta_sq = (
+            select(models.dados_separadores_association.c.dado_id)
+            .join(
+                models.Separador,
+                models.Separador.id
+                == models.dados_separadores_association.c.separador_id,
+            )
+            .filter(models.Separador.tipo == models.TipoSeparador.PASTA)
+            .distinct()
+            .subquery()
+        )
+
+        # Filtra por dados que NÃO ESTÃO (is_()) na subquery
+        stmt = stmt.outerjoin(
+            dados_em_pasta_sq, models.Dado.id == dados_em_pasta_sq.c.dado_id
+        ).filter(dados_em_pasta_sq.c.dado_id == None)
+
+    else:
+        # Se a pasta pai for Específica
+        # Procuramos um arquivo que esteja LIGADO a essa pasta.
+        stmt = stmt.join(models.Dado.separadores).filter(
+            models.Separador.id == parent_folder_id,
+            models.Separador.tipo == models.TipoSeparador.PASTA,
+        )
+
+    # Retorna no máximo 1 resultado (ou None)
+    return db.execute(stmt.limit(1)).scalar_one_or_none()
+
+
 # Funções de Criação
 
 

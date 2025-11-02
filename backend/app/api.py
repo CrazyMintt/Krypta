@@ -220,10 +220,12 @@ def create_file(
         return created_file
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception:
+    except DuplicateDataError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno ao salvar o arquivo.",
+            detail=f"Erro interno ao salvar o arquivo. {e}",
         )
 
 
@@ -307,6 +309,8 @@ def update_file_entry(
         )
         return updated_dado
     # Traduz erros de negócio do serviço para erros HTTP
+    except DuplicateDataError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except DataNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ValueError as e:
