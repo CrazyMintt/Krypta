@@ -124,3 +124,4 @@ def clear_all_user_data_logic(db: Session, user_id: int):
     repository_data.delete_eventos_by_user(db, user_id=user_id)
     repository_data.delete_compartilhamentos_by_user(db, user_id=user_id)
     repository_data.delete_dados_by_user(db, user_id=user_id)
+    repository_separador.delete_separadores_by_user_id(db, user_id=user_id)
