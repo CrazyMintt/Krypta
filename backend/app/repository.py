@@ -154,7 +154,7 @@ def get_tag_by_name_and_user(
     """
     stmt = select(models.Separador).filter(
         models.Separador.nome == nome,
-        models.Separador.tipo == models.Separador.TAG,
+        models.Separador.tipo == models.TipoSeparador.TAG,
         models.Separador.usuario_id == user_id,
     )
     return db.execute(stmt).scalar_one_or_none()
@@ -431,3 +431,103 @@ def delete_compartilhamento_by_id(db: Session, comp_id: int):
     db.query(models.Compartilhamento).filter(
         models.Compartilhamento.id == comp_id
     ).delete(synchronize_session=False)
+
+
+def delete_separador(db: Session, db_separador: models.Separador):
+    db.delete(db_separador)
+
+
+def get_folder_and_all_descendants_ids(
+    db: Session, folder_id: int, user_id: int
+) -> List[int]:
+    """
+    Usa uma query recursiva (CTE) em puro SQLAlchemy para buscar o ID da pasta pai
+    e todos os IDs de suas subpastas descendentes,
+    garantindo que todas pertençam ao usuário.
+    """
+
+    # Seleciona o ID da pasta que o usuário quer deletar
+    base_case = (
+        select(models.Separador.id)
+        .filter(
+            models.Separador.id == folder_id,
+            models.Separador.usuario_id == user_id,
+            models.Separador.tipo == models.TipoSeparador.PASTA,
+        )
+        .cte(name="folder_tree", recursive=True)
+    )  # .cte() transforma em 'WITH RECURSIVE folder_tree AS (...)'
+
+    # Passo Recursivo
+    # Junta a tabela Separador com a própria CTE (folder_tree)
+    # para encontrar todas as subpastas.
+    recursive_step = (
+        select(models.Separador.id)
+        .join(base_case, models.Separador.id_pasta_raiz == base_case.c.id)
+        .filter(
+            models.Separador.tipo == models.TipoSeparador.PASTA,
+            models.Separador.usuario_id == user_id,  # Garante segurança em cada passo
+        )
+    )
+
+    # União (UNION ALL)
+    # Combina o Caso Base com o Passo Recursivo
+    recursive_cte = base_case.union_all(recursive_step)
+
+    # Query Final
+    # Seleciona todos os IDs encontrados na CTE
+    final_stmt = select(recursive_cte.c.id)
+
+    # Executa e retorna a lista de IDs
+    return list(db.execute(final_stmt).scalars().all())
+
+
+def get_dado_ids_by_separador_ids(db: Session, separador_ids: List[int]) -> List[int]:
+    """
+    Busca todos os IDs de 'Dados' únicos que estão
+    associados a uma lista de IDs de separadores.
+    """
+    if not separador_ids:
+        return []
+
+    stmt = (
+        select(models.dados_separadores_association.c.dado_id)
+        .filter(models.dados_separadores_association.c.separador_id.in_(separador_ids))
+        .distinct()
+    )
+
+    return list(db.execute(stmt).scalars().all())
+
+
+def delete_logs_by_dado_ids(db: Session, dado_ids: List[int]):
+    """
+    Deleta em lote todos os logs associados a uma lista de IDs de Dados.
+    (Esta é uma nova função plural, diferente da 'delete_logs_by_dado_id')
+    """
+    if not dado_ids:
+        return
+
+    query = db.query(models.Log).filter(models.Log.id_dado.in_(dado_ids))
+    query.delete(synchronize_session=False)
+
+
+def delete_dados_by_ids(db: Session, dado_ids: List[int]):
+    """
+    Deleta em lote todos os 'Dados' de uma lista de IDs.
+    O CASCADE do banco cuidará de Senhas, Arquivos, DadosCompartilhados, etc.
+    """
+    if not dado_ids:
+        return
+
+    query = db.query(models.Dado).filter(models.Dado.id.in_(dado_ids))
+    query.delete(synchronize_session=False)
+
+
+def delete_separadores_by_ids(db: Session, separador_ids: List[int]):
+    """
+    Deleta em lote todos os 'Separadores' (pastas/tags) de uma lista de IDs.
+    """
+    if not separador_ids:
+        return
+
+    query = db.query(models.Separador).filter(models.Separador.id.in_(separador_ids))
+    query.delete(synchronize_session=False)

@@ -480,7 +480,6 @@ def clear_all_user_data(db: Session, user_id: int) -> bool:
         db.commit()
         return True
     except Exception as e:
-        print(e)
         # Se qualquer passo falhar, desfaz tudo
         db.rollback()
         return False
@@ -538,5 +537,74 @@ def delete_data_by_id(db: Session, user_id: int, dado_id: int):
 
     except Exception as e:
         # Se algo der errado, desfaz tudo
+        db.rollback()
+        raise e
+
+
+def delete_tag_by_id(db: Session, user_id: int, tag_id: int):
+    """
+    Deleta uma Tag específica.
+    Verifica se a tag existe, pertence ao usuário e é do tipo TAG.
+    """
+    db_tag = repository.get_separador_by_id_and_user_id(
+        db, separador_id=tag_id, user_id=user_id
+    )
+
+    if not db_tag:
+        raise DataNotFoundError(
+            f"Tag com id {tag_id} não encontrada ou não pertence ao usuário."
+        )
+
+    if db_tag.tipo != models.TipoSeparador.TAG:
+        raise ValueError(
+            f"O item com id {tag_id} é uma Pasta, não uma Tag, e não pode ser excluído por este endpoint."
+        )
+
+    try:
+        repository.delete_separador(db, db_separador=db_tag)
+
+        # O ON DELETE CASCADE em 'dados_separadores' é executado pelo banco
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise e
+
+
+def delete_folder_recursively(db: Session, user_id: int, folder_id: int):
+    """
+    Deleta uma Pasta e TODO o seu conteúdo (subpastas e dados).
+    """
+    # Valida se a pasta existe, pertence ao usuário e é uma PASTA
+    db_folder = repository.get_separador_by_id_and_user_id(
+        db, separador_id=folder_id, user_id=user_id
+    )
+    if not db_folder or db_folder.tipo != models.TipoSeparador.PASTA:
+        raise DataNotFoundError(
+            f"Pasta com id {folder_id} não encontrada ou não pertence ao usuário."
+        )
+
+    try:
+        # Encontra todos os IDs de pastas (esta + todas as descendentes)
+        all_folder_ids = repository.get_folder_and_all_descendants_ids(
+            db, folder_id=folder_id, user_id=user_id
+        )
+
+        # Encontra todos os IDs de dados únicos nessas pastas
+        all_data_ids = repository.get_dado_ids_by_separador_ids(db, all_folder_ids)
+
+        if all_data_ids:
+            # Deleta todos os LOGS associados a esses dados
+            repository.delete_logs_by_dado_ids(db, all_data_ids)
+
+            # Deleta todos os DADOS
+            # (CASCADE cuidará de Senha/Arquivo/DadosCompartilhados/dados_separadores)
+            repository.delete_dados_by_ids(db, all_data_ids)
+
+        # Deleta todas as PASTAS (a pasta principal e suas filhas)
+        repository.delete_separadores_by_ids(db, all_folder_ids)
+
+        db.commit()
+
+    except Exception as e:
         db.rollback()
         raise e
