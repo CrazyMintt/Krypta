@@ -199,3 +199,12 @@ def delete_separadores_by_ids(db: Session, separador_ids: List[int]):
         return
     query = db.query(models.Separador).filter(models.Separador.id.in_(separador_ids))
     query.delete(synchronize_session=False)
+
+
+def delete_separadores_by_user_id(db: Session, user_id: int):
+    """
+    Deleta em lote TODOS os separadores (pastas e tags)
+    pertencentes a um usuário.
+    """
+    query = db.query(models.Separador).filter(models.Separador.usuario_id == user_id)
+    query.delete(synchronize_session=False)
