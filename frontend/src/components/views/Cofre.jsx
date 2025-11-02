@@ -342,47 +342,62 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
   };
 
   const updateFolderName = (updatedFolder) => {
-    const newFileSystem = { ...fileSystem };
-    let itemPath = null;
-    let itemIndex = -1;
+  const newFileSystem = { ...fileSystem };
+  let itemPath = null;
+  let itemIndex = -1;
 
-    for (const path in newFileSystem) {
-      const index = newFileSystem[path].findIndex(i => i.id === updatedFolder.id);
-      if (index !== -1) {
-        itemPath = path;
-        itemIndex = index;
-        break;
-      }
+  for (const path in newFileSystem) {
+    const index = newFileSystem[path].findIndex(i => i.id === updatedFolder.id);
+    if (index !== -1) {
+      itemPath = path;
+      itemIndex = index;
+      break;
     }
+  }
 
-    if (itemPath) {
-      const oldFolder = newFileSystem[itemPath][itemIndex];
-      const oldPath = `${itemPath}${oldFolder.name}/`;
-      const newPath = `${itemPath}${updatedFolder.name}/`;
+  if (!itemPath) return;
 
-      newFileSystem[itemPath][itemIndex] = updatedFolder;
+  const oldFolder = newFileSystem[itemPath][itemIndex];
+  const oldPath = `${itemPath}${oldFolder.name}/`;
 
-      if (newFileSystem[oldPath]) {
-        newFileSystem[newPath] = newFileSystem[oldPath];
-        delete newFileSystem[oldPath];
+  const baseName = updatedFolder.name.trim();
+  let finalName = baseName;
+  let suffix = 1;
+  while (newFileSystem[itemPath]?.some(i => i.type === 'folder' && i.name === finalName && i.id !== updatedFolder.id)) {
+    finalName = `${baseName}_${suffix}`;
+    suffix++;
+  }
 
-        for (const path in newFileSystem) {
-          if (path.startsWith(oldPath)) {
-            const newSubPath = path.replace(oldPath, newPath);
-            newFileSystem[newSubPath] = newFileSystem[path];
-            delete newFileSystem[path];
-          }
-        }
-      }
-      setFileSystem(newFileSystem);
-      setActivityLog([
-        { type: 'edit', title: `Pasta renomeada para "${updatedFolder.name}"`, time: new Date().toLocaleString() },
-        ...activityLog
-      ]);
+  const newPath = `${itemPath}${finalName}/`;
+  const renamedFolder = { ...updatedFolder, name: finalName };
+  newFileSystem[itemPath][itemIndex] = renamedFolder;
+
+  const updatedPaths = Object.keys(newFileSystem);
+  const updates = {};
+
+  for (const path of updatedPaths) {
+    if (path.startsWith(oldPath)) {
+      const newSubPath = path.replace(oldPath, newPath);
+      updates[newSubPath] = newFileSystem[path];
+      delete newFileSystem[path];
     }
+  }
 
-    closeEditFolderModal();
-  };
+  if (newFileSystem[oldPath]) {
+    updates[newPath] = newFileSystem[oldPath];
+    delete newFileSystem[oldPath];
+  }
+
+  Object.assign(newFileSystem, updates);
+
+  setFileSystem(newFileSystem);
+  setActivityLog([
+    { type: 'edit', title: `Pasta renomeada para "${finalName}"`, time: new Date().toLocaleString() },
+    ...activityLog
+  ]);
+
+  closeEditFolderModal();
+};
 
   const navigateTo = (folderName) => {
     const newPath = folderName === '' ? '/' : `${currentPath}${folderName}/`;
