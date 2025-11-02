@@ -60,7 +60,7 @@ def get_current_user(
 
 
 @router.post(
-    "/users/",
+    "/users",
     response_model=schemas.UserResponse,
     status_code=status.HTTP_201_CREATED,
     tags=["Usuário"],
@@ -368,10 +368,10 @@ def search_data_paginated(
 
 
 @router.post(
-    "/separador/pasta",
+    "/separators/folders",
     response_model=schemas.SeparatorResponse,
     status_code=status.HTTP_201_CREATED,
-    tags=["Separadores"],
+    tags=["Pastas"],
 )
 def create_folder(
     folder_data: schemas.FolderCreate,
@@ -400,10 +400,10 @@ def create_folder(
 
 
 @router.post(
-    "/separador/tag",
+    "/separators/tags",
     response_model=schemas.SeparatorResponse,
     status_code=status.HTTP_201_CREATED,
-    tags=["Separadores"],
+    tags=["Tags"],
 )
 def create_tag(
     tag_data: schemas.TagCreate,
@@ -430,7 +430,7 @@ def create_tag(
 
 
 @router.get(
-    "/tags", response_model=List[schemas.SeparatorResponse], tags=["Separadores"]
+    "/separators/tags", response_model=List[schemas.SeparatorResponse], tags=["Tags"]
 )
 def get_all_user_tags(
     db: Annotated[Session, Depends(get_db)],
@@ -451,9 +451,9 @@ def get_all_user_tags(
 
 
 @router.get(
-    "/folders/root",
+    "/separators/folders/root",
     response_model=List[schemas.SeparatorResponse],
-    tags=["Separadores"],
+    tags=["Pastas"],
 )
 def get_root_level_folders(
     db: Annotated[Session, Depends(get_db)],
@@ -474,9 +474,9 @@ def get_root_level_folders(
 
 
 @router.get(
-    "/folders/{folder_id}/children",
+    "/separators/folders/{folder_id}/children",
     response_model=List[schemas.SeparatorResponse],
-    tags=["Separadores"],
+    tags=["Pastas"],
 )
 def get_subfolders(
     folder_id: int,
@@ -504,9 +504,9 @@ def get_subfolders(
 
 
 @router.patch(
-    "/folders/{folder_id}",
+    "/separators/folders/{folder_id}",
     response_model=schemas.SeparatorResponse,
-    tags=["Separadores"],
+    tags=["Pastas"],
 )
 def update_folder(
     folder_id: int,
@@ -535,7 +535,7 @@ def update_folder(
 
 
 @router.patch(
-    "/tags/{tag_id}", response_model=schemas.SeparatorResponse, tags=["Separadores"]
+    "/separators/tags/{tag_id}", response_model=schemas.SeparatorResponse, tags=["Tags"]
 )
 def update_tag(
     tag_id: int,
@@ -559,4 +559,54 @@ def update_tag(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao editar tag.",
+        )
+
+
+@router.delete(
+    "/separators/tags/{tag_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Tags"]
+)
+def delete_tag(
+    tag_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Apaga uma Tag específica.
+    """
+    try:
+        services.delete_tag_by_id(db, user_id=current_user.id, tag_id=tag_id)
+        return None
+    except (DataNotFoundError, ValueError) as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao deletar tag.",
+        )
+
+
+@router.delete(
+    "/folders/{folder_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Pastas"]
+)
+def delete_folder(
+    folder_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Apaga uma Pasta e TODO o seu conteúdo recursivamente
+    (subpastas, senhas, arquivos e logs associados).
+    """
+    try:
+        services.delete_folder_recursively(
+            db, user_id=current_user.id, folder_id=folder_id
+        )
+        return None  # Retorna 204 No Content
+
+    except (DataNotFoundError, ValueError) as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao deletar pasta.",
         )
