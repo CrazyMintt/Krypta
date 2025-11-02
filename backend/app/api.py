@@ -11,6 +11,7 @@ from .exceptions import (
     EmailAlreadyExistsError,
     DataNotFoundError,
     SeparatorNameTakenError,
+    DuplicateDataError,
 )
 
 router = APIRouter()
@@ -187,13 +188,12 @@ def create_credential(
 
         return created_data
 
-    except ValueError as e:
-        # erro de validação simples vindo do serviço
+    except (ValueError, DuplicateDataError, DataNotFoundError) as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno ao criar credencial.",
+            detail=f"Erro interno ao criar credencial.",
         )
 
 
@@ -220,10 +220,12 @@ def create_file(
         return created_file
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception:
+    except DuplicateDataError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno ao salvar o arquivo.",
+            detail=f"Erro interno ao salvar o arquivo. {e}",
         )
 
 
@@ -278,6 +280,8 @@ def update_credential_entry(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except DuplicateDataError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -305,6 +309,8 @@ def update_file_entry(
         )
         return updated_dado
     # Traduz erros de negócio do serviço para erros HTTP
+    except DuplicateDataError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except DataNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ValueError as e:
@@ -336,10 +342,10 @@ def delete_data(
     except DataNotFoundError as e:
         # Traduz o erro de negócio para HTTP 404
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except Exception:
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno ao apagar o dado.",
+            detail=f"Erro interno ao apagar o dado. {e}",
         )
 
 
@@ -425,7 +431,7 @@ def create_tag(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao criar tag.",
+            detail=f"Erro ao criar tag.{e}",
         )
 
 
@@ -443,10 +449,10 @@ def get_all_user_tags(
     try:
         tags = services.get_tags_by_user(db, user_id=current_user.id)
         return tags
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao buscar tags: {e}",
+            detail=f"Erro ao buscar tags",
         )
 
 

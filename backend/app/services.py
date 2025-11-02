@@ -4,9 +4,10 @@ from .exceptions import (
     EmailAlreadyExistsError,
     DataNotFoundError,
     SeparatorNameTakenError,
+    DuplicateDataError,
 )
 import base64
-from typing import List
+from typing import List, Optional
 
 
 # AUTH
@@ -34,6 +35,108 @@ def authenticate_and_login_user(
         access_token=access_token,
         saltKDF=user.saltKDF,
     )
+
+
+# Funções HELPER
+def _validate_and_get_separadores_for_create(
+    db: Session, user_id: int, id_pasta: Optional[int], id_tags: List[int]
+) -> tuple[List[models.Separador], Optional[int]]:
+    """
+    Função helper para CRIAR dados.
+    Valida e busca tags e pasta, retornando a lista final de separadores
+    e o ID da pasta pai para validação de duplicatas.
+    """
+    final_separadores: List[models.Separador] = []
+    parent_folder_id: Optional[int] = None
+
+    # 1. Validar e buscar Tags
+    if id_tags:
+        fetched_tags = repository.get_tags_by_ids_and_user(
+            db, tag_ids=id_tags, user_id=user_id
+        )
+        if len(fetched_tags) != len(set(id_tags)):
+            raise DataNotFoundError(
+                "Uma ou mais tags fornecidas não foram encontradas ou não pertencem a este usuário."
+            )
+        final_separadores.extend(fetched_tags)
+
+    # 2. Validar e buscar Pasta
+    if id_pasta is not None:
+        fetched_pasta = repository.get_folder_by_id_and_user(
+            db, folder_id=id_pasta, user_id=user_id
+        )
+        if not fetched_pasta:
+            raise DataNotFoundError(
+                "A pasta especificada não foi encontrada ou não pertence a este usuário."
+            )
+        final_separadores.append(fetched_pasta)
+        parent_folder_id = fetched_pasta.id
+
+    return final_separadores, parent_folder_id
+
+
+def _handle_separador_update(
+    db: Session,
+    user_id: int,
+    db_dado: models.Dado,  # O objeto Dado existente
+    update_dict: dict,  # O dicionário de 'update_data' (exclude_unset=True)
+    update_data: (
+        schemas.DataUpdateFile | schemas.DataUpdateCredential
+    ),  # O schema Pydantic
+) -> Optional[int]:
+    """
+    Função helper para ATUALIZAR dados.
+    Modifica 'db_dado.separadores' diretamente.
+    Retorna o ID da pasta pai final para validação de duplicatas.
+    """
+    # Separa os separadores atuais
+    current_tags = [
+        s for s in db_dado.separadores if s.tipo == models.TipoSeparador.TAG
+    ]
+    current_pasta_list = [
+        s for s in db_dado.separadores if s.tipo == models.TipoSeparador.PASTA
+    ]
+    current_parent_id = current_pasta_list[0].id if current_pasta_list else None
+
+    final_separadores: List[models.Separador] = []
+    final_parent_id: Optional[int] = None
+
+    #  Atualizar Tags
+    if "id_tags" in update_dict:
+        # Usuário enviou uma nova lista de tags (pode ser [])
+        if update_data.id_tags:  # Se a lista não for vazia, busca e valida
+            fetched_tags = repository.get_tags_by_ids_and_user(
+                db, update_data.id_tags, user_id
+            )
+            if len(fetched_tags) != len(set(update_data.id_tags)):
+                raise DataNotFoundError(
+                    "Uma ou mais tags fornecidas não foram encontradas."
+                )
+            final_separadores.extend(fetched_tags)
+    else:
+        # 'id_tags' não foi enviado, então mantenha as tags atuais
+        final_separadores.extend(current_tags)
+
+    # Atualizar Pasta
+    if "id_pasta" in update_dict:
+        # Usuário enviou um novo 'id_pasta' (pode ser None)
+        if update_data.id_pasta is not None:
+            fetched_pasta = repository.get_folder_by_id_and_user(
+                db, update_data.id_pasta, user_id
+            )
+            if not fetched_pasta:
+                raise DataNotFoundError("A pasta especificada não foi encontrada.")
+            final_separadores.append(fetched_pasta)
+            final_parent_id = fetched_pasta.id
+        # Se 'id_pasta' foi enviado como 'null', nada é adicionado (movido para a raiz)
+        # e final_parent_id continua None.
+    else:
+        # 'id_pasta' não foi enviado, então mantenha a pasta atual
+        final_separadores.extend(current_pasta_list)
+        final_parent_id = current_parent_id
+
+    db_dado.separadores = final_separadores  # Define a lista final no objeto Dado
+    return final_parent_id  # Retorna o ID da pasta para validação
 
 
 # Funções GET
@@ -121,36 +224,6 @@ def get_child_folders(
 
 
 # Funções CREATE
-def create_credential(
-    db: Session, user: models.Usuario, credential_data: schemas.DataCreateCredential
-) -> models.Dado:
-    """
-    Serviço para criar um novo Dado do tipo Senha
-    """
-    try:
-        # Criar os objetos de modelo
-        db_dado = models.Dado(
-            usuario_id=user.id,
-            nome_aplicacao=credential_data.nome_aplicacao,
-            descricao=credential_data.descricao,
-            tipo=models.TipoDado.SENHA,
-        )
-
-        db_senha = models.Senha(
-            senha_cripto=credential_data.senha.senha_cripto,
-            email=credential_data.senha.email,
-            host_url=credential_data.senha.host_url,
-        )
-
-        # Chamar o repositório para salvar
-        created_data = repository.create_credential(db=db, dado=db_dado, senha=db_senha)
-        return created_data
-
-    except Exception as e:
-        # Se o repositório fizer rollback e relançar, capturamos aqui
-        raise ValueError(f"Erro ao criar credencial: {e}")
-
-
 def register_user(db: Session, user_data: schemas.UserCreate) -> models.Usuario | None:
     """
     Serviço para registrar um novo usuário.
@@ -174,6 +247,57 @@ def register_user(db: Session, user_data: schemas.UserCreate) -> models.Usuario 
     return repository.create_user(db, user_data=new_user)
 
 
+def create_credential(
+    db: Session, user: models.Usuario, credential_data: schemas.DataCreateCredential
+) -> models.Dado:
+    """
+    Serviço para criar um novo Dado do tipo Senha,
+    associando-o a pastas/tags.
+    """
+    # Validações de Duplicata de Nome e Email
+    credencial_email = credential_data.senha.email
+    existing_credential = repository.get_credential_by_name_and_optional_email(
+        db,
+        user_id=user.id,
+        nome_aplicacao=credential_data.nome_aplicacao,
+        email=credencial_email,
+    )
+    if existing_credential:
+        if credencial_email:
+            raise DuplicateDataError(
+                f"Uma credencial com o nome '{credential_data.nome_aplicacao}' "
+                f"e email '{credencial_email}' já existe."
+            )
+        else:
+            raise DuplicateDataError(
+                f"Uma credencial com o nome '{credential_data.nome_aplicacao}' (e sem email) já existe."
+            )
+
+    final_separadores, _ = _validate_and_get_separadores_for_create(
+        db,
+        user_id=user.id,
+        id_pasta=credential_data.id_pasta,
+        id_tags=credential_data.id_tags,
+    )
+    try:
+        db_dado = models.Dado(
+            usuario_id=user.id,
+            nome_aplicacao=credential_data.nome_aplicacao,
+            descricao=credential_data.descricao,
+            tipo=models.TipoDado.SENHA,
+            separadores=final_separadores,  # Associa a lista final
+        )
+        db_senha = models.Senha(
+            senha_cripto=credential_data.senha.senha_cripto,
+            email=credential_data.senha.email,
+            host_url=credential_data.senha.host_url,
+        )
+        created_data = repository.create_credential(db=db, dado=db_dado, senha=db_senha)
+        return created_data
+    except Exception:
+        raise ValueError(f"Erro ao criar credencial.")
+
+
 def create_file(
     db: Session, user_id: int, file_data: schemas.DataCreateFile
 ) -> models.Dado:
@@ -181,6 +305,24 @@ def create_file(
     Serviço para criar um novo Dado do tipo Arquivo.
     """
 
+    final_separadores, parent_folder_id = _validate_and_get_separadores_for_create(
+        db, user_id=user_id, id_pasta=file_data.id_pasta, id_tags=file_data.id_tags
+    )  # Validar e buscar Pasta
+
+    existing_duplicate = repository.find_file_duplicate(
+        db,
+        user_id=user_id,
+        nome_aplicacao=file_data.nome_aplicacao,
+        nome_arquivo=file_data.arquivo.nome_arquivo,
+        extensao=file_data.arquivo.extensao,
+        parent_folder_id=parent_folder_id
+    )
+    
+    if existing_duplicate:
+        raise DuplicateDataError(
+            f"O arquivo '{file_data.nome_aplicacao} / {file_data.arquivo.nome_arquivo}.{file_data.arquivo.extensao}' "
+            f"já existe nesta pasta."
+        )
     # Decodificar a string Base64 para bytes
     try:
         encrypted_bytes = base64.b64decode(file_data.arquivo.arquivo_data)
@@ -189,14 +331,13 @@ def create_file(
         # que a API vai capturar como um erro 400 (Bad Request).
         raise ValueError(f"Codificação Base64 inválida: {e}")
 
-    # Criar os objetos de modelo
-
     # Dado
     db_dado = models.Dado(
         usuario_id=user_id,
         nome_aplicacao=file_data.nome_aplicacao,
         descricao=file_data.descricao,
         tipo=models.TipoDado.ARQUIVO,  # Define o tipo
+        separadores=final_separadores,
     )
 
     # Arquivo
@@ -298,28 +439,67 @@ def edit_file_data(
     Valida, decodifica Base64 (se necessário) e chama o repositório para salvar.
     """
     # Valida campos vazios
-
     update_dict = update_data.model_dump(exclude_unset=True)
     if not update_dict:
         raise ValueError("Pelo menos um campo deve ser fornecido para atualização.")
 
+    # Busca o Dado
     db_dado = repository.get_dado_by_id_and_user_id(
         db, dado_id=data_id, user_id=user_id
     )
-    if not db_dado:
+    if not db_dado or db_dado.tipo != models.TipoDado.ARQUIVO or not db_dado.arquivo:
         raise DataNotFoundError(
-            f"Dado com id {data_id} não encontrado ou não pertence ao usuário."
+            f"Arquivo com id {data_id} inválido ou não pertence ao usuário."
         )
-    if db_dado.tipo != models.TipoDado.ARQUIVO:
-        raise ValueError(f"Dado com id {data_id} não é do tipo Arquivo.")
 
+    # Lógica de atualização de Pastas/Tags
+    # Isso atualiza 'db_dado.separadores' E retorna o ID da pasta final.
+    final_parent_id = _handle_separador_update(
+        db,
+        user_id=user_id,
+        db_dado=db_dado,
+        update_dict=update_dict,
+        update_data=update_data,
+    )
+
+    # Determina os valores finais para validação de duplicata
+    update_file_dict = (
+        update_data.arquivo.model_dump(exclude_unset=True)
+        if update_data.arquivo
+        else {}
+    )
+
+    final_nome_app = update_dict.get("nome_aplicacao", db_dado.nome_aplicacao)
+    final_nome_arquivo = update_file_dict.get("nome_arquivo", db_dado.arquivo.nome_arquivo)
+    final_extensao = update_file_dict.get("extensao", db_dado.arquivo.extensao)
+
+    # Validação de Duplicata
+    # Só checa se um dos campos-chave (nome, ext, pasta, nome_app) mudou
+    if "nome_aplicacao" in update_dict or "nome_arquivo" in update_file_dict or "extensao" in update_file_dict or "id_pasta" in update_dict:
+        
+        existing_duplicate = repository.find_file_duplicate(
+            db,
+            user_id=user_id,
+            nome_aplicacao=final_nome_app,
+            nome_arquivo=final_nome_arquivo,
+            extensao=final_extensao,
+            parent_folder_id=final_parent_id
+        )
+        
+        if existing_duplicate and existing_duplicate.id != data_id:
+            raise DuplicateDataError(
+                f"O arquivo '{final_nome_app} / {final_nome_arquivo}.{final_extensao}' já existe nesta pasta."
+            )
+    # Decodificar Base64 (se fornecido)
     decoded_bytes: bytes | None = None
+    if update_data.arquivo and "arquivo_data" in update_file_dict:
 
-    if update_data.arquivo and update_data.arquivo.arquivo_data:
-        try:
-            decoded_bytes = base64.b64decode(update_data.arquivo.arquivo_data)
-        except Exception as e:
-            raise ValueError(f"Codificação Base64 inválida fornecida: {e}")
+        base64_string = update_data.arquivo.arquivo_data
+        if base64_string is not None:
+            try:
+                decoded_bytes = base64.b64decode(base64_string)
+            except Exception as e:
+                raise ValueError(f"Codificação Base64 inválida fornecida: {e}")
     try:
         updated_dado = repository.update_file_data(
             db=db,
@@ -339,21 +519,49 @@ def edit_credential_data(
     """
     Serviço para editar um Dado do tipo Senha.
     """
-    # Valida campos vazios
-
     update_dict = update_data.model_dump(exclude_unset=True)
     if not update_dict:
         raise ValueError("Pelo menos um campo deve ser fornecido para atualização.")
-    # Buscar o Dado
+
     db_dado = repository.get_dado_by_id_and_user_id(
         db, dado_id=data_id, user_id=user_id
     )
-    if not db_dado:
+    if not db_dado or db_dado.tipo != models.TipoDado.SENHA or not db_dado.senha:
         raise DataNotFoundError(
-            f"Dado com id {data_id} não encontrado ou não pertence ao usuário."
+            f"Credencial com id {data_id} inválida ou não pertence ao usuário."
         )
-    if db_dado.tipo != models.TipoDado.SENHA:
-        raise ValueError(f"Dado com id {data_id} não é do tipo Senha.")
+
+    # Validação de credencial Duplicada
+    update_senha_dict = (
+        update_data.senha.model_dump(exclude_unset=True) if update_data.senha else {}
+    )
+    final_nome_app = update_dict.get("nome_aplicacao", db_dado.nome_aplicacao)
+    if "email" in update_senha_dict:
+        final_email = update_senha_dict["email"]
+    else:
+        final_email = db_dado.senha.email
+    if final_nome_app:
+        existing = repository.get_credential_by_name_and_optional_email(
+            db, user_id, final_nome_app, final_email
+        )
+        if existing and existing.id != data_id:
+            if final_email:
+                raise DuplicateDataError(
+                    f"Uma credencial com o nome '{existing.nome_aplicacao} e email '{final_email}' já existe."
+                )
+            else:
+                raise DuplicateDataError(
+                    f"Uma credencial com o nome '{existing.nome_aplicacao}' (e sem email) já existe."
+                )
+
+    # Chama a função helper para atualizar os separadores
+    _ = _handle_separador_update(
+        db,
+        user_id=user_id,
+        db_dado=db_dado,
+        update_dict=update_dict,
+        update_data=update_data,
+    )
 
     try:
         updated_dado = repository.update_credential_data(
@@ -479,7 +687,7 @@ def clear_all_user_data(db: Session, user_id: int) -> bool:
         try_clear_all_user_data(db=db, user_id=user_id)
         db.commit()
         return True
-    except Exception as e:
+    except Exception:
         # Se qualquer passo falhar, desfaz tudo
         db.rollback()
         return False

@@ -247,7 +247,9 @@ class CredentialCreate(BaseModel):
     """Schema aninhado para os detalhes de uma nova credencial (senha)."""
 
     senha_cripto: str = Field(..., min_length=1)
-    email: Optional[str] = Field(default=None, min_length=1)
+    email: Optional[EmailStr] = Field(
+        default=None, description="Email associado à credencial (opcional)."
+    )
     host_url: Optional[str] = Field(default=None, min_length=1)
 
 
@@ -261,7 +263,12 @@ class DataCreateFile(BaseModel):
     nome_aplicacao: str
     descricao: Optional[str] = Field(default=None, min_length=1)
     arquivo: FileCreate
-    id_separadores: List[int] = Field(default_factory=list)
+    id_pasta: Optional[int] = Field(
+        default=None, description="ID da pasta pai (opcional)."
+    )
+    id_tags: List[int] = Field(
+        default_factory=list, description="Lista de IDs de tags (opcional)."
+    )
 
 
 class DataCreateCredential(BaseModel):
@@ -270,7 +277,12 @@ class DataCreateCredential(BaseModel):
     nome_aplicacao: str = Field(..., min_length=1)
     descricao: Optional[str] = Field(default=None, min_length=1)
     senha: CredentialCreate
-    id_separadores: List[int] = Field(default_factory=list)
+    id_pasta: Optional[int] = Field(
+        default=None, description="ID da pasta pai (opcional)."
+    )
+    id_tags: List[int] = Field(
+        default_factory=list, description="Lista de IDs de tags (opcional)."
+    )
 
 
 # --- Sub-Schemas de Input (Update) ---
@@ -301,6 +313,14 @@ class DataUpdateFile(BaseModel):
     nome_aplicacao: Optional[str] = Field(default=None, min_length=1)
     descricao: Optional[str] = Field(default=None, min_length=1)
     arquivo: Optional[FileUpdate] = None
+    id_pasta: Optional[int] = Field(
+        default=None,
+        description="ID da nova pasta pai (use 'null' para mover para a raiz).",
+    )
+    id_tags: Optional[List[int]] = Field(
+        default=None,
+        description="Lista de IDs de tags (envie '[]' para remover todas).",
+    )
 
 
 class DataUpdateCredential(BaseModel):
@@ -309,3 +329,11 @@ class DataUpdateCredential(BaseModel):
     nome_aplicacao: Optional[str] = Field(default=None, min_length=1)
     descricao: Optional[str] = Field(default=None, min_length=1)
     senha: Optional[CredentialUpdate] = None
+    id_pasta: Optional[int] = Field(
+        default=None,
+        description="ID da nova pasta pai (use 'null' para mover para a raiz).",
+    )
+    id_tags: Optional[List[int]] = Field(
+        default=None,
+        description="Lista de IDs de tags (envie '[]' para remover todas).",
+    )
