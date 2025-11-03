@@ -48,6 +48,13 @@ const Login = ({ onNavigateToSignup, onLoginSuccess, onNavigateToLanding }) => {
 
             localStorage.setItem("authToken", `${data.token_type} ${data.access_token}`);
 
+            localStorage.setItem("user", JSON.stringify({
+                id: data.id,
+                nome: data.nome,
+                email: data.email,
+                created_at: data.created_at
+            }));
+
             alert("Login realizado com sucesso!");
             onLoginSuccess();
         } catch (error) {
