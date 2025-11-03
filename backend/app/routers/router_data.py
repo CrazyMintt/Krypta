@@ -4,7 +4,11 @@ from typing import Annotated, List
 
 from .. import schemas, models
 from ..database import get_db
-from ..exceptions import DataNotFoundError, DuplicateDataError
+from ..exceptions import (
+    DataNotFoundError,
+    DuplicateDataError,
+    StorageLimitExceededError,
+)
 from ..services import service_data
 from .dependencies import get_current_user
 
@@ -55,7 +59,7 @@ def create_file(
     """Cria um novo arquivo (enviado como Base64)."""
     try:
         created_file = service_data.create_file(
-            db=db, user_id=current_user.id, file_data=file_data
+            db=db, user=current_user, file_data=file_data
         )
         return created_file
     except DataNotFoundError as e:
@@ -64,10 +68,14 @@ def create_file(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except DuplicateDataError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
-    except Exception as e:
+    except StorageLimitExceededError as e:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=str(e)
+        )
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro interno ao salvar o arquivo.",
+            detail="Erro interno ao salvar o arquivo.",
         )
 
 
@@ -113,6 +121,7 @@ def update_credential_entry(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except DuplicateDataError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -132,7 +141,7 @@ def update_file_entry(
     """Atualiza um Dado existente do tipo Arquivo."""
     try:
         updated_dado = service_data.edit_file_data(
-            db=db, user_id=current_user.id, data_id=data_id, update_data=update_data
+            db=db, user=current_user, data_id=data_id, update_data=update_data
         )
         return updated_dado
     except DuplicateDataError as e:
@@ -141,6 +150,10 @@ def update_file_entry(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except StorageLimitExceededError as e:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=str(e)
+        )
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
