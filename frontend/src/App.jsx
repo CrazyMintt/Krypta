@@ -73,21 +73,35 @@ const MainApp = ({ onLogout }) => {
   const closeSettingsModal = () => setIsSettingsModalOpen(false);
 
   const handleCreateFolder = (e) => {
-    e.preventDefault();
-    if (newFolderName.trim() === '') return;
-    const newFolder = { id: Date.now(), type: 'folder', name: newFolderName.trim() };
-    const newPath = `${currentPath}${newFolderName.trim()}/`;
-    const updatedFileSystem = { ...fileSystem, [currentPath]: [...fileSystem[currentPath], newFolder], [newPath]: [] };
-    setFileSystem(updatedFileSystem);
+  e.preventDefault();
+  if (newFolderName.trim() === '') return;
 
-    const newLogEntry = {
-      type: 'add',
-      title: `Pasta "${newFolderName.trim()}" criada`,
-      time: new Date().toLocaleString(),
-    };
-    setActivityLog([newLogEntry, ...activityLog]);
-    closeNewFolderModal();
+  const baseName = newFolderName.trim();
+  let finalName = baseName;
+  let suffix = 1;
+
+  while (fileSystem[currentPath]?.some(item => item.type === 'folder' && item.name === finalName)) {
+    finalName = `${baseName}_${suffix}`;
+    suffix++;
+  }
+
+  const newFolder = { id: Date.now(), type: 'folder', name: finalName };
+  const newPath = `${currentPath}${finalName}/`;
+  const updatedFileSystem = {
+    ...fileSystem,
+    [currentPath]: [...fileSystem[currentPath], newFolder],
+    [newPath]: []
   };
+  setFileSystem(updatedFileSystem);
+
+  const newLogEntry = {
+    type: 'add',
+    title: `Pasta "${finalName}" criada`,
+    time: new Date().toLocaleString(),
+  };
+  setActivityLog([newLogEntry, ...activityLog]);
+  closeNewFolderModal();
+};
 
   const addPassword = (newPassword) => {
     const newCredential = { id: Date.now(), type: 'credential', ...newPassword };
