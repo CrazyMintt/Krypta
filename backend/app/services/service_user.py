@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas, core
 from . import service_utils
 from ..exceptions import EmailAlreadyExistsError
-from ..repository import repository_user
+from ..repository import repository_user, repository_data
 
 
 # AUTH
@@ -21,6 +21,40 @@ def authenticate_and_login_user(
         email=user.email,
         access_token=access_token,
         saltKDF=user.saltKDF,
+    )
+
+
+# GET
+def get_dashboard_stats(db: Session, user: models.Usuario) -> schemas.DashboardResponse:
+    """
+    Orquestra a busca de dados para o dashboard do usuário.
+    """
+
+    # Armazenamento Total (hardcoded para 5 GiB)
+    # 5 * 1024 * 1024 * 1024 = 5,368,709,120 bytes
+    total_storage = 5368709120
+
+    # Armazenamento Usado
+    used_storage = repository_data.get_total_storage_used_by_user(db, user_id=user.id)
+
+    # Armazenamento por Tipo
+    raw_storage_by_type = repository_data.get_storage_used_by_file_type(
+        db, user_id=user.id
+    )
+
+    # Formata a resposta
+    storage_by_type_list = [
+        schemas.StorageByTypeResponse(
+            extensao=row.extensao if row.extensao else "outros",
+            bytes_usados=row.bytes_usados,
+        )
+        for row in raw_storage_by_type
+    ]
+
+    return schemas.DashboardResponse(
+        armazenamento_total_bytes=total_storage,
+        armazenamento_usado_bytes=used_storage,
+        armazenamento_por_tipo=storage_by_type_list,
     )
 
 

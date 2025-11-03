@@ -1,7 +1,7 @@
 from typing import Optional, List
 from .. import models, schemas
 from sqlalchemy.orm import Session, joinedload, subqueryload
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, BigInteger, desc, Row
 
 # --- Funções de Busca (Dado, Senha, Arquivo) ---
 
@@ -189,6 +189,49 @@ def count_remaining_dados_compartilhados(
     )
     count = db.execute(stmt).scalar()
     return count or 0
+
+
+# --- Funções de Busca (Dashboard) ---
+
+
+def get_total_storage_used_by_user(db: Session, user_id: int) -> int:
+    """
+    Calcula a soma total de bytes de todos os arquivos de um usuário
+    usando a função 'LENGTH()' do SQL.
+    """
+    # func.length() obtém o tamanho do blob
+    # func.sum() soma tudo
+    # .cast(BigInteger) garante que o resultado caiba
+    stmt = (
+        select(func.sum(func.length(models.Arquivo.arquivo)).cast(BigInteger))
+        .join(models.Dado, models.Arquivo.id == models.Dado.id)
+        .filter(models.Dado.usuario_id == user_id)
+    )
+
+    total_bytes = db.execute(stmt).scalar()
+
+    # scalar() retorna None se o usuário não tiver arquivos
+    return total_bytes or 0
+
+
+def get_storage_used_by_file_type(db: Session, user_id: int) -> List[Row]:
+    """
+    Retorna uma lista de tuplas (extensao, bytes_usados)
+    agrupada por tipo de arquivo, ordenada da maior para a menor.
+    """
+    stmt = (
+        select(
+            models.Arquivo.extensao,
+            func.sum(func.length(models.Arquivo.arquivo)).label("bytes_usados"),
+        )
+        .join(models.Dado, models.Arquivo.id == models.Dado.id)
+        .filter(models.Dado.usuario_id == user_id)
+        .group_by(models.Arquivo.extensao)
+        .order_by(desc("bytes_usados"))  # Ordena do maior para o menor
+    )
+
+    # Retorna uma lista de Rows, ex: [('pdf', 10240), ('png', 5120)]
+    return list(db.execute(stmt).all())
 
 
 # --- Funções de Criação (Dado, Senha, Arquivo) ---
