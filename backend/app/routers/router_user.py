@@ -103,3 +103,24 @@ def delete_user_me(
             detail="Não foi possível apagar a conta do usuário.",
         )
     return None
+
+
+@router.get(
+    "/users/me/dashboard", response_model=schemas.DashboardResponse, tags=["Usuário"]
+)
+def get_user_dashboard_stats(
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Retorna as estatísticas de armazenamento para o dashboard
+    do usuário logado.
+    """
+    try:
+        dashboard_data = service_user.get_dashboard_stats(db, user=current_user)
+        return dashboard_data
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao gerar estatísticas do dashboard.",
+        )

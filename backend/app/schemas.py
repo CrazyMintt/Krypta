@@ -337,3 +337,19 @@ class DataUpdateCredential(BaseModel):
         default=None,
         description="Lista de IDs de tags (envie '[]' para remover todas).",
     )
+
+
+# Domínio do DASHBOARD
+class StorageByTypeResponse(BaseSchema):
+    """Representa o armazenamento usado por um tipo de extensão."""
+
+    extensao: str
+    bytes_usados: int
+
+
+class DashboardResponse(BaseSchema):
+    """Schema de resposta completo para o endpoint do dashboard."""
+
+    armazenamento_total_bytes: int
+    armazenamento_usado_bytes: int
+    armazenamento_por_tipo: List[StorageByTypeResponse]
