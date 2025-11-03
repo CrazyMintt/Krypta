@@ -57,6 +57,7 @@ class Usuario(Base):
     senha_mestre: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     saltKDF: Mapped[str] = mapped_column(String(1024))
+    armazenamento_total: Mapped[int] = mapped_column(BigInteger, default=5368709120)
 
     # Relacionamentos tipados
     dados: Mapped[List["Dado"]] = relationship(

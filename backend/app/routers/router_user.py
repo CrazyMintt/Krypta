@@ -122,5 +122,5 @@ def get_user_dashboard_stats(
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno ao gerar estatísticas do dashboard.",
+            detail=f"Erro interno ao gerar estatísticas do dashboard.",
         )
