@@ -26,3 +26,9 @@ class DuplicateDataError(Exception):
     """Lançada ao tentar criar um Dado que viola uma regra de unicidade."""
 
     pass
+
+
+class StorageLimitExceededError(Exception):
+    """Lançada quando uma operação excede o limite de armazenamento do usuário."""
+
+    pass

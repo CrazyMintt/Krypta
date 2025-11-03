@@ -234,6 +234,15 @@ def get_storage_used_by_file_type(db: Session, user_id: int) -> List[Row]:
     return list(db.execute(stmt).all())
 
 
+def get_file_size_by_id(db: Session, arquivo_id: int) -> int:
+    """Busca o tamanho (em bytes) de um único arquivo."""
+    stmt = select(func.length(models.Arquivo.arquivo)).filter(
+        models.Arquivo.id == arquivo_id
+    )
+    size = db.execute(stmt).scalar()
+    return size or 0
+
+
 # --- Funções de Criação (Dado, Senha, Arquivo) ---
 
 

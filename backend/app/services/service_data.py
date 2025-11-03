@@ -1,7 +1,11 @@
 from sqlalchemy.orm import Session
 from .. import models, schemas
 from . import service_utils
-from ..exceptions import DataNotFoundError, DuplicateDataError
+from ..exceptions import (
+    DataNotFoundError,
+    DuplicateDataError,
+    StorageLimitExceededError,
+)
 from typing import List
 from ..repository import repository_data
 
@@ -107,7 +111,7 @@ def create_credential(
 
 
 def create_file(
-    db: Session, user_id: int, file_data: schemas.DataCreateFile
+    db: Session, user: models.Usuario, file_data: schemas.DataCreateFile
 ) -> models.Dado:
     """
     Serviço para criar um novo Dado do tipo Arquivo.
@@ -116,13 +120,13 @@ def create_file(
     # Chama o helper de utils
     final_separadores, parent_folder_id = (
         service_utils.validate_and_get_separadores_for_create(
-            db, user_id=user_id, id_pasta=file_data.id_pasta, id_tags=file_data.id_tags
+            db, user_id=user.id, id_pasta=file_data.id_pasta, id_tags=file_data.id_tags
         )
     )
 
     existing_duplicate = repository_data.find_file_duplicate(
         db,
-        user_id=user_id,
+        user_id=user.id,
         nome_aplicacao=file_data.nome_aplicacao,
         nome_arquivo=file_data.arquivo.nome_arquivo,
         extensao=file_data.arquivo.extensao,
@@ -130,14 +134,23 @@ def create_file(
     )
     if existing_duplicate:
         raise DuplicateDataError(
-            f"O arquivo '{file_data.nome_aplicacao} / {file_data.arquivo.nome_arquivo}.{file_data.arquivo.extensao}' "
-            f"já existe nesta pasta."
+            f"O arquivo '{file_data.nome_aplicacao} / {file_data.arquivo.nome_arquivo}.{file_data.arquivo.extensao}' já existe nesta pasta."
         )
 
     encrypted_bytes = service_utils.decode_base64_file(file_data.arquivo.arquivo_data)
 
+    novo_arquivo_bytes = len(encrypted_bytes)
+
+    # Obter armazenamento atual
+    usado_total = repository_data.get_total_storage_used_by_user(db, user_id=user.id)
+
+    # Verificar o limite (lendo do objeto 'user')
+    if (usado_total + novo_arquivo_bytes) > user.armazenamento_total:
+        raise StorageLimitExceededError(
+            f"Não é possível adicionar o arquivo. Limite de armazenamento de {user.armazenamento_total // (1024*1024)}MB excedido."
+        )
     db_dado = models.Dado(
-        usuario_id=user_id,
+        usuario_id=user.id,
         nome_aplicacao=file_data.nome_aplicacao,
         descricao=file_data.descricao,
         tipo=models.TipoDado.ARQUIVO,
@@ -154,7 +167,7 @@ def create_file(
 
 # EDIT
 def edit_file_data(
-    db: Session, user_id: int, data_id: int, update_data: schemas.DataUpdateFile
+    db: Session, user: models.Usuario, data_id: int, update_data: schemas.DataUpdateFile
 ) -> models.Dado:
     """
     Serviço para editar um Dado do tipo Arquivo.
@@ -166,7 +179,7 @@ def edit_file_data(
         raise ValueError("Pelo menos um campo deve ser fornecido para atualização.")
 
     db_dado = repository_data.get_dado_by_id_and_user_id(
-        db, dado_id=data_id, user_id=user_id
+        db, dado_id=data_id, user_id=user.id
     )
     if not db_dado or db_dado.tipo != models.TipoDado.ARQUIVO or not db_dado.arquivo:
         raise DataNotFoundError(
@@ -176,7 +189,7 @@ def edit_file_data(
     # Chama o helper de utils
     final_parent_id = service_utils.handle_separador_update(
         db,
-        user_id=user_id,
+        user_id=user.id,
         db_dado=db_dado,
         update_dict=update_dict,
         update_data=update_data,
@@ -206,7 +219,7 @@ def edit_file_data(
 
         existing_duplicate = repository_data.find_file_duplicate(
             db,
-            user_id=user_id,
+            user_id=user.id,
             nome_aplicacao=final_nome_app,
             nome_arquivo=final_nome_arquivo,
             extensao=final_extensao,
@@ -223,6 +236,22 @@ def edit_file_data(
         base64_string = update_data.arquivo.arquivo_data
         if base64_string is not None:
             decoded_bytes = service_utils.decode_base64_file(base64_string)
+            novo_arquivo_bytes = len(decoded_bytes)
+            tamanho_arquivo_antigo = repository_data.get_file_size_by_id(
+                db, db_dado.arquivo.id
+            )
+            usado_total = repository_data.get_total_storage_used_by_user(
+                db, user_id=user.id
+            )
+            novo_total_usado = (
+                usado_total - tamanho_arquivo_antigo
+            ) + novo_arquivo_bytes
+
+            # Verifica o limite
+            if novo_total_usado > user.armazenamento_total:
+                raise StorageLimitExceededError(
+                    f"Não é possível atualizar o arquivo. Limite de armazenamento de {user.armazenamento_total // (1024*1024)}MB excedido."
+                )
 
     try:
         updated_dado = repository_data.update_file_data(
