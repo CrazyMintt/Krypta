@@ -30,9 +30,7 @@ def get_dashboard_stats(db: Session, user: models.Usuario) -> schemas.DashboardR
     Orquestra a busca de dados para o dashboard do usuário.
     """
 
-    # Armazenamento Total (hardcoded para 5 GiB)
-    # 5 * 1024 * 1024 * 1024 = 5,368,709,120 bytes
-    total_storage = 5368709120
+    total_storage = user.armazenamento_total
 
     # Armazenamento Usado
     used_storage = repository_data.get_total_storage_used_by_user(db, user_id=user.id)
