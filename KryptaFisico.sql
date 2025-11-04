@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS `usuario` (
 `senha_mestre` varchar(255) NOT NULL,
 `saltKDF` varchar(1024) NOT NULL,
 `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+`armazenamento_total` bigint NOT NULL DEFAULT 5368709120,
 PRIMARY KEY (`id`),
 UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
