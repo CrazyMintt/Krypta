@@ -97,7 +97,7 @@ const Popup = () => {
         <h2>Credentials</h2>
         <ul>
           {credentials.map((cred) => (
-            <li key={cred.id}>{cred.nome}</li>
+            <li key={cred.id}>{cred.nome_aplicacao}</li>
           ))}
         </ul>
       </div>
