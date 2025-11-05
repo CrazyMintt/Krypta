@@ -1,3 +1,4 @@
+from typing import List
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import select
 from .. import models
@@ -6,19 +7,20 @@ from .. import models
 def create_share(
     db: Session,
     db_compartilhamento: models.Compartilhamento,
-    db_dado_compartilhado: models.DadosCompartilhados,
+    db_dados_list: List[models.DadosCompartilhados],
 ) -> models.Compartilhamento:
     """
-    Salva o 'envelope' de Compartilhamento e o 'DadoCompartilhado'
+    Salva o 'envelope' de Compartilhamento e a lista de 'DadoCompartilhado'
     associado em uma única transação.
     """
     try:
         db.add(db_compartilhamento)
         db.flush()  # Gera o db_compartilhamento.id
 
-        # Associa o filho ao pai
-        db_dado_compartilhado.compartilhamento_id = db_compartilhamento.id
-        db.add(db_dado_compartilhado)
+        # Itera e associa os filhos ao pai
+        for item in db_dados_list:
+            item.compartilhamento_id = db_compartilhamento.id
+            db.add(item)
 
         db.commit()
         db.refresh(db_compartilhamento)

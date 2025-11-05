@@ -7,18 +7,20 @@ from ..database import get_db
 from ..exceptions import (
     DataNotFoundError,
 )
-from ..services import service_compartilhamento
+from ..services import service_share
 from .dependencies import get_current_user
 import base64
 
-router = APIRouter(prefix="/share")
+router = APIRouter(
+    prefix="/shares",
+    tags=["Compartilhamento"],
+)
 
 
 @router.post(
-    "/shares",
+    "/",
     response_model=schemas.ShareCreateResponse,
     status_code=status.HTTP_201_CREATED,
-    tags=["Compartilhamento"],
 )
 def create_new_share(
     share_data: schemas.ShareDataCreate,
@@ -30,7 +32,7 @@ def create_new_share(
     O frontend deve enviar o dado JÁ RE-CRIPTOGRAFADO (como Base64).
     """
     try:
-        new_share = service_compartilhamento.create_share_link(
+        new_share = service_share.create_share_link(
             db=db, user_id=current_user.id, share_data=share_data
         )
 
@@ -55,7 +57,6 @@ def create_new_share(
 @router.get(
     "/shares/{token_acesso}",
     response_model=schemas.SharedDataViewResponse,
-    tags=["Compartilhamento"],
 )
 def get_shared_data(token_acesso: str, db: Annotated[Session, Depends(get_db)]):
     """
@@ -63,23 +64,24 @@ def get_shared_data(token_acesso: str, db: Annotated[Session, Depends(get_db)]):
     compartilhamento usando o token de acesso.
     """
     try:
-        shared_data_obj = service_compartilhamento.get_shared_data_by_token(
-            db, token_acesso=token_acesso
-        )
+        db_share = service_share.get_shared_data_by_token(db, token_acesso=token_acesso)
 
-        # O frontend espera a string Base64, não bytes
-        encrypted_base64 = base64.b64encode(shared_data_obj.dado_criptografado).decode(
-            "utf-8"
-        )
+        # Constrói a lista de itens para a resposta
+        itens_view = [
+            schemas.SharedItemView(
+                dado_criptografado=base64.b64encode(item.dado_criptografado).decode(
+                    "utf-8"
+                ),
+                meta=item.meta,
+            )
+            for item in db_share.dados_compartilhados
+        ]
 
         return schemas.SharedDataViewResponse(
-            dado_criptografado=encrypted_base64,
-            meta=shared_data_obj.meta,
-            data_expiracao=shared_data_obj.compartilhamento.data_expiracao,
+            itens=itens_view, data_expiracao=db_share.data_expiracao
         )
 
     except DataNotFoundError as e:
-        # Erros de "Expirado", "Limite atingido" ou "Inválido"
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
         raise HTTPException(
