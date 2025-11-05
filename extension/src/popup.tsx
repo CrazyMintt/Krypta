@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
+import CredentialDetails from './CredentialDetails';
 import './popup.css';
 
 const Popup = () => {
@@ -8,6 +9,7 @@ const Popup = () => {
   const [password, setPassword] = useState('');
   const [token, setToken] = useState<string | null>(null);
   const [credentials, setCredentials] = useState<any[]>([]);
+  const [selectedCredential, setSelectedCredential] = useState<any | null>(null);
 
   useEffect(() => {
     console.log('useEffect to get token called');
@@ -94,12 +96,20 @@ const Popup = () => {
       <div>
         <h1>Krypta</h1>
         <button onClick={handleLogout}>Logout</button>
-        <h2>Credentials</h2>
-        <ul>
-          {credentials.map((cred) => (
-            <li key={cred.id}>{cred.nome_aplicacao}</li>
-          ))}
-        </ul>
+        {selectedCredential ? (
+          <CredentialDetails credential={selectedCredential} onBack={() => setSelectedCredential(null)} />
+        ) : (
+          <div>
+            <h2>Credentials</h2>
+            <ul>
+              {credentials.map((cred) => (
+                <li key={cred.id} onClick={() => setSelectedCredential(cred)}>
+                  {cred.nome_aplicacao}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     );
   }
