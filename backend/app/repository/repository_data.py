@@ -16,11 +16,27 @@ def get_dado_by_id_and_user_id(
     return db.execute(stmt).scalar_one_or_none()
 
 
-def get_dado_ids_by_user(db: Session, user_id: int) -> List[int]:
+def get_dados_ids_by_user(db: Session, user_id: int) -> List[int]:
     """Busca todos os IDs de Dados que pertencem a um usuário."""
     stmt = select(models.Dado.id).filter(models.Dado.usuario_id == user_id)
     result = db.execute(stmt).scalars().all()
     return list(result)
+
+
+def get_dados_by_ids_and_user_id(
+    db: Session, dado_ids: List[int], user_id: int
+) -> List[models.Dado]:
+    """
+    Busca uma lista de Dados por seus IDs, garantindo que todos
+    pertençam ao usuário especificado.
+    """
+
+    stmt = select(models.Dado).filter(
+        models.Dado.usuario_id == user_id, models.Dado.id.in_(dado_ids)
+    )
+
+    results = db.execute(stmt).scalars().all()
+    return list(results)
 
 
 def get_paginated_data(

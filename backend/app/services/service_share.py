@@ -1,7 +1,8 @@
+from typing import List
 from datetime import datetime
 from sqlalchemy.orm import Session
 from .. import models, schemas
-from ..repository import repository_compartilhamento, repository_data
+from ..repository import repository_share, repository_data
 from ..exceptions import DataNotFoundError
 from .service_utils import decode_base64_file
 import secrets
@@ -14,17 +15,28 @@ def create_share_link(
     Serviço para criar um novo compartilhamento.
     """
 
+    origin_ids = [item.dado_origem_id for item in share_data.itens]
     # Verificar se o Dado original existe e pertence ao usuário
-    db_dado_origem = repository_data.get_dado_by_id_and_user_id(
-        db, dado_id=share_data.dado_origem_id, user_id=user_id
+    db_dados_origem = repository_data.get_dados_by_ids_and_user_id(
+        db, dado_ids=origin_ids, user_id=user_id
     )
-    if not db_dado_origem:
+    if len(db_dados_origem) != len(set(origin_ids)):
         raise DataNotFoundError(
-            "O dado que você está tentando compartilhar não foi encontrado."
+            "Um ou mais dados de origem não foram encontrados ou não pertencem a este usuário."
         )
 
     # Decodificar o blob criptografado
-    encrypted_bytes = decode_base64_file(share_data.dado_criptografado)
+    db_dados_list: List[models.DadosCompartilhados] = []
+    for item in share_data.itens:
+        encrypted_bytes = decode_base64_file(item.dado_criptografado)
+
+        db_dados_list.append(
+            models.DadosCompartilhados(
+                dado_origem_id=item.dado_origem_id,
+                dado_criptografado=encrypted_bytes,
+                meta=item.meta,
+            )
+        )
 
     # Gerar o token de acesso seguro
     token = secrets.token_urlsafe(32)  # Gera um token de 32 bytes
@@ -38,36 +50,21 @@ def create_share_link(
         n_acessos_atual=0,
     )
 
-    db_dado_compartilhado = models.DadosCompartilhados(
-        dado_origem_id=share_data.dado_origem_id,
-        dado_criptografado=encrypted_bytes,  # Salva os bytes
-        meta=share_data.meta,
-    )
-
-    # Chamar o repositório para salvar
-    return repository_compartilhamento.create_share(
-        db,
-        db_compartilhamento=db_compartilhamento,
-        db_dado_compartilhado=db_dado_compartilhado,
+    return repository_share.create_share(
+        db, db_compartilhamento=db_compartilhamento, db_dados_list=db_dados_list
     )
 
 
-def get_shared_data_by_token(
-    db: Session, token_acesso: str
-) -> models.DadosCompartilhados:
+def get_shared_data_by_token(db: Session, token_acesso: str) -> models.Compartilhamento:
     """
-    Serviço para que um destinatário acesse um dado compartilhado.
-    Verifica as regras de acesso.
+    Serviço para que um destinatário acesse dados compartilhados.
+    Verifica as regras de acesso e retorna o 'envelope' completo.
     """
-    # 1. Buscar o 'envelope' do Compartilhamento
-    db_share = repository_compartilhamento.get_share_by_token(
-        db, token_acesso=token_acesso
-    )
+    db_share = repository_share.get_share_by_token(db, token_acesso=token_acesso)
 
     if not db_share:
         raise DataNotFoundError("Link de compartilhamento inválido ou expirado.")
 
-    # 2. Validar as regras de negócio
     if db_share.data_expiracao and db_share.data_expiracao < datetime.now():
         raise DataNotFoundError("Este link de compartilhamento expirou.")
 
@@ -77,12 +74,8 @@ def get_shared_data_by_token(
         )
 
     if not db_share.dados_compartilhados:
-        # O dado original foi deletado e o cascade limpou o filho
         raise DataNotFoundError("O item original deste compartilhamento foi removido.")
 
-    # 3. Incrementar o contador de acessos
-    repository_compartilhamento.increment_share_access_count(db, db_share)
+    repository_share.increment_share_access_count(db, db_share)
 
-    # 4. Retornar o dado criptografado
-    # ( assumindo um-para-um, pegamos o primeiro )
-    return db_share.dados_compartilhados[0]
+    return db_share

@@ -1,3 +1,4 @@
+
 DROP DATABASE IF EXISTS `KryptaTeste`;
 CREATE DATABASE IF NOT EXISTS `KryptaTeste` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `KryptaTeste`;
@@ -36,6 +37,7 @@ CREATE TABLE IF NOT EXISTS `separadores` (
 CREATE TABLE IF NOT EXISTS `compartilhamento` (
 `id` int(11) NOT NULL AUTO_INCREMENT,
 `owner_usuario_id` int(11) NOT NULL,
+`token_acesso` varchar(128) NOT NULL,
 `n_acessos_total` bigint(20) NOT NULL DEFAULT 0,
 `n_acessos_atual` bigint(20) NOT NULL DEFAULT 0,
 `data_expiracao` datetime DEFAULT NULL,
@@ -123,3 +125,4 @@ KEY `idx_logs_usuario` (`usuario_id`),
 KEY `logs_dados_FK` (`id_dado`),
 CONSTRAINT `logs_dados_FK` FOREIGN KEY (`id_dado`) REFERENCES `dados` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

@@ -115,7 +115,7 @@ def clear_all_user_data_logic(db: Session, user_id: int):
     Orquestra a exclusão de todos os dados de um usuário, mantendo a conta.
     (Sem commit/rollback)
     """
-    dado_ids = repository_data.get_dado_ids_by_user(db, user_id=user_id)
+    dado_ids = repository_data.get_dados_ids_by_user(db, user_id=user_id)
     if dado_ids:
         repository_data.delete_logs_by_user_and_dados(
             db, user_id=user_id, dado_ids=dado_ids

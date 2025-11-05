@@ -4,7 +4,7 @@ from app.routers import (
     router_user,
     router_data,
     router_separador,
-    router_compartilhamento,
+    router_share,
 )
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -23,7 +23,7 @@ app.add_middleware(
 app.include_router(router_user.router)
 app.include_router(router_data.router)
 app.include_router(router_separador.router)
-app.include_router(router_compartilhamento.router)
+app.include_router(router_share.router)
 
 
 @app.get("/", tags=["Root"])

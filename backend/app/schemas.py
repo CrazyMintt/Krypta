@@ -357,7 +357,18 @@ class DashboardResponse(BaseSchema):
 
 # Domínio: Compartilhamento
 
+
 # --- Schemas de Input ---
+class ShareItemCreate(BaseModel):
+    """Um único item a ser compartilhado."""
+
+    dado_origem_id: int  # O ID do 'Dado' original
+    dado_criptografado: str = Field(
+        ..., min_length=1, description="Blob de dados (re-criptografado) em Base64."
+    )
+    meta: Optional[str] = Field(
+        default=None, min_length=1, description="Metadados para o destinatário."
+    )
 
 
 class ShareDataCreate(BaseModel):
@@ -365,10 +376,9 @@ class ShareDataCreate(BaseModel):
     Informações que o frontend envia ao criar um compartilhamento.
     """
 
-    dado_origem_id: int
-    dado_criptografado: str = Field(..., min_length=1)
-    # Metadados para o destinatário ver (ex: nome do app, nome do arquivo)
-    meta: Optional[str] = Field(default=None, min_length=1)
+    itens: List[ShareItemCreate] = Field(
+        ..., min_length=1, description="Pelo menos um item deve ser compartilhado."
+    )
     data_expiracao: Optional[datetime] = None
     n_acessos_total: Optional[int] = Field(default=1, gt=0)  # Pelo menos 1 acesso
 
@@ -383,9 +393,26 @@ class ShareCreateResponse(BaseSchema):
     token_acesso: str
 
 
+class SharedItemView(BaseSchema):
+    """O que o destinatário vê de CADA item."""
+
+    dado_criptografado: str  # O blob em Base64
+    meta: Optional[str]
+
+
 class SharedDataViewResponse(BaseSchema):
     """O que a API retorna quando o destinatário acessa o link"""
 
-    dado_criptografado: str  # O blob em Base64
-    meta: Optional[str]  # Os metadados
+    itens: List[SharedItemView]
     data_expiracao: Optional[datetime]
+
+
+class CompartilhamentoResponse(BaseSchema):
+    """Schema para o dono ver seus compartilhamentos."""
+
+    id: int
+    token_acesso: str
+    n_acessos_total: int
+    n_acessos_atual: int
+    data_expiracao: Optional[datetime]
+    criado_em: datetime

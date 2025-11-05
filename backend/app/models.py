@@ -169,6 +169,9 @@ class Compartilhamento(Base):
     owner_usuario_id: Mapped[int] = mapped_column(
         ForeignKey("usuario.id", ondelete="CASCADE")
     )
+    token_acesso: Mapped[str] = mapped_column(
+        String(128), unique=True, index=True, nullable=False
+    )
     n_acessos_total: Mapped[int] = mapped_column(BigInteger, default=0)
     n_acessos_atual: Mapped[int] = mapped_column(BigInteger, default=0)
     data_expiracao: Mapped[Optional[datetime]]
