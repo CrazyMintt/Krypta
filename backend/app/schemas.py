@@ -353,3 +353,39 @@ class DashboardResponse(BaseSchema):
     armazenamento_total_bytes: int
     armazenamento_usado_bytes: int
     armazenamento_por_tipo: List[StorageByTypeResponse]
+
+
+# Domínio: Compartilhamento
+
+# --- Schemas de Input ---
+
+
+class ShareDataCreate(BaseModel):
+    """
+    Informações que o frontend envia ao criar um compartilhamento.
+    """
+
+    dado_origem_id: int
+    dado_criptografado: str = Field(..., min_length=1)
+    # Metadados para o destinatário ver (ex: nome do app, nome do arquivo)
+    meta: Optional[str] = Field(default=None, min_length=1)
+    data_expiracao: Optional[datetime] = None
+    n_acessos_total: Optional[int] = Field(default=1, gt=0)  # Pelo menos 1 acesso
+
+
+# --- Schemas de Output ---
+
+
+class ShareCreateResponse(BaseSchema):
+    """O que a API retorna após criar um compartilhamento (o link de acesso)"""
+
+    share_link: str
+    token_acesso: str
+
+
+class SharedDataViewResponse(BaseSchema):
+    """O que a API retorna quando o destinatário acessa o link"""
+
+    dado_criptografado: str  # O blob em Base64
+    meta: Optional[str]  # Os metadados
+    data_expiracao: Optional[datetime]
