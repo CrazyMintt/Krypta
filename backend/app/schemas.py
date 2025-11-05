@@ -383,6 +383,24 @@ class ShareDataCreate(BaseModel):
     n_acessos_total: Optional[int] = Field(default=1, gt=0)  # Pelo menos 1 acesso
 
 
+class ShareRulesUpdate(BaseModel):
+    """Schema para editar as REGRAS de um compartilhamento (PATCH)."""
+
+    data_expiracao: Optional[datetime] = None
+    n_acessos_total: Optional[int] = Field(
+        default=None, gt=0, description="Novo número de acessos (> 0)."
+    )
+
+    @model_validator(mode="after")
+    def check_at_least_one_value(self) -> Self:
+        """Garante que o body da requisição PATCH não esteja vazio."""
+        if all(v is None for _, v in self):
+            raise ValueError(
+                "Pelo menos um campo (data_expiracao ou n_acessos_total) deve ser fornecido."
+            )
+        return self
+
+
 # --- Schemas de Output ---
 
 

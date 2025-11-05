@@ -28,8 +28,14 @@ def create_new_share(
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
 ):
     """
-    Cria um novo link de compartilhamento para um Dado existente.
-    O frontend deve enviar o dado JÁ RE-CRIPTOGRAFADO (como Base64).
+    Cria um novo link de compartilhamento para um ou mais Dados.
+    O frontend deve enviar os dados JÁ RE-CRIPTOGRAFADOS (como Base64).
+
+    **Atenção ao Testar Datas (Timezone):**
+    O backend opera 100% em UTC. Ao testar pela UI do FastAPI,
+    o campo 'data_expiracao' deve estar em formato ISO 8601
+    com o fuso horário (ex: "2025-11-05T21:45:00-03:00" para Brasília).
+
     """
     try:
         new_share = service_share.create_share_link(
@@ -50,7 +56,7 @@ def create_new_share(
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro interno ao criar compartilhamento.",
+            detail="Erro interno ao criar compartilhamento.",
         )
 
 
@@ -87,4 +93,35 @@ def get_shared_data(token_acesso: str, db: Annotated[Session, Depends(get_db)]):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao buscar dados.",
+        )
+
+
+@router.patch("/{share_id}", response_model=schemas.CompartilhamentoResponse)
+def update_share_rules(
+    share_id: int,
+    update_data: schemas.ShareRulesUpdate,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Atualiza as regras (limite de acesso, data de expiração)
+    de um compartilhamento existente.
+
+    **Atenção ao Testar Datas (Timezone):**
+    O backend opera 100% em UTC. Ao testar pela UI do FastAPI,
+    o campo 'data_expiracao' deve estar em formato ISO 8601
+    com o fuso horário (ex: "2025-11-05T21:45:00-03:00" para Brasília).
+
+    """
+    try:
+        updated_share = service_share.edit_share_rules(
+            db, user_id=current_user.id, share_id=share_id, update_data=update_data
+        )
+        return updated_share
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao editar compartilhamento.",
         )
