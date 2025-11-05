@@ -47,15 +47,15 @@ def create_new_share(
 
     except (DataNotFoundError, ValueError) as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno ao criar compartilhamento.",
+            detail=f"Erro interno ao criar compartilhamento.",
         )
 
 
 @router.get(
-    "/shares/{token_acesso}",
+    "/{token_acesso}",
     response_model=schemas.SharedDataViewResponse,
 )
 def get_shared_data(token_acesso: str, db: Annotated[Session, Depends(get_db)]):
@@ -83,7 +83,7 @@ def get_shared_data(token_acesso: str, db: Annotated[Session, Depends(get_db)]):
 
     except DataNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao buscar dados.",

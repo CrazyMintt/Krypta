@@ -47,7 +47,7 @@ def get_share_by_token(
         )
     )
 
-    return db.execute(stmt).scalar_one_or_none()
+    return db.execute(stmt).unique().scalar_one_or_none()
 
 
 def increment_share_access_count(
