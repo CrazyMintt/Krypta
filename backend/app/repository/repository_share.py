@@ -1,6 +1,6 @@
 from typing import List
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import select
+from sqlalchemy import select, desc
 from .. import models, schemas
 
 
@@ -61,6 +61,23 @@ def get_share_by_id_and_user(
         models.Compartilhamento.owner_usuario_id == user_id,
     )
     return db.execute(stmt).scalar_one_or_none()
+
+
+def get_all_shares_by_user_id(
+    db: Session, user_id: int
+) -> List[models.Compartilhamento]:
+    """
+    Busca TODOS os Compartilhamentos criados por um usuário.
+    Ordena pelos mais recentes primeiro.
+    """
+    stmt = (
+        select(models.Compartilhamento)
+        .filter(models.Compartilhamento.owner_usuario_id == user_id)
+        .order_by(desc(models.Compartilhamento.criado_em))  # Mais recentes primeiro
+    )
+
+    results = db.execute(stmt).scalars().all()
+    return list(results)
 
 
 # UPDATE
