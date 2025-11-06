@@ -9,6 +9,7 @@ const Popup = () => {
   const [token, setToken] = useState<string | null>(null);
   const [credentials, setCredentials] = useState<any[]>([]);
   const [selectedCredential, setSelectedCredential] = useState<any | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     chrome.storage.local.get(['token'], (result) => {
@@ -26,6 +27,7 @@ const Popup = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
 
     const formData = new URLSearchParams();
     formData.append('username', email);
@@ -43,7 +45,7 @@ const Popup = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        alert(data.detail || 'Invalid email or password');
+        setError(data.detail || 'Invalid email or password');
         return;
       }
 
@@ -53,7 +55,7 @@ const Popup = () => {
       });
     } catch (error) {
       console.error('Login failed:', error);
-      alert('Server error');
+      setError('Server error');
     }
   };
 
@@ -126,7 +128,7 @@ const Popup = () => {
           <label className="form-label">Email</label>
           <input
             type="email"
-            className="form-input"
+            className={`form-input ${error ? 'input-error' : ''}`}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -136,12 +138,13 @@ const Popup = () => {
           <label className="form-label">Password</label>
           <input
             type="password"
-            className="form-input"
+            className={`form-input ${error ? 'input-error' : ''}`}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
         </div>
+        {error && <p className="error-message">{error}</p>}
         <button type="submit" className="submit-btn">Login</button>
       </form>
     </div>
