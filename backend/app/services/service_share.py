@@ -1,6 +1,7 @@
 from typing import List
 from datetime import datetime, UTC
 from sqlalchemy.orm import Session
+from sqlalchemy import desc, select
 from .. import models, schemas
 from ..repository import repository_share, repository_data
 from ..exceptions import DataNotFoundError
@@ -8,6 +9,7 @@ from .service_utils import decode_base64_file
 import secrets
 
 
+# CREATE
 def create_share_link(
     db: Session, user_id: int, share_data: schemas.ShareDataCreate
 ) -> models.Compartilhamento:
@@ -55,6 +57,9 @@ def create_share_link(
     )
 
 
+# GET
+
+
 def get_shared_data_by_token(db: Session, token_acesso: str) -> models.Compartilhamento:
     """
     Serviço para que um destinatário acesse dados compartilhados.
@@ -83,6 +88,14 @@ def get_shared_data_by_token(db: Session, token_acesso: str) -> models.Compartil
     return db_share
 
 
+def get_shares_by_user_id(db: Session, user_id: int) -> List[models.Compartilhamento]:
+    """
+    Busca TODOS os compartilhamentos para um usuário.
+    """
+    return repository_share.get_all_shares_by_user_id(db, user_id=user_id)
+
+
+# UPDATE
 def edit_share_rules(
     db: Session, user_id: int, share_id: int, update_data: schemas.ShareRulesUpdate
 ) -> models.Compartilhamento:

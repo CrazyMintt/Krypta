@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import Annotated
+from typing import Annotated, List
 
 from .. import schemas, models
 from ..database import get_db
@@ -93,6 +93,25 @@ def get_shared_data(token_acesso: str, db: Annotated[Session, Depends(get_db)]):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao buscar dados.",
+        )
+
+
+@router.get("/", response_model=List[schemas.CompartilhamentoResponse])
+def get_my_shares(
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Busca a lista completa de todos os links de compartilhamento
+    criados pelo usuário logado.
+    """
+    try:
+        shares = service_share.get_shares_by_user_id(db, user_id=current_user.id)
+        return shares
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao buscar compartilhamentos.",
         )
 
 
