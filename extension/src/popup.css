@@ -1,17 +1,54 @@
 body {
-  width: 320px;
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #2a2d35;
-  color: white;
+  background-color: #1a1a1a;
+  color: #f0f0f0;
 }
 
-#root {
+.container {
+  width: 350px;
   padding: 20px;
+  box-sizing: border-box;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #444;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 24px;
+  color: #8b5cf6;
+}
+
+.logout-btn {
+  padding: 8px 16px;
+  border-radius: 5px;
+  border: none;
+  background-color: #8b5cf6;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.logout-btn:hover {
+  background-color: #7c3aed;
+}
+
+.content h2 {
+  margin-top: 0;
+  font-size: 20px;
+  color: #f0f0f0;
 }
 
 .form-group {
@@ -26,7 +63,7 @@ body {
 
 .form-input {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   border-radius: 5px;
   border: 1px solid #5a5a5a;
   background-color: #333;
@@ -36,7 +73,7 @@ body {
 
 .submit-btn {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   border-radius: 5px;
   border: none;
   background-color: #8b5cf6;
@@ -50,29 +87,21 @@ body {
   background-color: #7c3aed;
 }
 
-h2 {
-  margin-top: 0;
-}
-
-ul {
+.credential-list {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-li {
-  padding: 10px;
+.credential-list li {
+  padding: 12px;
   border-bottom: 1px solid #444;
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
-li:hover {
-  background-color: #444;
-}
-
-.credential-list {
-  animation: fadeIn 0.3s ease-in-out;
+.credential-list li:hover {
+  background-color: #333;
 }
 
 .details-container {

@@ -93,29 +93,33 @@ const Popup = () => {
 
   if (token) {
     return (
-      <div>
-        <h1>Krypta</h1>
-        <button onClick={handleLogout}>Logout</button>
-        {selectedCredential ? (
-          <CredentialDetails credential={selectedCredential} onBack={() => setSelectedCredential(null)} />
-        ) : (
-          <div>
-            <h2>Credentials</h2>
-            <ul>
-              {credentials.map((cred) => (
-                <li key={cred.id} onClick={() => setSelectedCredential(cred)}>
-                  {cred.nome_aplicacao}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+      <div className="container">
+        <div className="header">
+          <h1>Krypta</h1>
+          <button onClick={handleLogout} className="logout-btn">Logout</button>
+        </div>
+        <div className="content">
+          {selectedCredential ? (
+            <CredentialDetails credential={selectedCredential} onBack={() => setSelectedCredential(null)} />
+          ) : (
+            <div>
+              <h2>Credentials</h2>
+              <ul className="credential-list">
+                {credentials.map((cred) => (
+                  <li key={cred.id} onClick={() => setSelectedCredential(cred)}>
+                    {cred.nome_aplicacao}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="container">
       <h1>Krypta</h1>
       <form onSubmit={handleLogin}>
         <div className="form-group">
