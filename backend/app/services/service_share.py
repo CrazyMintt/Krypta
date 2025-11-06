@@ -113,3 +113,29 @@ def edit_share_rules(
     return repository_share.update_share_rules(
         db=db, db_share=db_share, update_data=update_data
     )
+
+
+# DELETE
+def delete_share_by_id(db: Session, user_id: int, share_id: int):
+    """
+    Deleta (revoga) um Compartilhamento.
+    Verifica se o link existe e pertence ao usuário.
+    """
+    db_share = repository_share.get_share_by_id_and_user(
+        db, share_id=share_id, user_id=user_id
+    )
+
+    if not db_share:
+        raise DataNotFoundError(
+            f"Compartilhamento com id {share_id} não encontrado ou não pertence a este usuário."
+        )
+
+    try:
+        repository_share.delete_share_obj(db, db_share=db_share)
+
+        # O ON DELETE CASCADE em 'dados_compartilhados' é executado pelo banco aqui.
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Erro ao deletar compartilhamento {share_id}: {e}")
+        raise e

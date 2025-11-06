@@ -144,3 +144,29 @@ def update_share_rules(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao editar compartilhamento.",
         )
+
+
+@router.delete(
+    "/{share_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_share(
+    share_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.Usuario, Depends(get_current_user)],
+):
+    """
+    Apaga um link de compartilhamento existente.
+    """
+    try:
+        # Chama o serviço para fazer a validação e a exclusão
+        service_share.delete_share_by_id(db, user_id=current_user.id, share_id=share_id)
+        return None  # Retorna 204 No Content (sucesso)
+
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao deletar compartilhamento.",
+        )

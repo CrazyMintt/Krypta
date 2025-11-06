@@ -100,6 +100,14 @@ def update_share_rules(
         raise e
 
 
+# DELETE
+def delete_share_obj(db: Session, db_share: models.Compartilhamento):
+    """
+    Marca um objeto Compartilhamento para exclusão.
+    """
+    db.delete(db_share)
+
+
 # Incrementa a contagem do acesso
 def increment_share_access_count(
     db: Session, db_compartilhamento: models.Compartilhamento
