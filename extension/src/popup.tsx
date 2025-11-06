@@ -4,7 +4,6 @@ import CredentialDetails from './CredentialDetails';
 import './popup.css';
 
 const Popup = () => {
-  console.log('Popup component rendered');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [token, setToken] = useState<string | null>(null);
@@ -12,7 +11,6 @@ const Popup = () => {
   const [selectedCredential, setSelectedCredential] = useState<any | null>(null);
 
   useEffect(() => {
-    console.log('useEffect to get token called');
     chrome.storage.local.get(['token'], (result) => {
       if (result.token) {
         setToken(result.token);
@@ -28,14 +26,12 @@ const Popup = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('handleLogin called');
 
     const formData = new URLSearchParams();
     formData.append('username', email);
     formData.append('password', password);
 
     try {
-      console.log('Sending login request...');
       const response = await fetch('https://localhost:8000/login', {
         method: 'POST',
         headers: {
@@ -71,6 +67,10 @@ const Popup = () => {
         },
         body: JSON.stringify({ page_size: 10, page_number: 1, id_separadores: [] }),
       });
+      if (response.status === 401) {
+        handleLogout();
+        return;
+      }
       const data = await response.json();
       if (Array.isArray(data)) {
         setCredentials(data);
