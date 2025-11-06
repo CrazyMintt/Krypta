@@ -1,9 +1,10 @@
 from typing import List
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import select
-from .. import models
+from .. import models, schemas
 
 
+# CREATE
 def create_share(
     db: Session,
     db_compartilhamento: models.Compartilhamento,
@@ -30,6 +31,7 @@ def create_share(
         raise e
 
 
+# GET
 def get_share_by_token(
     db: Session, token_acesso: str
 ) -> models.Compartilhamento | None:
@@ -50,6 +52,38 @@ def get_share_by_token(
     return db.execute(stmt).unique().scalar_one_or_none()
 
 
+def get_share_by_id_and_user(
+    db: Session, share_id: int, user_id: int
+) -> models.Compartilhamento | None:
+    """Busca um Compartilhamento pelo seu ID e o ID do dono."""
+    stmt = select(models.Compartilhamento).filter(
+        models.Compartilhamento.id == share_id,
+        models.Compartilhamento.owner_usuario_id == user_id,
+    )
+    return db.execute(stmt).scalar_one_or_none()
+
+
+# UPDATE
+def update_share_rules(
+    db: Session,
+    db_share: models.Compartilhamento,
+    update_data: schemas.ShareRulesUpdate,
+) -> models.Compartilhamento:
+    """Atualiza um Compartilhamento (regras) e commita."""
+    try:
+        update_dict = update_data.model_dump(exclude_unset=True)
+        for key, value in update_dict.items():
+            setattr(db_share, key, value)
+
+        db.commit()
+        db.refresh(db_share)
+        return db_share
+    except Exception as e:
+        db.rollback()
+        raise e
+
+
+# Incrementa a contagem do acesso
 def increment_share_access_count(
     db: Session, db_compartilhamento: models.Compartilhamento
 ):

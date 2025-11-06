@@ -1,5 +1,5 @@
 from typing import List
-from datetime import datetime
+from datetime import datetime, UTC
 from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..repository import repository_share, repository_data
@@ -65,7 +65,9 @@ def get_shared_data_by_token(db: Session, token_acesso: str) -> models.Compartil
     if not db_share:
         raise DataNotFoundError("Link de compartilhamento inválido ou expirado.")
 
-    if db_share.data_expiracao and db_share.data_expiracao < datetime.now():
+    if db_share.data_expiracao and db_share.data_expiracao < datetime.now(UTC).replace(
+        tzinfo=None
+    ):
         raise DataNotFoundError("Este link de compartilhamento expirou.")
 
     if db_share.n_acessos_atual >= db_share.n_acessos_total:
@@ -79,3 +81,22 @@ def get_shared_data_by_token(db: Session, token_acesso: str) -> models.Compartil
     repository_share.increment_share_access_count(db, db_share)
 
     return db_share
+
+
+def edit_share_rules(
+    db: Session, user_id: int, share_id: int, update_data: schemas.ShareRulesUpdate
+) -> models.Compartilhamento:
+    """
+    Serviço para editar as regras (expiração, acessos) de um compartilhamento.
+    """
+    db_share = repository_share.get_share_by_id_and_user(
+        db, share_id=share_id, user_id=user_id
+    )
+    if not db_share:
+        raise DataNotFoundError(
+            "Compartilhamento não encontrado ou não pertence a este usuário."
+        )
+
+    return repository_share.update_share_rules(
+        db=db, db_share=db_share, update_data=update_data
+    )

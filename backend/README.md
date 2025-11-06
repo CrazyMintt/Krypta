@@ -136,3 +136,30 @@ docker compose up backend --build
 
 
 A API estará disponível em `https://127.0.0.1:8000`.
+
+## ⚠️ Nota Importante sobre Fuso Horário (Timezone)
+
+Para garantir consistência, todo o backend (API, serviços, banco de dados) opera **estritamente em UTC (Tempo Universal Coordenado)**.
+
+* Todos os carimbos de data/hora (como `criado_em`) são salvos em UTC.
+* Toda a lógica de expiração (como em Compartilhamentos) é verificada contra a hora UTC atual.
+
+### Ao Testar pela UI do FastAPI (`/docs`)
+
+A UI do FastAPI (`/docs`) envia `datetime` strings "ingênuas" (sem fuso horário) por padrão. O nosso backend (corretamente) irá interpretar essas strings como se elas já estivessem em UTC.
+
+**Isso pode causar bugs de expiração se você estiver em um fuso horário local (ex: Brasília, UTC-3).**
+
+**Exemplo de Bug:**
+* Sua hora local é **20:00 (UTC-3)**.
+* A hora UTC atual é **23:00 (UTC)**.
+* Você quer que um link expire em 1 hora (às **21:00 local**).
+* Você digita no `/docs`: `2025-11-05T21:00:00`
+* O backend recebe `21:00` (ingênuo) e o compara com a hora UTC atual (`23:00`).
+* **Resultado:** O link já nasce expirado, pois `21:00` é *anterior* a `23:00`.
+
+**A Solução Correta para Testes:**
+Sempre envie datas no formato **ISO 8601 completo**, especificando seu fuso horário local. O Pydantic fará a conversão para UTC automaticamente.
+
+**Formato Correto:** `YYYY-MM-DDTHH:MM:SS[+/-]HH:MM`
+**Exemplo (Correto):** `2025-11-05T21:00:00-03:00`
