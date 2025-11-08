@@ -1,9 +1,11 @@
+import logging
 from fastapi import BackgroundTasks
 from sqlalchemy.orm import Session
-from .. import models, schemas, core
-from . import service_utils, service_notificacao
-from ..exceptions import EmailAlreadyExistsError
+from .. import models, schemas, core, services
+from ..exceptions import EmailAlreadyExistsError, AuthenticationError
 from ..repository import repository_user, repository_data
+
+logger = logging.getLogger(__name__)
 
 
 # AUTH
@@ -16,26 +18,17 @@ def authenticate_and_login_user(
 ) -> schemas.LoginResponse | None:
     user = repository_user.get_user_by_email(db, email)
     if not user or not core.verify_password(password, user.senha_mestre):
-        return None
-
-    if not user or not core.verify_password(password, user.senha_mestre):
         if user:  # Se o usuário existe mas a senha está errada
             try:
-                service_notificacao.log_and_notify(
-                    db, user, "login_falho", log_context, tasks
-                )
+                services.log_and_notify(db, user, "login_falho", log_context, tasks)
                 db.commit()  # Commita o log/evento
             except Exception as e:
                 db.rollback()
-                print(f"Erro ao logar falha de login: {e}")
-        return None
-
+                logger.error(f"Erro ao logar falha de login: {e}")
+        raise AuthenticationError("Email ou senha incorretos")
     access_token = core.create_access_token(data={"sub": str(user.id)})
-
     try:
-        service_notificacao.log_and_notify(
-            db, user, "login_sucesso", log_context, tasks
-        )
+        services.log_and_notify(db, user, "login_sucesso", log_context, tasks)
         db.commit()  # Commita o log/evento
     except Exception as e:
         db.rollback()
@@ -87,16 +80,19 @@ def get_dashboard_stats(db: Session, user: models.Usuario) -> schemas.DashboardR
 def register_user(db: Session, user_data: schemas.UserCreate) -> models.Usuario | None:
     existing_user = repository_user.get_user_by_email(db=db, email=user_data.email)
     if existing_user:
-        return None
+        raise EmailAlreadyExistsError(f"O email {user_data.email} já está registrado.")
 
+    # Cria o hash da senha
     hashed_password = core.get_password_hash(user_data.senha_mestre)
     salt = core.generate_crypto_salt()
+
     new_user = models.Usuario(
         email=user_data.email,
         nome=user_data.nome,
         senha_mestre=hashed_password,
         saltKDF=salt,
     )
+
     return repository_user.create_user(db, user_data=new_user)
 
 
@@ -114,24 +110,26 @@ def edit_user(
 
 
 # DELETE
-def clear_all_user_data(db: Session, user_id: int) -> bool:
+def clear_all_user_data(db: Session, user_id: int) -> None:
+    """
+    Limpa todos os dados de um usuário (sem apagar a conta).
+    """
     try:
-        # Chama a lógica do helper
-        service_utils.clear_all_user_data_logic(db=db, user_id=user_id)
+        services.clear_all_user_data_logic(db=db, user_id=user_id)
         db.commit()
-        return True
-    except Exception:
+    except Exception as e:
         db.rollback()
-        return False
+        raise e
 
 
-def delete_user(db: Session, user_id: int) -> bool:
+def delete_user(db: Session, user_id: int) -> None:
+    """
+    Deleta conta de um usuário.
+    """
     try:
-        # Chama a lógica do helper
-        service_utils.clear_all_user_data_logic(db=db, user_id=user_id)
+        services.clear_all_user_data_logic(db=db, user_id=user_id)
         repository_user.delete_user_by_id(db=db, user_id=user_id)
         db.commit()
-        return True
-    except Exception:
+    except Exception as e:
         db.rollback()
-        return False
+        raise e

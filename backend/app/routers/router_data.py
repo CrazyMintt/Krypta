@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Annotated, List
@@ -11,6 +12,8 @@ from ..exceptions import (
 )
 from .. import services
 from .dependencies import get_current_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/data")
 
@@ -38,7 +41,11 @@ def create_credential(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except DataNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"Falha ao criar credencial do usuário {current_user.id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro interno ao criar credencial.",
@@ -72,7 +79,10 @@ def create_file(
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=str(e)
         )
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"Falha ao criar arquivo do usuário {current_user.id}: {e}", exc_info=True
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao salvar o arquivo.",
@@ -93,7 +103,11 @@ def get_single_data_entry(
         return db_dado
     except DataNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"Falha ao buscar dado com id {data_id} do usuário {current_user.id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao buscar o dado.",
@@ -122,7 +136,11 @@ def update_credential_entry(
     except DuplicateDataError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
 
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"Falha ao atualizar credencial {data_id} do usuário {current_user.id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao atualizar a credencial.",
@@ -154,7 +172,11 @@ def update_file_entry(
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=str(e)
         )
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"Falha ao atualizar arquivo {data_id} do usuário {current_user.id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao atualizar o arquivo.",
@@ -174,6 +196,10 @@ def delete_data(
     except DataNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
+        logger.error(
+            f"Falha ao apagar dado {data_id} do usuário {current_user.id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro interno ao apagar o dado.",
@@ -192,7 +218,11 @@ def search_data_paginated(
         return data
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"Falha ao buscar dados paginados do usuário {current_user.id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao buscar dados.",

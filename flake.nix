@@ -18,7 +18,7 @@ inputs = {
           (python3.withPackages (python-pkgs: with python-pkgs; [
             requests
             fastapi
-            "uvicorn[standard]"
+            uvicorn
             sqlalchemy
             python-dotenv
             pymysql
