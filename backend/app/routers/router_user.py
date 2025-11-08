@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -10,6 +11,8 @@ from ..exceptions import UserNotFoundError, EmailAlreadyExistsError
 from ..services import service_user
 from .dependencies import get_current_user
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(tags=["Usuário"])
 
 
@@ -20,11 +23,19 @@ router = APIRouter(tags=["Usuário"])
 )
 def create_user(user_data: schemas.UserCreate, db: Annotated[Session, Depends(get_db)]):
     """Endpoint para registrar um novo usuário."""
-    db_user = service_user.register_user(db=db, user_data=user_data)
-    if db_user is None:
+    try:
+        db_user = service_user.register_user(db=db, user_data=user_data)
+        if db_user is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail="Email já registrado."
+            )
+    except Exception as e:
+        logger.error(f"Falha ao criar conta: {e}", exc_info=True)
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="Email já registrado."
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Não foi possível criar a conta.",
         )
+
     return db_user
 
 
@@ -34,14 +45,21 @@ def login(
     db: Annotated[Session, Depends(get_db)],
 ):
     """Endpoint para autenticar um usuário."""
-    login_response = service_user.authenticate_and_login_user(
-        db=db, email=form_data.username, password=form_data.password
-    )
-    if not login_response:
+    try:
+        login_response = service_user.authenticate_and_login_user(
+            db=db, email=form_data.username, password=form_data.password
+        )
+        if not login_response:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Email ou senha incorretos",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    except Exception as e:
+        logger.error(f"Falha ao autenticar usuário: {e}", exc_info=True)
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Email ou senha incorretos",
-            headers={"WWW-Authenticate": "Bearer"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Falha ao autenticar usuário",
         )
     return login_response
 
@@ -68,7 +86,8 @@ def update_user_me(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except EmailAlreadyExistsError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
-    except Exception:
+    except Exception as e:
+        logger.error(f"Falha ao atualizar usuário: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao atualizar usuário.",
@@ -81,13 +100,18 @@ def delete_user_data(
     db: Annotated[Session, Depends(get_db)],
 ):
     """Apaga todos os dados do usuário logado, mantendo a conta"""
-    success = service_user.clear_all_user_data(db=db, user_id=current_user.id)
-    if not success:
+    try:
+        service_user.clear_all_user_data(db=db, user_id=current_user.id)
+        return None
+
+    except Exception as e:
+        logger.error(
+            f"Falha ao limpar dados do usuário {current_user.id}: {e}", exc_info=True
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Não foi possível apagar os dados do usuário.",
         )
-    return None
 
 
 @router.delete("/users/me", status_code=status.HTTP_204_NO_CONTENT)
@@ -96,13 +120,18 @@ def delete_user_me(
     db: Annotated[Session, Depends(get_db)],
 ):
     """Apaga a conta do usuário logado"""
-    success = service_user.delete_user(db=db, user_id=current_user.id)
-    if not success:
+    try:
+        service_user.delete_user(db=db, user_id=current_user.id)
+        return None
+
+    except Exception as e:
+        logger.error(
+            f"Falha ao deletar conta do usuário {current_user.id}: {e}", exc_info=True
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Não foi possível apagar a conta do usuário.",
         )
-    return None
 
 
 @router.get(
@@ -119,7 +148,11 @@ def get_user_dashboard_stats(
     try:
         dashboard_data = service_user.get_dashboard_stats(db, user=current_user)
         return dashboard_data
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"Falha ao obter dados do dashboard do usuário {current_user.id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro interno ao gerar estatísticas do dashboard.",
