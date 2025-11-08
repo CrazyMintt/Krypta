@@ -7,7 +7,18 @@ from app.routers import (
     router_share,
 )
 from fastapi.middleware.cors import CORSMiddleware
+import logging
 
+# Configuracao do logger
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(levelname)-8s - %(name)-25s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+logger = logging.getLogger()
+
+# Configuracao do FASTAPI
 origins = ["*"]  # Aceita todas as origens
 
 app = FastAPI(

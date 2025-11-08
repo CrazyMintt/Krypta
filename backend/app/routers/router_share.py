@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Annotated, List
@@ -10,6 +11,8 @@ from ..exceptions import (
 from ..services import service_share
 from .dependencies import get_current_user
 import base64
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/shares",
@@ -53,7 +56,11 @@ def create_new_share(
 
     except (DataNotFoundError, ValueError) as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"Erro ao criar compartilhamento do usuário {current_user.id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao criar compartilhamento.",
@@ -89,7 +96,11 @@ def get_shared_data(token_acesso: str, db: Annotated[Session, Depends(get_db)]):
 
     except DataNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"Erro ao buscar dados do compartilhamento com token {token_acesso}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao buscar dados.",
@@ -109,6 +120,10 @@ def get_my_shares(
         shares = service_share.get_shares_by_user_id(db, user_id=current_user.id)
         return shares
     except Exception as e:
+        logger.error(
+            f"Erro ao buscar compartilhamentos do usuário {current_user.id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao buscar compartilhamentos.",
@@ -139,7 +154,11 @@ def update_share_rules(
         return updated_share
     except DataNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"Erro ao atualizar compartilhamento {share_id} do usuário {current_user.id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao editar compartilhamento.",
@@ -166,6 +185,10 @@ def delete_share(
     except DataNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
+        logger.error(
+            f"Erro ao apagar compartilhamento {share_id} do usuário {current_user.id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao deletar compartilhamento.",

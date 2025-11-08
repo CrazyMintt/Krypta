@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Annotated, List
@@ -7,6 +8,8 @@ from ..database import get_db
 from ..exceptions import DataNotFoundError, SeparatorNameTakenError
 from ..services import service_separador
 from .dependencies import get_current_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/separators")
 
@@ -33,6 +36,9 @@ def create_folder(
     except (DataNotFoundError, ValueError) as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
+        logger.error(
+            f"Erro ao criar pasta do usuário {current_user.id}: {e}", exc_info=True
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro ao criar pasta.",
@@ -59,9 +65,12 @@ def create_tag(
     except SeparatorNameTakenError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except Exception as e:
+        logger.error(
+            f"Erro ao criar tag do usuário {current_user.id}: {e}", exc_info=True
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao criar tag.{e}",
+            detail=f"Erro interno ao criar tag.",
         )
 
 
@@ -74,7 +83,10 @@ def get_all_user_tags(
     try:
         tags = service_separador.get_tags_by_user(db, user_id=current_user.id)
         return tags
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"Erro ao buscar tags do usuário {current_user.id}: {e}", exc_info=True
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao buscar tags",
@@ -92,7 +104,11 @@ def get_root_level_folders(
     try:
         folders = service_separador.get_root_folders(db, user_id=current_user.id)
         return folders
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"Erro ao buscar pastas na raiz do usuário {current_user.id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro interno ao buscar pastas raiz.",
@@ -120,6 +136,10 @@ def get_subfolders(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
+        logger.error(
+            f"Erro ao listar pastas filhas da pasta {folder_id} do usuário {current_user.id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro interno ao buscar subpastas.",
@@ -147,7 +167,11 @@ def update_folder(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except DataNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"Erro ao editar pasta {folder_id} do usuário {current_user.id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao editar pasta.",
@@ -171,7 +195,11 @@ def update_tag(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except DataNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"Erro ao editar tag {tag_id} do usuário {current_user.id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao editar tag.",
@@ -193,6 +221,10 @@ def delete_tag(
     except DataNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
+        logger.error(
+            f"Erro ao apagar tag {tag_id} do usuário {current_user.id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao deletar tag.",
@@ -217,6 +249,10 @@ def delete_folder(
     except DataNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
+        logger.error(
+            f"Erro ao apagar pasta {folder_id} do usuário {current_user.id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao deletar pasta.",

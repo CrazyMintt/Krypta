@@ -32,3 +32,9 @@ class StorageLimitExceededError(Exception):
     """Lançada quando uma operação excede o limite de armazenamento do usuário."""
 
     pass
+
+
+class AuthenticationError(Exception):
+    """Lançada quando a autenticação (email/senha) falha."""
+
+    pass
