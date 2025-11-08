@@ -1,4 +1,3 @@
-import logging
 from sqlalchemy.orm import Session
 from .. import models, schemas
 from . import service_utils
