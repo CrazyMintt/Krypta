@@ -434,3 +434,34 @@ class CompartilhamentoResponse(BaseSchema):
     n_acessos_atual: int
     data_expiracao: Optional[datetime]
     criado_em: datetime
+
+
+# Domínio: Logs e Eventos (Notificações)
+
+
+class LogContext(BaseModel):
+    """Informações de contexto da requisição para logs (usado internamente)."""
+
+    ip: str
+    dispositivo: str
+
+
+class LogResponse(BaseSchema):
+    """Schema de resposta para um registro de Log (histórico de atividades)."""
+
+    id: int
+    dispositivo: Optional[str]
+    data_hora: datetime
+    ip: Optional[str]
+    regiao: Optional[str]
+    nome_aplicacao: Optional[str]
+    tipo_acesso: str
+    id_dado: Optional[int]
+
+
+class EventoResponse(BaseSchema):
+    """Schema de resposta para um Evento (notificação 'sininho')."""
+
+    id: int
+    notificacao: Optional[str]
+    created_at: datetime

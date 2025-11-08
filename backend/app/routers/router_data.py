@@ -9,7 +9,7 @@ from ..exceptions import (
     DuplicateDataError,
     StorageLimitExceededError,
 )
-from ..services import service_data
+from .. import services
 from .dependencies import get_current_user
 
 router = APIRouter(prefix="/data")
@@ -28,7 +28,7 @@ def create_credential(
 ):
     """Cria uma nova credential para o usuário logado."""
     try:
-        created_data = service_data.create_credential(
+        created_data = services.create_credential(
             db=db, user=current_user, credential_data=credential_data
         )
         return created_data
@@ -58,7 +58,7 @@ def create_file(
 ):
     """Cria um novo arquivo (enviado como Base64)."""
     try:
-        created_file = service_data.create_file(
+        created_file = services.create_file(
             db=db, user=current_user, file_data=file_data
         )
         return created_file
@@ -87,7 +87,7 @@ def get_single_data_entry(
 ):
     """Busca e retorna um Dado específico (arquivo ou credencial)."""
     try:
-        db_dado = service_data.get_specific_data(
+        db_dado = services.get_specific_data(
             db=db, user_id=current_user.id, data_id=data_id
         )
         return db_dado
@@ -111,7 +111,7 @@ def update_credential_entry(
 ):
     """Atualiza um Dado existente do tipo Senha."""
     try:
-        updated_dado = service_data.edit_credential_data(
+        updated_dado = services.edit_credential_data(
             db=db, user_id=current_user.id, data_id=data_id, update_data=update_data
         )
         return updated_dado
@@ -140,7 +140,7 @@ def update_file_entry(
 ):
     """Atualiza um Dado existente do tipo Arquivo."""
     try:
-        updated_dado = service_data.edit_file_data(
+        updated_dado = services.edit_file_data(
             db=db, user=current_user, data_id=data_id, update_data=update_data
         )
         return updated_dado
@@ -169,7 +169,7 @@ def delete_data(
 ):
     """Apaga um Dado específico (credencial ou arquivo)."""
     try:
-        service_data.delete_data_by_id(db=db, user_id=current_user.id, dado_id=data_id)
+        services.delete_data_by_id(db=db, user_id=current_user.id, dado_id=data_id)
         return None
     except DataNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -188,7 +188,7 @@ def search_data_paginated(
 ):
     """Busca paginada de dados."""
     try:
-        data = service_data.get_data_paginated_filtered(db, current_user, payload)
+        data = services.get_data_paginated_filtered(db, current_user, payload)
         return data
     except HTTPException:
         raise

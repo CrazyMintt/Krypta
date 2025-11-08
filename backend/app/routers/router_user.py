@@ -1,4 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+    Request,
+    BackgroundTasks,
+)
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import Annotated
@@ -7,7 +14,7 @@ from typing import Annotated
 from .. import schemas, models
 from ..database import get_db
 from ..exceptions import UserNotFoundError, EmailAlreadyExistsError
-from ..services import service_user
+from .. import services
 from .dependencies import get_current_user
 
 router = APIRouter(tags=["Usuário"])
@@ -20,7 +27,7 @@ router = APIRouter(tags=["Usuário"])
 )
 def create_user(user_data: schemas.UserCreate, db: Annotated[Session, Depends(get_db)]):
     """Endpoint para registrar um novo usuário."""
-    db_user = service_user.register_user(db=db, user_data=user_data)
+    db_user = services.register_user(db=db, user_data=user_data)
     if db_user is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="Email já registrado."
@@ -30,12 +37,23 @@ def create_user(user_data: schemas.UserCreate, db: Annotated[Session, Depends(ge
 
 @router.post("/login", response_model=schemas.LoginResponse)
 def login(
+    request: Request,
+    tasks: BackgroundTasks,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Annotated[Session, Depends(get_db)],
 ):
     """Endpoint para autenticar um usuário."""
-    login_response = service_user.authenticate_and_login_user(
-        db=db, email=form_data.username, password=form_data.password
+    log_context = schemas.LogContext(
+        ip=request.client.host if request.client else "unknown",
+        dispositivo=request.headers.get("User-Agent", "desconhecido"),
+    )
+
+    login_response = services.authenticate_and_login_user(
+        db=db,
+        email=form_data.username,
+        password=form_data.password,
+        log_context=log_context,  # 5. Passar para o serviço
+        tasks=tasks,  # 5. Passar para o serviço
     )
     if not login_response:
         raise HTTPException(
@@ -60,7 +78,7 @@ def update_user_me(
 ):
     """Atualiza os dados (nome ou email) do usuário logado."""
     try:
-        updated_user = service_user.edit_user(
+        updated_user = services.edit_user(
             db=db, user=current_user, update_data=update_data
         )
         return updated_user
@@ -81,7 +99,7 @@ def delete_user_data(
     db: Annotated[Session, Depends(get_db)],
 ):
     """Apaga todos os dados do usuário logado, mantendo a conta"""
-    success = service_user.clear_all_user_data(db=db, user_id=current_user.id)
+    success = services.clear_all_user_data(db=db, user_id=current_user.id)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -96,7 +114,7 @@ def delete_user_me(
     db: Annotated[Session, Depends(get_db)],
 ):
     """Apaga a conta do usuário logado"""
-    success = service_user.delete_user(db=db, user_id=current_user.id)
+    success = services.delete_user(db=db, user_id=current_user.id)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -117,7 +135,7 @@ def get_user_dashboard_stats(
     do usuário logado.
     """
     try:
-        dashboard_data = service_user.get_dashboard_stats(db, user=current_user)
+        dashboard_data = services.get_dashboard_stats(db, user=current_user)
         return dashboard_data
     except Exception:
         raise HTTPException(

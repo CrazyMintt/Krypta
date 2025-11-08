@@ -1,19 +1,46 @@
+from fastapi import BackgroundTasks
 from sqlalchemy.orm import Session
 from .. import models, schemas, core
-from . import service_utils
+from . import service_utils, service_notificacao
 from ..exceptions import EmailAlreadyExistsError
 from ..repository import repository_user, repository_data
 
 
 # AUTH
 def authenticate_and_login_user(
-    db: Session, email: str, password: str
+    db: Session,
+    email: str,
+    password: str,
+    log_context: schemas.LogContext,
+    tasks: BackgroundTasks,
 ) -> schemas.LoginResponse | None:
     user = repository_user.get_user_by_email(db, email)
     if not user or not core.verify_password(password, user.senha_mestre):
         return None
 
+    if not user or not core.verify_password(password, user.senha_mestre):
+        if user:  # Se o usuário existe mas a senha está errada
+            try:
+                service_notificacao.log_and_notify(
+                    db, user, "login_falho", log_context, tasks
+                )
+                db.commit()  # Commita o log/evento
+            except Exception as e:
+                db.rollback()
+                print(f"Erro ao logar falha de login: {e}")
+        return None
+
     access_token = core.create_access_token(data={"sub": str(user.id)})
+
+    try:
+        service_notificacao.log_and_notify(
+            db, user, "login_sucesso", log_context, tasks
+        )
+        db.commit()  # Commita o log/evento
+    except Exception as e:
+        db.rollback()
+        print(f"Erro ao logar sucesso de login: {e}")
+
     return schemas.LoginResponse(
         nome=user.nome,
         id=user.id,

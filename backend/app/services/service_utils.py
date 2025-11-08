@@ -125,3 +125,16 @@ def clear_all_user_data_logic(db: Session, user_id: int):
     repository_data.delete_compartilhamentos_by_user(db, user_id=user_id)
     repository_data.delete_dados_by_user(db, user_id=user_id)
     repository_separador.delete_separadores_by_user_id(db, user_id=user_id)
+
+
+def send_email_alert_placeholder(email: str, assunto: str, mensagem: str):
+    """
+    Placeholder para o serviço de envio de email.
+    No futuro, isso usará uma biblioteca como 'smtplib' ou uma API (SendGrid).
+    """
+    print("=" * 50)
+    print(f"SIMULAÇÃO DE ENVIO DE EMAIL (Background Task)")
+    print(f"Para: {email}")
+    print(f"Assunto: {assunto}")
+    print(f"Mensagem: {mensagem}")
+    print("=" * 50)

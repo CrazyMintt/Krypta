@@ -2,12 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Annotated, List
 
-from .. import schemas, models
+from .. import schemas, models, services
 from ..database import get_db
 from ..exceptions import (
     DataNotFoundError,
 )
-from ..services import service_share
 from .dependencies import get_current_user
 import base64
 
@@ -38,7 +37,7 @@ def create_new_share(
 
     """
     try:
-        new_share = service_share.create_share_link(
+        new_share = services.create_share_link(
             db=db, user_id=current_user.id, share_data=share_data
         )
 
@@ -70,7 +69,7 @@ def get_shared_data(token_acesso: str, db: Annotated[Session, Depends(get_db)]):
     compartilhamento usando o token de acesso.
     """
     try:
-        db_share = service_share.get_shared_data_by_token(db, token_acesso=token_acesso)
+        db_share = services.get_shared_data_by_token(db, token_acesso=token_acesso)
 
         # Constrói a lista de itens para a resposta
         itens_view = [
@@ -106,9 +105,9 @@ def get_my_shares(
     criados pelo usuário logado.
     """
     try:
-        shares = service_share.get_shares_by_user_id(db, user_id=current_user.id)
+        shares = services.get_shares_by_user_id(db, user_id=current_user.id)
         return shares
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao buscar compartilhamentos.",
@@ -133,7 +132,7 @@ def update_share_rules(
 
     """
     try:
-        updated_share = service_share.edit_share_rules(
+        updated_share = services.edit_share_rules(
             db, user_id=current_user.id, share_id=share_id, update_data=update_data
         )
         return updated_share
@@ -160,7 +159,7 @@ def delete_share(
     """
     try:
         # Chama o serviço para fazer a validação e a exclusão
-        service_share.delete_share_by_id(db, user_id=current_user.id, share_id=share_id)
+        services.delete_share_by_id(db, user_id=current_user.id, share_id=share_id)
         return None  # Retorna 204 No Content (sucesso)
 
     except DataNotFoundError as e:

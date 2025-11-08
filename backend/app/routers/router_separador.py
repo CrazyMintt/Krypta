@@ -2,10 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Annotated, List
 
-from .. import schemas, models
+from .. import schemas, models, services
 from ..database import get_db
 from ..exceptions import DataNotFoundError, SeparatorNameTakenError
-from ..services import service_separador
 from .dependencies import get_current_user
 
 router = APIRouter(prefix="/separators")
@@ -24,7 +23,7 @@ def create_folder(
 ):
     """Cria uma nova pasta."""
     try:
-        created_folder = service_separador.create_folder(
+        created_folder = services.create_folder(
             db=db, user_id=current_user.id, folder_data=folder_data
         )
         return created_folder
@@ -52,7 +51,7 @@ def create_tag(
 ):
     """Cria uma nova tag."""
     try:
-        created_tag = service_separador.create_tag(
+        created_tag = services.create_tag(
             db=db, user_id=current_user.id, tag_data=tag_data
         )
         return created_tag
@@ -72,7 +71,7 @@ def get_all_user_tags(
 ):
     """Busca a lista plana de todas as Tags do usuário logado."""
     try:
-        tags = service_separador.get_tags_by_user(db, user_id=current_user.id)
+        tags = services.get_tags_by_user(db, user_id=current_user.id)
         return tags
     except Exception:
         raise HTTPException(
@@ -90,7 +89,7 @@ def get_root_level_folders(
 ):
     """Busca a lista de Pastas que estão no nível raiz."""
     try:
-        folders = service_separador.get_root_folders(db, user_id=current_user.id)
+        folders = services.get_root_folders(db, user_id=current_user.id)
         return folders
     except Exception:
         raise HTTPException(
@@ -111,7 +110,7 @@ def get_subfolders(
 ):
     """Busca a lista de Subpastas de uma 'folder_id' específica."""
     try:
-        subfolders = service_separador.get_child_folders(
+        subfolders = services.get_child_folders(
             db, user_id=current_user.id, parent_folder_id=folder_id
         )
         return subfolders
@@ -137,7 +136,7 @@ def update_folder(
 ):
     """Atualiza uma pasta (muda nome e/ou pasta pai)."""
     try:
-        updated_folder = service_separador.edit_folder(
+        updated_folder = services.edit_folder(
             db, user_id=current_user.id, folder_id=folder_id, update_data=update_data
         )
         return updated_folder
@@ -163,7 +162,7 @@ def update_tag(
 ):
     """Atualiza uma tag (muda nome e/ou cor)."""
     try:
-        updated_tag = service_separador.edit_tag(
+        updated_tag = services.edit_tag(
             db, user_id=current_user.id, tag_id=tag_id, update_data=update_data
         )
         return updated_tag
@@ -186,7 +185,7 @@ def delete_tag(
 ):
     """Apaga uma Tag específica."""
     try:
-        service_separador.delete_tag_by_id(db, user_id=current_user.id, tag_id=tag_id)
+        services.delete_tag_by_id(db, user_id=current_user.id, tag_id=tag_id)
         return None
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -209,7 +208,7 @@ def delete_folder(
 ):
     """Apaga uma Pasta e TODO o seu conteúdo recursivamente."""
     try:
-        service_separador.delete_folder_recursively(
+        services.delete_folder_recursively(
             db, user_id=current_user.id, folder_id=folder_id
         )
         return None
