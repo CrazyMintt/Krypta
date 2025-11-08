@@ -46,7 +46,7 @@ def get_current_user(
     except (JWTError, ValueError):  # Pega erros de decodificação ou falha no int()
         raise credentials_exception
     except Exception as e:
-        logger.error(e)
+        logger.error(f"Falha ao obter usuário atual: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Falha ao obter dados do usuário.",
