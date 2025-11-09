@@ -7,6 +7,7 @@ from pydantic import (
     field_validator,
     model_validator,
     PositiveInt,
+    computed_field,
 )
 from pydantic_extra_types.color import Color
 from typing import Optional, List, Self
@@ -247,6 +248,7 @@ class CredentialResponse(BaseSchema):
     id: int
     host_url: Optional[str]
     email: Optional[str]
+    senha_cripto: str
 
 
 class FileResponse(BaseSchema):
@@ -255,6 +257,20 @@ class FileResponse(BaseSchema):
     id: int
     extensao: str
     nome_arquivo: str
+
+    @computed_field
+    @staticmethod
+    def arquivo_data(db_obj: models.Arquivo) -> str:
+        """
+        Este é um "campo calculado". O Pydantic irá chamá-lo
+        para obter o valor de 'arquivo_data'.
+
+        Ele pega os 'bytes' do banco (db_obj.arquivo) e os
+        codifica em Base64 (string) para o JSON.
+        """
+        if db_obj.arquivo:
+            return base64.b64encode(db_obj.arquivo).decode("utf-8")
+        return ""
 
 
 # --- Schema de Output Principal (Pai) ---
