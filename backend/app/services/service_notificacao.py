@@ -51,6 +51,7 @@ def _task_send_email_and_fetch_region(
     )
 
 
+# CREATE
 def log_and_notify(
     db: Session,
     user: models.Usuario,
@@ -99,7 +100,7 @@ def log_and_notify(
         )
 
 
-# --- Serviço de Leitura ---
+# GET
 
 
 def get_user_notifications(
@@ -107,5 +108,16 @@ def get_user_notifications(
 ) -> List[models.Evento]:
     """Busca as notificações (Eventos) paginadas para o usuário."""
     return repository_evento.get_paginated_eventos_by_user_id(
+        db, user_id=user_id, page_size=page_size, page_number=page_number
+    )
+
+
+def get_user_activity_history(
+    db: Session, user_id: int, page_size: int, page_number: int
+) -> List[models.Log]:
+    """
+    Busca o histórico de atividades (Logs) paginado para o usuário.
+    """
+    return repository_log.get_paginated_logs_by_user_id(
         db, user_id=user_id, page_size=page_size, page_number=page_number
     )
