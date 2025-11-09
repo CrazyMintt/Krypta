@@ -9,12 +9,24 @@ from zoneinfo import ZoneInfo
 
 
 class Settings(BaseSettings):
-    SECRET_KEY: str = "uma_chave_secreta_muito_longa_e_dificil_de_adivinhar"
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    """
+    Carrega todas as variáveis de ambiente do arquivo .env
+    """
+
+    # Chave secreta da API
+    SECRET_KEY: str
+    ALGORITHM: str
+    ACCESS_TOKEN_EXPIRE_MINUTES: int
+
+    # Configurações de Email
+    EMAIL_HOST_USER: str
+    EMAIL_HOST_PASSWORD: str
+
+    class Config:
+        env_file = ".env"
 
 
-settings = Settings()
+settings = Settings()  # type: ignore [reportCallIssue]
 
 # Hashing de Senhas
 pwd_context = CryptContext(schemes=["argon2"])

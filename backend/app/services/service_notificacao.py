@@ -46,7 +46,7 @@ def _task_send_email_and_fetch_region(
 
     # Enviar o Email
     mensagem_com_regiao = f"{mensagem}\nRegião: {regiao}"
-    service_utils.send_email_alert_placeholder(
+    service_utils.send_email_alert(
         email=email, assunto=assunto, mensagem=mensagem_com_regiao
     )
 
