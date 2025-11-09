@@ -84,6 +84,7 @@ def update_share_rules(
     update_dict = update_data.model_dump(exclude_unset=True)
     for key, value in update_dict.items():
         setattr(db_share, key, value)
+    db.add(db_share)
     return db_share
 
 
@@ -104,3 +105,4 @@ def increment_share_access_count(
     (Esta é uma implementação simples; uma mais robusta usaria 'UPDATE ... SET n_acessos_atual = n_acessos_atual + 1')
     """
     db_compartilhamento.n_acessos_atual += 1
+    db.add(db_compartilhamento)
