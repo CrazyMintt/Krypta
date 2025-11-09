@@ -10,6 +10,7 @@ from fastapi import (
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import Annotated
+from starlette.responses import JSONResponse
 
 # Imports de dentro do projeto
 from .. import schemas, models
@@ -56,24 +57,34 @@ def login(
     """Endpoint para autenticar um usuário."""
     try:
         log_context = schemas.LogContext(
-            ip=request.client.host if request.client else "unknown",
+            ip=request.client.host if request.client else "desconhecido",
             dispositivo=request.headers.get("User-Agent", "desconhecido"),
         )
         login_response = services.authenticate_and_login_user(
             db=db,
             email=form_data.username,
             password=form_data.password,
-            log_context=log_context,  # Passar para o serviço
-            tasks=tasks,  # Passar para o serviço
+            log_context=log_context,
+            tasks=tasks,
         )
+        if not login_response:
+            # Monta a resposta Json manualmente por a HTTPException
+            # interrompe as tarefas em background (enviar o email)
+            return JSONResponse(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                content={"detail": "Email ou senha incorretos"},
+                headers={"WWW-Authenticate": "Bearer"},
+                background=tasks,
+            )
+
+        return login_response
+
     except Exception as e:
-        logger.error(f"Falha ao autenticar usuário: {e}", exc_info=True)
+        logger.error(f"Erro inesperado ao tentar login: {e}", exc_info=True)
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Email ou senha incorretos",
-            headers={"WWW-Authenticate": "Bearer"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao tentar login.",
         )
-    return login_response
 
 
 @router.get("/users/me", response_model=schemas.UserResponse)
@@ -87,11 +98,21 @@ def update_user_me(
     update_data: schemas.UserUpdate,
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
+    request: Request,
+    tasks: BackgroundTasks,
 ):
     """Atualiza os dados (nome ou email) do usuário logado."""
+    log_context = schemas.LogContext(
+        ip=request.client.host if request.client else "desconhecido",
+        dispositivo=request.headers.get("User-Agent", "desconhecido"),
+    )
     try:
         updated_user = services.edit_user(
-            db=db, user=current_user, update_data=update_data
+            db=db,
+            user=current_user,
+            update_data=update_data,
+            tasks=tasks,
+            log_context=log_context,
         )
         return updated_user
     except UserNotFoundError as e:
@@ -110,10 +131,18 @@ def update_user_me(
 def delete_user_data(
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
+    request: Request,
+    tasks: BackgroundTasks,
 ):
     """Apaga todos os dados do usuário logado, mantendo a conta"""
+    log_context = schemas.LogContext(
+        ip=request.client.host if request.client else "desconhecido",
+        dispositivo=request.headers.get("User-Agent", "desconhecido"),
+    )
     try:
-        services.clear_all_user_data(db=db, user_id=current_user.id)
+        services.clear_all_user_data(
+            db=db, user=current_user, tasks=tasks, log_context=log_context
+        )
         return None
 
     except Exception as e:

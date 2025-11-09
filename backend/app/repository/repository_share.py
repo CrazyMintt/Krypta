@@ -14,21 +14,15 @@ def create_share(
     Salva o 'envelope' de Compartilhamento e a lista de 'DadoCompartilhado'
     associado em uma única transação.
     """
-    try:
-        db.add(db_compartilhamento)
-        db.flush()  # Gera o db_compartilhamento.id
+    db.add(db_compartilhamento)
+    db.flush()  # Gera o db_compartilhamento.id
 
-        # Itera e associa os filhos ao pai
-        for item in db_dados_list:
-            item.compartilhamento_id = db_compartilhamento.id
-            db.add(item)
+    # Itera e associa os filhos ao pai
+    for item in db_dados_list:
+        item.compartilhamento_id = db_compartilhamento.id
+        db.add(item)
 
-        db.commit()
-        db.refresh(db_compartilhamento)
-        return db_compartilhamento
-    except Exception as e:
-        db.rollback()
-        raise e
+    return db_compartilhamento
 
 
 # GET
@@ -86,18 +80,11 @@ def update_share_rules(
     db_share: models.Compartilhamento,
     update_data: schemas.ShareRulesUpdate,
 ) -> models.Compartilhamento:
-    """Atualiza um Compartilhamento (regras) e commita."""
-    try:
-        update_dict = update_data.model_dump(exclude_unset=True)
-        for key, value in update_dict.items():
-            setattr(db_share, key, value)
-
-        db.commit()
-        db.refresh(db_share)
-        return db_share
-    except Exception as e:
-        db.rollback()
-        raise e
+    """Atualiza um Compartilhamento (regras) na sessão."""
+    update_dict = update_data.model_dump(exclude_unset=True)
+    for key, value in update_dict.items():
+        setattr(db_share, key, value)
+    return db_share
 
 
 # DELETE
@@ -113,12 +100,7 @@ def increment_share_access_count(
     db: Session, db_compartilhamento: models.Compartilhamento
 ):
     """
-    Incrementa atomicamente o contador de acessos.
+    Incrementa o contador de acessos na sessão.
     (Esta é uma implementação simples; uma mais robusta usaria 'UPDATE ... SET n_acessos_atual = n_acessos_atual + 1')
     """
-    try:
-        db_compartilhamento.n_acessos_atual += 1
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        raise e
+    db_compartilhamento.n_acessos_atual += 1

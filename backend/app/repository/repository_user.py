@@ -20,11 +20,10 @@ def get_user_by_id(db: Session, user_id: int) -> models.Usuario | None:
 # --- Funções de Criação ---
 
 
-def create_user(db: Session, user_data: models.Usuario) -> models.Usuario:
-    db.add(user_data)
-    db.commit()
-    db.refresh(user_data)
-    return user_data
+def create_user(db: Session, db_user: models.Usuario) -> models.Usuario:
+    """Adiciona um novo usuário à sessão."""
+    db.add(db_user)
+    return db_user
 
 
 # --- Funções de Atualização ---
@@ -36,8 +35,8 @@ def update_user(
     update_data_dict = update_data.model_dump(exclude_unset=True)
     for key, value in update_data_dict.items():
         setattr(db_user, key, value)
-    db.commit()
-    db.refresh(db_user)
+
+    db.add(db_user)
     return db_user
 
 

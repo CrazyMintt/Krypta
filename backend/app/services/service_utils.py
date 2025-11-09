@@ -1,9 +1,12 @@
+import logging
 import base64
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..exceptions import DataNotFoundError
 from ..repository import repository_separador, repository_data
+
+logger = logging.getLogger(__name__)
 
 
 def decode_base64_file(base64_string: str) -> bytes:
@@ -132,9 +135,4 @@ def send_email_alert_placeholder(email: str, assunto: str, mensagem: str):
     Placeholder para o serviço de envio de email.
     No futuro, isso usará uma biblioteca como 'smtplib' ou uma API (SendGrid).
     """
-    print("=" * 50)
-    print(f"SIMULAÇÃO DE ENVIO DE EMAIL (Background Task)")
-    print(f"Para: {email}")
-    print(f"Assunto: {assunto}")
-    print(f"Mensagem: {mensagem}")
-    print("=" * 50)
+    logger.debug(f"SIMULAÇÃO DE ENVIO DE EMAIL (Background Task)")

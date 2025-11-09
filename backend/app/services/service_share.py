@@ -52,9 +52,16 @@ def create_share_link(
         n_acessos_atual=0,
     )
 
-    return repository_share.create_share(
-        db, db_compartilhamento=db_compartilhamento, db_dados_list=db_dados_list
-    )
+    try:
+        db_compartilhamento = repository_share.create_share(
+            db, db_compartilhamento=db_compartilhamento, db_dados_list=db_dados_list
+        )
+        db.commit()
+        db.refresh(db_compartilhamento)
+        return db_compartilhamento
+    except Exception as e:
+        db.rollback()
+        raise e
 
 
 # GET
@@ -83,9 +90,14 @@ def get_shared_data_by_token(db: Session, token_acesso: str) -> models.Compartil
     if not db_share.dados_compartilhados:
         raise DataNotFoundError("O item original deste compartilhamento foi removido.")
 
-    repository_share.increment_share_access_count(db, db_share)
-
-    return db_share
+    try:
+        repository_share.increment_share_access_count(db, db_share)
+        db.commit()
+        db.refresh(db_share)
+        return db_share
+    except Exception as e:
+        db.rollback()
+        raise e
 
 
 def get_shares_by_user_id(db: Session, user_id: int) -> List[models.Compartilhamento]:

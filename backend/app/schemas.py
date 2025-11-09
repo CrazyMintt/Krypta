@@ -1,3 +1,4 @@
+import enum
 from pydantic import (
     BaseModel,
     EmailStr,
@@ -11,6 +12,53 @@ from pydantic_extra_types.color import Color
 from typing import Optional, List, Self
 from datetime import datetime
 from .models import TipoDado, TipoSeparador
+
+
+# Enum de Eventos e Logs
+class LogTipo(str, enum.Enum):
+    """
+    Define TODOS os tipos de atividades de auditoria que podem ser registradas.
+    O valor é a string que será salva no banco.
+    """
+
+    # Usuário
+    LOGIN_SUCESSO = "login_sucesso"
+    LOGIN_FALHO = "login_falho"
+    LOGOUT = "logout"
+    EMAIL_ALTERADO = "email_alterado"
+    NOME_ALTERADO = "nome_alterado"
+    DADOS_LIMPOS = "dados_limpos"
+    CONTA_DELETADA = "conta_deletada"
+
+    # Dados (Cred/Arquivo)
+    DADO_CRIADO = "dado_criado"
+    DADO_VISUALIZADO = "dado_visualizado"
+    DADO_EDITADO = "dado_editado"
+    DADO_DELETADO = "dado_deletado"
+
+    # Separadores (Pasta/Tag)
+    PASTA_CRIADA = "pasta_criada"
+    TAG_CRIADA = "tag_criada"
+    SEPARADOR_EDITADO = "separador_editado"
+    SEPARADOR_DELETADO = "separador_deletado"
+
+    # Compartilhamento
+    COMPARTILHAMENTO_CRIADO = "compartilhamento_criado"
+    COMPARTILHAMENTO_ACESSADO = "compartilhamento_acessado"
+    COMPARTILHAMENTO_EDITADO = "compartilhamento_editado"
+    COMPARTILHAMENTO_REVOGADO = "compartilhamento_revogado"
+
+
+# lista de quais eventos geram notificações.
+EVENTOS_CRITICOS = {
+    LogTipo.LOGIN_SUCESSO,
+    LogTipo.LOGIN_FALHO,
+    LogTipo.EMAIL_ALTERADO,
+    LogTipo.COMPARTILHAMENTO_CRIADO,
+    LogTipo.COMPARTILHAMENTO_ACESSADO,
+    LogTipo.DADO_VISUALIZADO,
+    LogTipo.DADO_DELETADO,
+}
 
 # Configuração Base
 

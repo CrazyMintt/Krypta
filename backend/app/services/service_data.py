@@ -1,13 +1,20 @@
+import logging
+from typing import List
 from sqlalchemy.orm import Session
+from fastapi import BackgroundTasks
+
+from app.repository import repository_log
+
+from .. import services
 from .. import models, schemas
-from . import service_utils
+from ..repository import repository_data
 from ..exceptions import (
     DataNotFoundError,
     DuplicateDataError,
     StorageLimitExceededError,
 )
-from typing import List
-from ..repository import repository_data
+
+logger = logging.getLogger(__name__)
 
 # GET
 
@@ -41,23 +48,43 @@ def get_data_paginated_filtered(
         )
 
 
-def get_specific_data(db: Session, user_id: int, data_id: int) -> models.Dado:
+def get_specific_data(
+    db: Session,
+    user: models.Usuario,
+    data_id: int,
+    log_context: schemas.LogContext,
+    tasks: BackgroundTasks,
+) -> models.Dado:
     """
     Busca um Dado específico pelo seu ID, garantindo que pertença ao usuário.
     """
     db_dado = repository_data.get_dado_by_id_and_user_id(
-        db, dado_id=data_id, user_id=user_id
+        db, dado_id=data_id, user_id=user.id
     )
     if not db_dado:
         raise DataNotFoundError(
             f"Dado com id {data_id} não encontrado ou não pertence ao usuário."
         )
+    try:
+        services.log_and_notify(
+            db, user, schemas.LogTipo.DADO_VISUALIZADO, log_context, tasks, dado=db_dado
+        )
+        db.commit()
+    except Exception as e:
+        logger.error(
+            f"Falha ao logar vizualização do Dado {data_id}: {e}", exc_info=True
+        )
+        db.rollback()
     return db_dado
 
 
 # CREATE
 def create_credential(
-    db: Session, user: models.Usuario, credential_data: schemas.DataCreateCredential
+    db: Session,
+    user: models.Usuario,
+    credential_data: schemas.DataCreateCredential,
+    log_context: schemas.LogContext,
+    tasks: BackgroundTasks,
 ) -> models.Dado:
     """
     Serviço para criar um novo Dado do tipo Senha,
@@ -83,7 +110,7 @@ def create_credential(
             )
 
     # Chama o helper de utils
-    final_separadores, _ = service_utils.validate_and_get_separadores_for_create(
+    final_separadores, _ = services.validate_and_get_separadores_for_create(
         db,
         user_id=user.id,
         id_pasta=credential_data.id_pasta,
@@ -105,13 +132,28 @@ def create_credential(
         created_data = repository_data.create_credential(
             db=db, dado=db_dado, senha=db_senha
         )
+        services.log_and_notify(
+            db=db,
+            user=user,
+            tipo_acesso=schemas.LogTipo.DADO_CRIADO,
+            log_context=log_context,
+            tasks=tasks,
+            dado=created_data,
+        )
+        db.commit()
+        db.refresh(created_data)
         return created_data
-    except Exception:
-        raise ValueError(f"Erro ao criar credencial.")
+    except Exception as e:
+        db.rollback()
+        raise e
 
 
 def create_file(
-    db: Session, user: models.Usuario, file_data: schemas.DataCreateFile
+    db: Session,
+    user: models.Usuario,
+    file_data: schemas.DataCreateFile,
+    log_context: schemas.LogContext,
+    tasks: BackgroundTasks,
 ) -> models.Dado:
     """
     Serviço para criar um novo Dado do tipo Arquivo.
@@ -119,7 +161,7 @@ def create_file(
 
     # Chama o helper de utils
     final_separadores, parent_folder_id = (
-        service_utils.validate_and_get_separadores_for_create(
+        services.validate_and_get_separadores_for_create(
             db, user_id=user.id, id_pasta=file_data.id_pasta, id_tags=file_data.id_tags
         )
     )
@@ -137,7 +179,7 @@ def create_file(
             f"O arquivo '{file_data.nome_aplicacao} / {file_data.arquivo.nome_arquivo}.{file_data.arquivo.extensao}' já existe nesta pasta."
         )
 
-    encrypted_bytes = service_utils.decode_base64_file(file_data.arquivo.arquivo_data)
+    encrypted_bytes = services.decode_base64_file(file_data.arquivo.arquivo_data)
 
     novo_arquivo_bytes = len(encrypted_bytes)
 
@@ -162,12 +204,22 @@ def create_file(
         extensao=file_data.arquivo.extensao,
     )
     created_data = repository_data.create_file(db=db, dado=db_dado, arquivo=db_arquivo)
+
+    services.log_and_notify(
+        db, user, schemas.LogTipo.DADO_CRIADO, log_context, tasks, dado=created_data
+    )
+
     return created_data
 
 
 # EDIT
 def edit_file_data(
-    db: Session, user: models.Usuario, data_id: int, update_data: schemas.DataUpdateFile
+    db: Session,
+    user: models.Usuario,
+    data_id: int,
+    update_data: schemas.DataUpdateFile,
+    log_context: schemas.LogContext,
+    tasks: BackgroundTasks,
 ) -> models.Dado:
     """
     Serviço para editar um Dado do tipo Arquivo.
@@ -187,7 +239,7 @@ def edit_file_data(
         )
 
     # Chama o helper de utils
-    final_parent_id = service_utils.handle_separador_update(
+    final_parent_id = services.handle_separador_update(
         db,
         user_id=user.id,
         db_dado=db_dado,
@@ -235,7 +287,7 @@ def edit_file_data(
     if update_data.arquivo and "arquivo_data" in update_file_dict:
         base64_string = update_data.arquivo.arquivo_data
         if base64_string is not None:
-            decoded_bytes = service_utils.decode_base64_file(base64_string)
+            decoded_bytes = services.decode_base64_file(base64_string)
             novo_arquivo_bytes = len(decoded_bytes)
             tamanho_arquivo_antigo = repository_data.get_file_size_by_id(
                 db, db_dado.arquivo.id
@@ -261,13 +313,28 @@ def edit_file_data(
             update_data=update_data,
             decoded_bytes=decoded_bytes,
         )
+        services.log_and_notify(
+            db,
+            user,
+            schemas.LogTipo.DADO_EDITADO,
+            log_context,
+            tasks,
+            dado=updated_dado,
+        )
+        db.commit()
+        db.refresh(updated_dado)
         return updated_dado
     except Exception as e:
         raise e
 
 
 def edit_credential_data(
-    db: Session, user_id: int, data_id: int, update_data: schemas.DataUpdateCredential
+    db: Session,
+    user: models.Usuario,
+    data_id: int,
+    update_data: schemas.DataUpdateCredential,
+    log_context: schemas.LogContext,
+    tasks: BackgroundTasks,
 ) -> models.Dado:
     """
     Serviço para editar um Dado do tipo Senha.
@@ -277,7 +344,7 @@ def edit_credential_data(
         raise ValueError("Pelo menos um campo deve ser fornecido para atualização.")
 
     db_dado = repository_data.get_dado_by_id_and_user_id(
-        db, dado_id=data_id, user_id=user_id
+        db, dado_id=data_id, user_id=user.id
     )
     if not db_dado or db_dado.tipo != models.TipoDado.SENHA or not db_dado.senha:
         raise DataNotFoundError(
@@ -295,7 +362,7 @@ def edit_credential_data(
         final_email = db_dado.senha.email
     if final_nome_app:
         existing = repository_data.get_credential_by_name_and_optional_email(
-            db, user_id, final_nome_app, final_email
+            db, user.id, final_nome_app, final_email
         )
         if existing and existing.id != data_id:
             if final_email:
@@ -308,9 +375,9 @@ def edit_credential_data(
                 )
 
     # Chama o helper de utils
-    _ = service_utils.handle_separador_update(
+    _ = services.handle_separador_update(
         db,
-        user_id=user_id,
+        user_id=user.id,
         db_dado=db_dado,
         update_dict=update_dict,
         update_data=update_data,
@@ -323,19 +390,35 @@ def edit_credential_data(
             db_senha=db_dado.senha,
             update_data=update_data,
         )
+        services.log_and_notify(
+            db,
+            user,
+            schemas.LogTipo.DADO_EDITADO,
+            log_context,
+            tasks,
+            dado=updated_dado,
+        )
+        db.commit()
+        db.refresh(updated_dado)
         return updated_dado
     except Exception as e:
         raise e
 
 
 # DELETE
-def delete_data_by_id(db: Session, user_id: int, dado_id: int):
+def delete_data_by_id(
+    db: Session,
+    user: models.Usuario,
+    dado_id: int,
+    log_context: schemas.LogContext,
+    tasks: BackgroundTasks,
+):
     """
     Operação de remoção de um Dado específico, Logs associados
     e limpa Compartilhamentos órfãos
     """
     dado = repository_data.get_dado_by_id_and_user_id(
-        db=db, user_id=user_id, dado_id=dado_id
+        db=db, user_id=user.id, dado_id=dado_id
     )
     if not dado:
         raise DataNotFoundError(
@@ -363,6 +446,9 @@ def delete_data_by_id(db: Session, user_id: int, dado_id: int):
             )
             if remaining_items_count == 0:
                 repository_data.delete_compartilhamento_by_id(db, comp_id=comp_id)
+        services.log_and_notify(
+            db, user, schemas.LogTipo.DADO_DELETADO, log_context, tasks, dado=dado
+        )
         db.commit()
     except Exception as e:
         # Se algo der errado, desfaz tudo

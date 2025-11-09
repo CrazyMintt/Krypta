@@ -9,7 +9,7 @@ from . import service_utils
 def log_and_notify(
     db: Session,
     user: models.Usuario,
-    tipo_acesso: str,
+    tipo_acesso: schemas.LogTipo,
     log_context: schemas.LogContext,
     tasks: BackgroundTasks,
     dado: models.Dado | None = None,
@@ -24,24 +24,17 @@ def log_and_notify(
         usuario_id=user.id,
         dispositivo=log_context.dispositivo,
         ip=log_context.ip,
-        tipo_acesso=tipo_acesso,
+        tipo_acesso=tipo_acesso.value,
         id_dado=dado.id if dado else None,
         nome_aplicacao=dado.nome_aplicacao if dado else None,
     )
     repository_log.create_log_entry(db, db_log=db_log)
 
     # Lógica de Notificação para eventos críticos
-    eventos_criticos = [
-        "login_sucesso",
-        "login_falho",
-        "senha_mestra_alterada",
-        "compartilhamento_criado",
-    ]
-
-    if tipo_acesso in eventos_criticos:
+    if tipo_acesso in schemas.EVENTOS_CRITICOS:
 
         mensagem_notificacao = (
-            f"Um novo evento de '{tipo_acesso}' foi detectado em sua conta."
+            f"Um novo evento de '{tipo_acesso.value}' foi detectado em sua conta."
         )
 
         # Criar a notificação na Tabela Eventos
@@ -52,7 +45,7 @@ def log_and_notify(
         tasks.add_task(
             service_utils.send_email_alert_placeholder,
             email=user.email,
-            assunto=f"Alerta de Segurança: {tipo_acesso}",
+            assunto=f"Alerta de Segurança: {tipo_acesso.value}",
             mensagem=f"{mensagem_notificacao} do IP: {log_context.ip}",
         )
 

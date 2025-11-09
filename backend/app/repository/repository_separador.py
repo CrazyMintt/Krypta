@@ -140,15 +140,9 @@ def get_folder_and_all_descendants_ids(
 
 
 def create_separador(db: Session, db_separador: models.Separador) -> models.Separador:
-    """Cria um objeto Separador (pasta/tag) no banco de dados."""
-    try:
-        db.add(db_separador)
-        db.commit()
-        db.refresh(db_separador)
-        return db_separador
-    except Exception as e:
-        db.rollback()
-        raise e
+    """Adiciona um objeto Separador (pasta/tag) à sessão."""
+    db.add(db_separador)
+    return db_separador
 
 
 # --- Funções de Atualização ---
