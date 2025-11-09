@@ -1,37 +1,60 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useEffect } from "react";
+import { getMyShares, deleteShare } from "../services/shareService";
 
 const SharedItemsContext = createContext();
 
-export const useSharedItems = () => {
-  return useContext(SharedItemsContext);
-};
+export const useSharedItems = () => useContext(SharedItemsContext);
 
-const mockActiveShares = [
-  {
-    id: 1,
-    name: 'senha_wifi',
-    sharedWith: 'user@example.com',
-    accessesLeft: 5,
-    expiresIn: '2 horas',
-  },
-  {
-    id: 2,
-    name: 'relatorio_q3.pdf',
-    sharedWith: 'friend@example.com',
-    accessesLeft: 1,
-    expiresIn: '1 dia',
-  },
-];
+export const SharedItemsProvider = ({ children }) => {
+  const [sharedItems, setSharedItems] = useState([]);
+  const [activityLog, setActivityLog] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-export const SharedItemsProvider = ({ children, activityLog, setActivityLog }) => {
-  const [sharedItems, setSharedItems] = useState(mockActiveShares);
+  // 🔹 Carrega os compartilhamentos reais do backend ao montar o contexto
+  useEffect(() => {
+    const fetchShares = async () => {
+      try {
+        const data = await getMyShares();
+        // Converte o retorno do backend para o formato esperado na UI
+        const formatted = data.map((share) => ({
+          id: share.id,
+          name: share.token_acesso || "Compartilhamento",
+          sharedWith: "link",
+          accessesLeft: share.n_acessos_total - share.n_acessos_atual,
+          expiresIn: new Date(share.data_expiracao).toLocaleString(),
+        }));
+        setSharedItems(formatted);
+      } catch (err) {
+        console.error("Erro ao buscar compartilhamentos:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    fetchShares();
+  }, []);
+
+  // 🔹 Adiciona novo compartilhamento
   const addSharedItem = (item) => {
-    setSharedItems((prevItems) => [item, ...prevItems]);
+    setSharedItems((prev) => [item, ...prev]);
   };
 
-  const removeSharedItem = (itemId) => {
-    setSharedItems((prevItems) => prevItems.filter((item) => item.id !== itemId));
+  // 🔹 Remove compartilhamento (chama o backend e atualiza estado local)
+  const removeSharedItem = async (itemId) => {
+    try {
+      await deleteShare(itemId);
+      setSharedItems((prev) => prev.filter((item) => item.id !== itemId));
+
+      const newLogEntry = {
+        type: "delete",
+        title: `Compartilhamento ${itemId} removido`,
+        time: new Date().toLocaleString(),
+      };
+      setActivityLog((prev) => [newLogEntry, ...prev]);
+    } catch (err) {
+      console.error("Erro ao remover compartilhamento:", err);
+      alert("Erro ao remover compartilhamento.");
+    }
   };
 
   const value = {
@@ -40,6 +63,7 @@ export const SharedItemsProvider = ({ children, activityLog, setActivityLog }) =
     removeSharedItem,
     activityLog,
     setActivityLog,
+    loading,
   };
 
   return (

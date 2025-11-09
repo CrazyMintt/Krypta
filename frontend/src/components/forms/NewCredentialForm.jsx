@@ -1,5 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
-import { credentialService, folderService, tagService } from "../../services";
+import * as credentialService from "../../services/credentialService";
+import * as folderService from "../../services/folderService";
+import * as tagService from "../../services/tagService";
 
 const NewCredentialForm = ({
   onCancel,
@@ -11,43 +13,49 @@ const NewCredentialForm = ({
   const passwordInputRef = useRef(null);
   const eyeIconRef = useRef(null);
 
-  const [name, setName] = useState("");
-  const [folder, setFolder] = useState(currentFolderId || "");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [url, setUrl] = useState("");
-  const [description, setDescription] = useState("");
-  const [tags, setTags] = useState([]);
-  const [allTags, setAllTags] = useState(initialTags);
-  const [loadingTags, setLoadingTags] = useState(true);
-  const [tagInput, setTagInput] = useState("");
-  const [tagColor, setTagColor] = useState("#ff0000");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [folders, setFolders] = useState([]);
-  const [loadingFolders, setLoadingFolders] = useState(true);
-
   const isEditing = Boolean(editItem);
 
+  const [name, setName] = useState("");
+  const [folder, setFolder] = useState(currentFolderId ?? ""); // "" | number
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState(""); // não preencher em edição
+  const [url, setUrl] = useState("");
+  const [description, setDescription] = useState("");
+
+  const [tags, setTags] = useState([]); // [{id, nome, cor}]
+  const [allTags, setAllTags] = useState(initialTags); // [{id, nome, cor}]
+  const [loadingTags, setLoadingTags] = useState(true);
+
+  const [tagInput, setTagInput] = useState("");
+  const [tagColor, setTagColor] = useState("#ff0000");
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [folders, setFolders] = useState([]); // [{id, nome}]
+  const [loadingFolders, setLoadingFolders] = useState(true);
+
+  // Preencher campos ao entrar em edição
   useEffect(() => {
-    if (isEditing) {
+    if (isEditing && editItem) {
       setName(editItem.nome_aplicacao || "");
       setEmail(editItem.senha?.email || "");
-      setPassword(editItem.senha?.senha_cripto || "");
+      setPassword(""); // não exibimos senha retornada
       setUrl(editItem.senha?.host_url || "");
-      setFolder(editItem.id_pasta || currentFolderId || "");
+      setFolder(editItem.id_pasta ?? currentFolderId ?? "");
       setDescription(editItem.descricao || "");
-      setTags(editItem.tags || []);
+      setTags(Array.isArray(editItem.tags) ? editItem.tags : []);
     } else {
       setName("");
       setEmail("");
       setPassword("");
       setUrl("");
-      setFolder(currentFolderId || "");
+      setFolder(currentFolderId ?? "");
       setDescription("");
       setTags([]);
     }
   }, [isEditing, editItem, currentFolderId]);
 
+  // Carregar pastas (raiz)
   useEffect(() => {
     const fetchFolders = async () => {
       try {
@@ -63,21 +71,21 @@ const NewCredentialForm = ({
     fetchFolders();
   }, []);
 
+  // Carregar tags
   useEffect(() => {
-  const fetchTags = async () => {
-    try {
-      const data = await tagService.getAllTags();
-      setAllTags(data || []);
-    } catch (err) {
-      console.error("Erro ao carregar tags:", err);
-      setAllTags([]);
-    } finally {
-      setLoadingTags(false);
-    }
-  };
-  fetchTags();
-}, []);
-
+    const fetchTags = async () => {
+      try {
+        const data = await tagService.getAllTags();
+        setAllTags(data || []);
+      } catch (err) {
+        console.error("Erro ao carregar tags:", err);
+        setAllTags([]);
+      } finally {
+        setLoadingTags(false);
+      }
+    };
+    fetchTags();
+  }, []);
 
   const togglePassword = () => {
     if (!passwordInputRef.current || !eyeIconRef.current) return;
@@ -101,95 +109,114 @@ const NewCredentialForm = ({
     }
   };
 
-  const isTagAdded = tags.find((tag) => tag.nome === tagInput);
+  // Estado do botão Add/Remover para a tag digitada
+  const normalizedTagInput = tagInput.trim().toLowerCase();
+  const isTagInSelected =
+    !!normalizedTagInput &&
+    tags.some((tag) => tag.nome.trim().toLowerCase() === normalizedTagInput);
 
-  const handleAddTag = async () => {
-  if (!tagInput.trim()) return;
+  const handleAddOrRemoveTypedTag = async () => {
+    const value = tagInput.trim();
+    if (!value) return;
 
-  const existingTag = allTags.find(
-    (tag) => tag.nome.toLowerCase() === tagInput.trim().toLowerCase()
-  );
+    const existingTag = allTags.find(
+      (tag) => tag.nome.trim().toLowerCase() === value.toLowerCase()
+    );
 
-  try {
-    let newTag;
-    if (existingTag) {
-      const alreadySelected = tags.some((t) => t.id === existingTag.id);
-      if (alreadySelected) handleRemoveTag(existingTag.id);
-      else setTags([...tags, existingTag]);
+    // Se já está selecionada mas não está em allTags, removemos por nome
+    if (!existingTag && isTagInSelected) {
+      setTags((prev) =>
+        prev.filter((t) => t.nome.trim().toLowerCase() !== value.toLowerCase())
+      );
+      setTagInput("");
       return;
     }
 
-    const created = await tagService.createTag({
-      nome: tagInput.trim(),
-      cor: tagColor,
-    });
-    newTag = created;
-
-    setTags([...tags, newTag]);
-    setAllTags([...allTags, newTag]);
-
-
-    setTagInput("");
-  } catch (err) {
-    console.error("Erro ao criar tag:", err);
-    alert(err.response?.data?.detail || "Erro ao criar nova tag.");
-  }
-};
-
-  const handleRemoveTag = (tagId) => {
-  setTags(tags.filter((tag) => tag.id !== tagId));
-};
-
-  const handleExistingTagClick = (existingTag) => {
-  const isAlreadySelected = tags.some((tag) => tag.id === existingTag.id);
-  if (isAlreadySelected) handleRemoveTag(existingTag.id);
-  else setTags([...tags, existingTag]);
-};
-
-  const handleTagInputKeyDown = (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    if (!tagInput.trim() || isSubmitting) return;
-    handleAddTag();
-  }
-};
-
-  const handleFormSubmit = async (e) => {
-  e.preventDefault();
-  if (isSubmitting) return;
-  setIsSubmitting(true);
-
-  const payload = {
-    nome_aplicacao: name,
-    ...(description?.trim() && { descricao: description.trim() }),
-    senha: {
-      ...(password?.trim() && { senha_cripto: password.trim() }),
-      ...(email?.trim() && { email: email.trim() }),
-      ...(url?.trim() && { host_url: url.trim() }),
-    },
-    ...(folder && { id_pasta: folder }),
-    ...(tags.length > 0 && { id_tags: tags.map((t) => t.id || 0) }),
+    try {
+      if (existingTag) {
+        const alreadySelected = tags.some((t) => t.id === existingTag.id);
+        if (alreadySelected) {
+          // Remover
+          setTags((prev) => prev.filter((t) => t.id !== existingTag.id));
+        } else {
+          // Adicionar
+          setTags((prev) => [...prev, existingTag]);
+        }
+      } else {
+        // Criar tag e selecionar
+        const created = await tagService.createTag({ nome: value, cor: tagColor });
+        setAllTags((prev) => [...prev, created]);
+        setTags((prev) => [...prev, created]);
+      }
+      setTagInput("");
+    } catch (err) {
+      console.error("Erro ao criar/remover tag:", err);
+      alert(err.response?.data?.detail || "Erro ao salvar tag.");
+    }
   };
 
-  try {
-    if (isEditing) {
-      await credentialService.updateCredential(editItem.id, payload);
-      alert("Credencial atualizada com sucesso!");
-    } else {
-      await credentialService.createCredential(payload);
-      alert("Credencial criada com sucesso!");
+  const handleRemoveTag = (tagId) => {
+    setTags((prev) => prev.filter((tag) => tag.id !== tagId));
+  };
+
+  const handleExistingTagClick = (existingTag) => {
+    const isAlreadySelected = tags.some((tag) => tag.id === existingTag.id);
+    if (isAlreadySelected) handleRemoveTag(existingTag.id);
+    else setTags((prev) => [...prev, existingTag]);
+  };
+
+  const handleTagInputKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (!tagInput.trim() || isSubmitting) return;
+      handleAddOrRemoveTypedTag();
     }
+  };
 
-    if (onSuccess) onSuccess();
-    onCancel();
-  } catch (err) {
-    console.error("Erro ao salvar credencial:", err);
-    alert(err.response?.data?.detail || "Erro ao salvar credencial.");
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
+    // Coerção de folder para número quando aplicável
+    const idPasta =
+      folder === "" || folder === null ? undefined : Number(folder);
+
+    const idTags = tags
+      .map((t) => Number(t.id))
+      .filter((n) => Number.isFinite(n) && n > 0);
+
+    const payload = {
+      nome_aplicacao: name,
+      ...(description?.trim() && { descricao: description.trim() }),
+      senha: {
+        ...(password?.trim() && { senha_cripto: password.trim() }),
+        ...(email?.trim() && { email: email.trim() }),
+        ...(url?.trim() && { host_url: url.trim() }),
+      },
+      ...(typeof idPasta === "number" && !Number.isNaN(idPasta) && {
+        id_pasta: idPasta,
+      }),
+      ...(idTags.length > 0 && { id_tags: idTags }),
+    };
+
+    try {
+      if (isEditing) {
+        await credentialService.updateCredential(editItem.id, payload);
+        alert("Credencial atualizada com sucesso!");
+      } else {
+        await credentialService.createCredential(payload);
+        alert("Credencial criada com sucesso!");
+      }
+      onSuccess?.();
+      onCancel();
+    } catch (err) {
+      console.error("Erro ao salvar credencial:", err);
+      alert(err.response?.data?.detail || "Erro ao salvar credencial.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <form className="item-form" onSubmit={handleFormSubmit}>
@@ -207,6 +234,7 @@ const NewCredentialForm = ({
             required
           />
         </div>
+
         <div className="form-group">
           <label className="form-label">Pasta</label>
           {loadingFolders ? (
@@ -214,10 +242,13 @@ const NewCredentialForm = ({
           ) : (
             <select
               className="form-select"
-              value={folder}
-              onChange={(e) => setFolder(e.target.value)}
+              value={folder ?? ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                setFolder(v === "" ? "" : Number(v));
+              }}
             >
-              <option value={currentFolderId || ""}>
+              <option value={currentFolderId ?? ""}>
                 {currentFolderId ? "Pasta atual" : "Raiz (sem pasta)"}
               </option>
               {folders.map((f) => (
@@ -229,7 +260,9 @@ const NewCredentialForm = ({
           )}
         </div>
       </div>
+
       <div className="divider"></div>
+
       <div className="form-section">
         <h3 className="section-title">Credenciais</h3>
 
@@ -243,6 +276,7 @@ const NewCredentialForm = ({
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
+
         <div className="form-group">
           <label className="form-label">
             Senha <span className="required">*</span>
@@ -255,12 +289,13 @@ const NewCredentialForm = ({
               placeholder="Digite a senha"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
+              required={!isEditing}
             />
             <button
               type="button"
               className="toggle-password"
               onClick={togglePassword}
+              aria-label="Mostrar/ocultar senha"
             >
               <svg
                 ref={eyeIconRef}
@@ -271,8 +306,7 @@ const NewCredentialForm = ({
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                <path d="M1 12s4-8 11-8 11 8 11 8
-                -4 8-11 8-11-8-11-8z" />
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                 <circle cx="12" cy="12" r="3" />
               </svg>
             </button>
@@ -281,6 +315,7 @@ const NewCredentialForm = ({
       </div>
 
       <div className="divider"></div>
+
       <div className="form-section">
         <h3 className="section-title">Preenchimento automático</h3>
         <div className="form-group">
@@ -303,7 +338,9 @@ const NewCredentialForm = ({
           />
         </div>
       </div>
+
       <div className="divider"></div>
+
       <div className="form-section">
         <h3 className="section-title">Tags</h3>
         <div className="tag-management">
@@ -320,19 +357,21 @@ const NewCredentialForm = ({
               type="color"
               value={tagColor}
               onChange={(e) => setTagColor(e.target.value)}
+              aria-label="Cor da tag"
             />
             <button
               type="button"
-              className={`btn ${isTagAdded ? "btn-danger" : "btn-primary"}`}
-              onClick={handleAddTag}
+              className={`btn ${isTagInSelected ? "btn-danger" : "btn-primary"}`}
+              onClick={handleAddOrRemoveTypedTag}
             >
-              {isTagAdded ? "Remover" : "Adicionar"}
+              {isTagInSelected ? "Remover" : "Adicionar"}
             </button>
           </div>
+
           <div className="tag-list-modal">
             {tags.map((tag) => (
               <div
-                key={tag.nome}
+                key={tag.id ?? tag.nome}
                 className="tag-item-modal"
                 style={{ backgroundColor: tag.cor }}
               >
@@ -369,19 +408,15 @@ const NewCredentialForm = ({
           ) : (
             <p>Nenhuma tag disponível.</p>
           )}
-
         </div>
       </div>
+
       <div className="modal-actions">
         <button type="button" className="btn btn-secondary" onClick={onCancel}>
           Cancelar
         </button>
         <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-          {isSubmitting
-            ? "Salvando..."
-            : isEditing
-            ? "Salvar alterações"
-            : "Salvar"}
+          {isSubmitting ? "Salvando..." : isEditing ? "Salvar alterações" : "Salvar"}
         </button>
       </div>
     </form>

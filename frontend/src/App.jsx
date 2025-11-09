@@ -1,3 +1,5 @@
+// src/App.jsx
+
 import React, { useState } from 'react';
 import './styles/main.css';
 import './styles/sidebar.css';
@@ -23,39 +25,27 @@ import SettingsModal from './components/layout/SettingsModal';
 import Landing from './components/views/Landing';
 import { SharedItemsProvider } from './context/SharedItemsContext';
 
-// Mock data para simular uma estrutura de arquivos
-const initialFileSystem = {
-  '/': [
-    { id: Date.now() + 1, type: 'folder', name: 'Trabalho' },
-    { id: Date.now() + 2, type: 'folder', name: 'Pessoal' },
-    { id: Date.now() + 3, type: 'credential', name: 'senha_wifi', email: 'user@example.com' },
-  ],
-  '/Trabalho/': [
-    { id: Date.now() + 4, type: 'file', name: 'relatorio_q3.pdf' },
-    { id: Date.now() + 5, type: 'folder', name: 'Projetos' },
-  ],
-  '/Trabalho/Projetos/': [
-    { id: Date.now() + 6, type: 'file', name: 'projeto_krypta.docx' },
-  ],
-  '/Pessoal/': [
-    { id: Date.now() + 7, type: 'file', name: 'lista_compras.txt' },
-  ],
-};
-
-const initialActivityLog = [
-  { type: 'add', title: 'Senha do github criada', time: 'Há 1 minuto atrás' },
-  { type: 'edit', title: 'Senha do gmail alterada', time: 'Há 1 hora atrás' },
-];
+import * as folderService from './services/folderService'; // corrigido
 
 const MainApp = ({ onLogout }) => {
   const [view, setView] = useState('cofre');
-  const [fileSystem, setFileSystem] = useState(initialFileSystem);
-  const [activityLog, setActivityLog] = useState(initialActivityLog);
-  const [currentPath, setCurrentPath] = useState('/');
+
+  // Log local
+  const [activityLog, setActivityLog] = useState([]);
+
+  // Pasta atual (null = raiz). O Cofre atualiza via onFolderChange.
+  const [currentFolderId, setCurrentFolderId] = useState(null);
+
+  // Sinal para recarregar listagens no Cofre após criar/editar/excluir
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Modais
   const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
   const [isNewCredentialModalOpen, setIsNewCredentialModalOpen] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+
+  // Form da nova pasta
+  const [newFolderName, setNewFolderName] = useState('');
 
   const changeView = (newView) => {
     if (view !== newView) setView(newView);
@@ -69,74 +59,39 @@ const MainApp = ({ onLogout }) => {
 
   const openNewCredentialModal = () => setIsNewCredentialModalOpen(true);
   const closeNewCredentialModal = () => setIsNewCredentialModalOpen(false);
+
   const openSettingsModal = () => setIsSettingsModalOpen(true);
   const closeSettingsModal = () => setIsSettingsModalOpen(false);
 
-  const handleCreateFolder = (e) => {
-  e.preventDefault();
-  if (newFolderName.trim() === '') return;
+  // Criação de pasta -> backend
+  const handleCreateFolder = async (e) => {
+    e.preventDefault();
+    const nome = newFolderName.trim();
+    if (!nome) return;
 
-  const baseName = newFolderName.trim();
-  let finalName = baseName;
-  let suffix = 1;
+    try {
+      await folderService.createFolder({
+        nome,
+        id_pasta_raiz: currentFolderId ?? null,
+      });
 
-  while (fileSystem[currentPath]?.some(item => item.type === 'folder' && item.name === finalName)) {
-    finalName = `${baseName}_${suffix}`;
-    suffix++;
-  }
+      setActivityLog((prev) => [
+        { type: 'add', title: `Pasta "${nome}" criada`, time: new Date().toLocaleString() },
+        ...prev,
+      ]);
 
-  const newFolder = { id: Date.now(), type: 'folder', name: finalName };
-  const newPath = `${currentPath}${finalName}/`;
-  const updatedFileSystem = {
-    ...fileSystem,
-    [currentPath]: [...fileSystem[currentPath], newFolder],
-    [newPath]: []
+      setRefreshKey((k) => k + 1); // força reload no Cofre
+      closeNewFolderModal();
+    } catch (err) {
+      console.error('Erro ao criar pasta', err);
+      alert('Erro ao criar a pasta.');
+    }
   };
-  setFileSystem(updatedFileSystem);
 
-  const newLogEntry = {
-    type: 'add',
-    title: `Pasta "${finalName}" criada`,
-    time: new Date().toLocaleString(),
-  };
-  setActivityLog([newLogEntry, ...activityLog]);
-  closeNewFolderModal();
-};
-
-  const addPassword = (newPassword) => {
-    const newCredential = { id: Date.now(), type: 'credential', ...newPassword };
-    const updatedFileSystem = { ...fileSystem, [currentPath]: [...fileSystem[currentPath], newCredential] };
-    setFileSystem(updatedFileSystem);
-
-    const newLogEntry = {
-      type: 'add',
-      title: `Credencial "${newPassword.name}" criada`,
-      time: new Date().toLocaleString(),
-    };
-    setActivityLog([newLogEntry, ...activityLog]);
+  // Sucesso ao criar/editar credencial -> recarregar Cofre
+  const handleCredentialSaved = () => {
+    setRefreshKey((k) => k + 1);
     closeNewCredentialModal();
-  };
-
-  const allTags = Array.from(
-    Object.values(fileSystem)
-      .flat()
-      .filter(item => item.tags)
-      .flatMap(item => item.tags)
-      .reduce((map, tag) => {
-        if (!map.has(tag.name)) map.set(tag.name, tag);
-        return map;
-      }, new Map()).values()
-  );
-
-  const commonProps = {
-    fileSystem,
-    setFileSystem,
-    activityLog,
-    setActivityLog,
-    currentPath,
-    setCurrentPath,
-    openNewFolderModal,
-    openNewCredentialModal
   };
 
   return (
@@ -144,10 +99,22 @@ const MainApp = ({ onLogout }) => {
       <div className="container">
         <Sidebar changeView={changeView} openSettingsModal={openSettingsModal} />
 
-        {view === 'cofre' && <Cofre {...commonProps} changeView={changeView} onLogout={onLogout} />}
-        {view === 'dashboard' && <Dashboard {...commonProps} onLogout={onLogout} />}
+        {view === 'cofre' && (
+          <Cofre
+            activityLog={activityLog}
+            setActivityLog={setActivityLog}
+            openNewFolderModal={openNewFolderModal}
+            openNewCredentialModal={openNewCredentialModal}
+            onLogout={onLogout}
+            onFolderChange={setCurrentFolderId} // Cofre informa a pasta atual
+            refreshKey={refreshKey}            // Cofre recarrega quando mudar
+          />
+        )}
+
+        {view === 'dashboard' && <Dashboard onLogout={onLogout} />}
         {view === 'sharing' && <Sharing />}
 
+        {/* Nova Pasta */}
         <Modal title="Nova Pasta" isOpen={isNewFolderModalOpen} onCancel={closeNewFolderModal}>
           <form onSubmit={handleCreateFolder}>
             <div className="form-group">
@@ -162,14 +129,23 @@ const MainApp = ({ onLogout }) => {
               />
             </div>
             <div className="modal-actions">
-              <button type="button" className="btn btn-secondary" onClick={closeNewFolderModal}>Cancelar</button>
-              <button type="submit" className="btn btn-primary">Criar</button>
+              <button type="button" className="btn btn-secondary" onClick={closeNewFolderModal}>
+                Cancelar
+              </button>
+              <button type="submit" className="btn btn-primary">
+                Criar
+              </button>
             </div>
           </form>
         </Modal>
 
+        {/* Nova Credencial */}
         <Modal title="Novo Item" isOpen={isNewCredentialModalOpen} onCancel={closeNewCredentialModal}>
-          <NewCredentialForm onCancel={closeNewCredentialModal} addPassword={addPassword} allTags={allTags} />
+          <NewCredentialForm
+            onCancel={closeNewCredentialModal}
+            onSuccess={handleCredentialSaved}
+            currentFolderId={currentFolderId} // criar já na pasta atual
+          />
         </Modal>
 
         <SettingsModal isOpen={isSettingsModalOpen} onCancel={closeSettingsModal} />
@@ -192,13 +168,29 @@ function KryptaApp() {
 
   if (!isAuthenticated) {
     if (currentView === 'landing') {
-      return <Landing onNavigateToLogin={() => setCurrentView('login')} onNavigateToSignup={() => setCurrentView('signup')} />;
+      return (
+        <Landing
+          onNavigateToLogin={() => setCurrentView('login')}
+          onNavigateToSignup={() => setCurrentView('signup')}
+        />
+      );
     }
     if (currentView === 'login') {
-      return <Login onNavigateToSignup={() => setCurrentView('signup')} onLoginSuccess={handleLoginSuccess} onNavigateToLanding={() => setCurrentView('landing')} />;
+      return (
+        <Login
+          onNavigateToSignup={() => setCurrentView('signup')}
+          onLoginSuccess={handleLoginSuccess}
+          onNavigateToLanding={() => setCurrentView('landing')}
+        />
+      );
     }
     if (currentView === 'signup') {
-      return <Signup onNavigateToLogin={() => setCurrentView('login')} onNavigateToLanding={() => setCurrentView('landing')} />;
+      return (
+        <Signup
+          onNavigateToLogin={() => setCurrentView('login')}
+          onNavigateToLanding={() => setCurrentView('landing')}
+        />
+      );
     }
   }
 

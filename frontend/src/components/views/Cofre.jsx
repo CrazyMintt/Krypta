@@ -1,197 +1,194 @@
-import React, { useState, useEffect } from 'react';
-import { Folder, File, MoreVertical, ChevronRight, Search, Key } from 'lucide-react';
-import Header from '../layout/Header';
-import Modal from '../layout/Modal';
-import ItemActionsMenu from '../layout/ItemActionsMenu';
-import NewCredentialForm from '../forms/NewCredentialForm';
+import React, { useEffect, useState, useCallback } from "react";
+import { Folder, MoreVertical, Search, Key, ChevronRight } from "lucide-react";
+import Header from "../layout/Header";
+import Modal from "../layout/Modal";
+import ItemActionsMenu from "../layout/ItemActionsMenu";
+import NewCredentialForm from "../forms/NewCredentialForm";
 import RenameFolderForm from "../forms/RenameFolderForm";
 import ReadCredentialModal from "../views/ReadCredentialModal";
-import ShareItemModal from '../modals/ShareItemModal';
-import '../../styles/share-modal.css';
+import ShareItemModal from "../modals/ShareItemModal";
+import "../../styles/share-modal.css";
 
+import * as folderService from "../../services/folderService";
+import * as tagService from "../../services/tagService";
+import * as dataService from "../../services/dataService";
 
-const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, currentPath, setCurrentPath, changeView, openNewFolderModal, openNewCredentialModal, onLogout }) => {
-  const [items, setItems] = useState(fileSystem[currentPath]);
-  const [newFolderName, setNewFolderName] = useState('');
+const Cofre = ({
+  activityLog,
+  setActivityLog,
+  openNewFolderModal,
+  openNewCredentialModal,
+  onLogout,
+  onFolderChange,
+  refreshKey,
+}) => {
+  const [currentFolder, setCurrentFolder] = useState(null); // { id, nome } | null
+  const [breadcrumbs, setBreadcrumbs] = useState([{ id: null, nome: "Raiz" }]);
+
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const [allTags, setAllTags] = useState([]);
+  const [selectedTags, setSelectedTags] = useState([]);
+
   const [activeItemId, setActiveItemId] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
-  const [draggedItemIndex, setDraggedItemIndex] = useState(null);
-  const [dragOverFolderIndex, setDragOverFolderIndex] = useState(null);
-  const [dragOverBreadcrumbPath, setDragOverBreadcrumbPath] = useState(null);
-  const [itemToEdit, setItemToEdit] = useState(null);
+
   const [isEditCredentialModalOpen, setIsEditCredentialModalOpen] = useState(false);
-  const [folderToEdit, setFolderToEdit] = useState(null);
+  const [itemToEdit, setItemToEdit] = useState(null);
+
   const [isEditFolderModalOpen, setIsEditFolderModalOpen] = useState(false);
+  const [folderToEdit, setFolderToEdit] = useState(null);
+
   const [isReadCredentialModalOpen, setIsReadCredentialModalOpen] = useState(false);
   const [credentialToRead, setCredentialToRead] = useState(null);
+
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [itemToShare, setItemToShare] = useState(null);
-      const [selectedTags, setSelectedTags] = useState([]);
-      const allTags = Array.from(
-        Object.values(fileSystem)
-          .flat()
-          .filter(item => item.tags)
-          .flatMap(item => item.tags)
-          .reduce((map, tag) => {
-            if (!map.has(tag.name)) {
-              map.set(tag.name, tag);
-            }
-            return map;
-          }, new Map()).values()
-      );
-        const displayedItems = selectedTags.length > 0
-          ? Object.values(fileSystem).flat().filter(item => 
-              item.tags && selectedTags.every(selectedTag => item.tags.some(itemTag => itemTag.name === selectedTag))
-            )
-          : items;
-    useEffect(() => {
-      setItems(fileSystem[currentPath]);
-      setSelectedTags([]); // Reset tag filter on path change
-    }, [currentPath, fileSystem]);
-    const handleTagClick = (tag) => {
-      setSelectedTags(prevTags => 
-        prevTags.includes(tag) 
-          ? prevTags.filter(t => t !== tag) 
-          : [...prevTags, tag]
-      );
-    };
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await tagService.getAllTags();
+        setAllTags((data || []).map((t) => ({ id: t.id, name: t.nome, color: t.cor })));
+      } catch {
+        setAllTags([]);
+      }
+    })();
+  }, []);
+
+  const normalizeFolders = (folders) =>
+    (folders || []).map((f) => ({
+      id: f.id,
+      type: "folder",
+      name: f.nome,
+      email: null,
+      tags: [],
+      raw: f,
+    }));
+
+  const normalizeCredentials = (credentials) =>
+    (credentials || []).map((c) => {
+      const tags =
+        (c.separadores || [])
+          .filter((s) => s.tipo === "tag")
+          .map((s) => ({ id: s.id, name: s.nome, color: s.cor })) || [];
+      return {
+        id: c.id,
+        type: "credential",
+        name: c.nome_aplicacao ?? "",
+        email: c.senha?.email ?? "",
+        tags,
+        raw: c,
+      };
+    });
+
+  const loadLevel = useCallback(async (folderObjOrNull) => {
+    setLoading(true);
+    try {
+      const folders = !folderObjOrNull
+        ? await folderService.getRootFolders()
+        : await folderService.getSubfolders(folderObjOrNull.id);
+
+      const searchFilters = {
+        page_size: 100,
+        page_number: 1,
+        ...(folderObjOrNull ? { id_separadores: [folderObjOrNull.id] } : {}),
+        // OBS: se quiser listar SOMENTE itens “na raiz” (sem pasta),
+        // confirme com o backend qual filtro usar (ex.: id_pasta: null).
+      };
+
+      const dataPage = await dataService.searchData(searchFilters);
+      const dataList = Array.isArray(dataPage?.results)
+        ? dataPage.results
+        : Array.isArray(dataPage?.items)
+        ? dataPage.items
+        : Array.isArray(dataPage)
+        ? dataPage
+        : [];
+
+      const credentials = dataList.filter((d) => d.tipo === "senha");
+
+      setItems([...normalizeFolders(folders), ...normalizeCredentials(credentials)]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Carrega quando muda de pasta ou quando alguém sinaliza refresh pelo MainApp
+  useEffect(() => {
+    loadLevel(currentFolder);
+  }, [currentFolder, refreshKey, loadLevel]);
+
+  // Informa pasta atual ao MainApp
+  useEffect(() => {
+    onFolderChange?.(currentFolder?.id ?? null);
+  }, [currentFolder, onFolderChange]);
+
   useEffect(() => {
     const handleOutsideClick = () => {
-      if (activeItemId !== null) {
-        setActiveItemId(null);
-      }
+      if (activeItemId !== null) setActiveItemId(null);
     };
-
-    window.addEventListener('click', handleOutsideClick);
-    return () => {
-      window.removeEventListener('click', handleOutsideClick);
-    };
+    window.addEventListener("click", handleOutsideClick);
+    return () => window.removeEventListener("click", handleOutsideClick);
   }, [activeItemId]);
 
-  const handleDragStart = (e, index) => {
-    setDraggedItemIndex(index);
-    e.dataTransfer.setData('text/plain', index);
+  const handleTagClick = (tagName) => {
+    setSelectedTags((prev) =>
+      prev.includes(tagName) ? prev.filter((t) => t !== tagName) : [...prev, tagName]
+    );
   };
 
-  const handleDragOver = (e, index) => {
-    e.preventDefault();
-    if (items[index].type === 'folder') {
-      setDragOverFolderIndex(index);
+  const displayedItems =
+    selectedTags.length > 0
+      ? items.filter(
+          (item) =>
+            item.tags &&
+            selectedTags.every((selected) => item.tags.some((t) => t.name === selected))
+        )
+      : items;
+
+  // Navegação: apenas atualiza estado; o efeito recarrega
+  const navigateToFolder = (folderItemOrNull) => {
+    const next = folderItemOrNull ? { id: folderItemOrNull.id, nome: folderItemOrNull.name } : null;
+    setCurrentFolder(next);
+    setSelectedTags([]);
+    setBreadcrumbs((prev) => {
+      if (!next) return [{ id: null, nome: "Raiz" }];
+      const idx = prev.findIndex((b) => b.id === next.id);
+      if (idx >= 0) return prev.slice(0, idx + 1);
+      return [...prev, next];
+    });
+  };
+
+  const navigateToBreadcrumb = (bc) => {
+    navigateToFolder(bc.id === null ? null : { id: bc.id, name: bc.nome });
+  };
+
+  const openReadCredentialModal = async (credentialItem) => {
+    try {
+      const full = await dataService.getDataById(credentialItem.id);
+      const tags =
+        (full.separadores || [])
+          .filter((s) => s.tipo === "tag")
+          .map((s) => ({ name: s.nome, color: s.cor })) || [];
+      setCredentialToRead({
+        name: full.nome_aplicacao || credentialItem.name,
+        email: full.senha?.email || credentialItem.email || "",
+        password: full.senha?.senha_cripto || "",
+        url: full.senha?.host_url || "",
+        tags,
+      });
+    } catch {
+      setCredentialToRead({
+        name: credentialItem.name,
+        email: credentialItem.email || "",
+        password: "",
+        url: "",
+        tags: credentialItem.tags || [],
+      });
     }
-  };
-
-  const handleDragLeave = () => {
-    setDragOverFolderIndex(null);
-  };
-
-  const handleDrop = (e, targetFolderIndex) => {
-    e.preventDefault();
-    setDragOverFolderIndex(null);
-
-    const sourceItemIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
-    if (isNaN(sourceItemIndex) || sourceItemIndex === targetFolderIndex) return;
-
-    const sourceItem = items[sourceItemIndex];
-    const targetFolder = items[targetFolderIndex];
-
-    if (targetFolder.type !== 'folder') {
-      return; // Cannot drop on a file or credential
-    }
-
-    let updatedFileSystem = { ...fileSystem };
-
-    // 1. Remove from source
-    const sourcePath = currentPath;
-    const updatedSourceItems = items.filter((_, index) => index != sourceItemIndex);
-    updatedFileSystem[sourcePath] = updatedSourceItems;
-
-    // 2. Add to destination
-    const targetPath = `${currentPath}${targetFolder.name}/`;
-    const updatedTargetItems = [...updatedFileSystem[targetPath], sourceItem];
-    updatedFileSystem[targetPath] = updatedTargetItems;
-
-    // 3. If a folder was moved, recursively update all its children paths
-    if (sourceItem.type === 'folder') {
-      const oldFolderPath = `${currentPath}${sourceItem.name}/`;
-      const newFolderPath = `${targetPath}${sourceItem.name}/`;
-
-      const pathsToUpdate = Object.keys(updatedFileSystem).filter(path => path.startsWith(oldFolderPath));
-
-      for (const oldPath of pathsToUpdate) {
-        const newPath = oldPath.replace(oldFolderPath, newFolderPath);
-        updatedFileSystem[newPath] = updatedFileSystem[oldPath];
-        delete updatedFileSystem[oldPath];
-      }
-    }
-
-    setFileSystem(updatedFileSystem);
-
-    const newLogEntry = {
-      type: 'edit', // Using 'edit' for a move action
-      title: `"${sourceItem.name}" movido para "${targetFolder.name}"`,
-      time: new Date().toLocaleString(),
-    };
-    setActivityLog([newLogEntry, ...activityLog]);
-  };
-
-  const handleBreadcrumbDragOver = (e, path) => {
-    e.preventDefault();
-    setDragOverBreadcrumbPath(path);
-  };
-
-  const handleBreadcrumbDragLeave = () => {
-    setDragOverBreadcrumbPath(null);
-  };
-
-  const handleBreadcrumbDrop = (e, targetPath) => {
-    e.preventDefault();
-    setDragOverBreadcrumbPath(null);
-
-    if (targetPath === currentPath) return; // Cannot drop in the same folder
-
-    const sourceItemIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
-    if (isNaN(sourceItemIndex)) return;
-
-    const sourceItem = items[sourceItemIndex];
-    let updatedFileSystem = { ...fileSystem };
-
-    // 1. Remove from source
-    const sourcePath = currentPath;
-    const updatedSourceItems = items.filter((_, index) => index != sourceItemIndex);
-    updatedFileSystem[sourcePath] = updatedSourceItems;
-
-    // 2. Add to destination
-    const updatedTargetItems = [...updatedFileSystem[targetPath], sourceItem];
-    updatedFileSystem[targetPath] = updatedTargetItems;
-
-    // 3. If a folder was moved, recursively update all its children paths
-    if (sourceItem.type === 'folder') {
-      const oldFolderPath = `${currentPath}${sourceItem.name}/`;
-      const newFolderPath = `${targetPath}${sourceItem.name}/`;
-
-      const pathsToUpdate = Object.keys(updatedFileSystem).filter(path => path.startsWith(oldFolderPath));
-
-      for (const oldPath of pathsToUpdate) {
-        const newPath = oldPath.replace(oldFolderPath, newFolderPath);
-        updatedFileSystem[newPath] = updatedFileSystem[oldPath];
-        delete updatedFileSystem[oldPath];
-      }
-    }
-
-    setFileSystem(updatedFileSystem);
-
-    const targetFolderName = targetPath === '/' ? 'Raiz' : targetPath.split('/').filter(p => p).pop();
-    const newLogEntry = {
-      type: 'edit', // Using 'edit' for a move action
-      title: `"${sourceItem.name}" movido para "${targetFolderName}"`,
-      time: new Date().toLocaleString(),
-    };
-    setActivityLog([newLogEntry, ...activityLog]);
-  };
-
-  const openReadCredentialModal = (credential) => {
-    setCredentialToRead(credential);
     setIsReadCredentialModalOpen(true);
     setActiveItemId(null);
   };
@@ -206,25 +203,9 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
     setIsShareModalOpen(true);
     setActiveItemId(null);
   };
-
   const closeShareModal = () => {
     setItemToShare(null);
     setIsShareModalOpen(false);
-  };
-
-  const confirmShare = ({ shareWith, duration }) => {
-    if (!itemToShare || !shareWith || !duration) return;
-
-    console.log(`Compartilhando ${itemToShare.name} com ${shareWith} por ${duration}`);
-
-    const newLogEntry = {
-      type: 'edit',
-      title: `"${itemToShare.name}" compartilhado com ${shareWith}`,
-      time: new Date().toLocaleString(),
-    };
-    setActivityLog([newLogEntry, ...activityLog]);
-
-    closeShareModal();
   };
 
   const openDeleteModal = (item) => {
@@ -232,235 +213,74 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
     setIsDeleteModalOpen(true);
     setActiveItemId(null);
   };
-
   const closeDeleteModal = () => {
-    setIsDeleteModalOpen(false);
     setItemToDelete(null);
+    setIsDeleteModalOpen(false);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!itemToDelete) return;
-
-    const newFileSystem = { ...fileSystem };
-    let itemPath = null;
-    let itemIndex = -1;
-
-    // Find the item in the file system
-    for (const path in newFileSystem) {
-      const index = newFileSystem[path].findIndex(i => i.id === itemToDelete.id);
-      if (index !== -1) {
-        itemPath = path;
-        itemIndex = index;
-        break;
+    try {
+      if (itemToDelete.type === "folder") {
+        await folderService.deleteFolder(itemToDelete.id);
+      } else if (itemToDelete.type === "credential") {
+        await dataService.deleteData(itemToDelete.id);
       }
+      await loadLevel(currentFolder);
+    } finally {
+      closeDeleteModal();
     }
-
-    if (itemPath !== null) {
-      const item = newFileSystem[itemPath][itemIndex];
-
-      if (item.type === 'folder') {
-        const folderPath = `${itemPath}${item.name}/`;
-        if (newFileSystem[folderPath] && newFileSystem[folderPath].length > 0) {
-          alert('Não é possível excluir pastas que não estão vazias.');
-          closeDeleteModal();
-          return;
-        }
-        delete newFileSystem[folderPath];
-      }
-
-      const updatedItems = newFileSystem[itemPath].filter((_, index) => index !== itemIndex);
-      newFileSystem[itemPath] = updatedItems;
-      setFileSystem(newFileSystem);
-
-      const newLogEntry = {
-        type: 'delete',
-        title: `Item "${item.name}" excluído`,
-        time: new Date().toLocaleString(),
-      };
-      setActivityLog([newLogEntry, ...activityLog]);
-    }
-
-    closeDeleteModal();
   };
 
   const openEditModal = (item) => {
-    setItemToEdit(item);
+    setItemToEdit(item.raw || null);
     setIsEditCredentialModalOpen(true);
     setActiveItemId(null);
   };
-
   const closeEditModal = () => {
     setItemToEdit(null);
     setIsEditCredentialModalOpen(false);
   };
 
-  const updatePassword = (updatedItem) => {
-    if (!updatedItem || updatedItem.id === undefined) return;
-
-    const newFileSystem = { ...fileSystem };
-    let itemPath = null;
-    let itemIndex = -1;
-
-    // Find the item in the file system
-    for (const path in newFileSystem) {
-      const index = newFileSystem[path].findIndex(i => i.id === updatedItem.id);
-      if (index !== -1) {
-        itemPath = path;
-        itemIndex = index;
-        break;
-      }
-    }
-
-    if (itemPath !== null) {
-      const updatedItems = [...newFileSystem[itemPath]];
-      updatedItems[itemIndex] = updatedItem;
-      newFileSystem[itemPath] = updatedItems;
-      setFileSystem(newFileSystem);
-
-      const logEntry = {
-        type: 'edit',
-        title: `Credencial "${updatedItem.name}" alterada`,
-        time: new Date().toLocaleString(),
-      };
-      setActivityLog([logEntry, ...activityLog]);
-    }
-
-    closeEditModal();
-  };
-
   const openEditFolderModal = (item) => {
-    setFolderToEdit(item);
-    setNewFolderName(item.name); // preencher input
+    setFolderToEdit({ id: item.id, nome: item.name });
     setIsEditFolderModalOpen(true);
     setActiveItemId(null);
   };
-
   const closeEditFolderModal = () => {
     setFolderToEdit(null);
-    setNewFolderName('');
     setIsEditFolderModalOpen(false);
   };
 
-  const updateFolderName = (updatedFolder) => {
-  const newFileSystem = { ...fileSystem };
-  let itemPath = null;
-  let itemIndex = -1;
-
-  for (const path in newFileSystem) {
-    const index = newFileSystem[path].findIndex(i => i.id === updatedFolder.id);
-    if (index !== -1) {
-      itemPath = path;
-      itemIndex = index;
-      break;
-    }
-  }
-
-  if (!itemPath) return;
-
-  const oldFolder = newFileSystem[itemPath][itemIndex];
-  const oldPath = `${itemPath}${oldFolder.name}/`;
-
-  const baseName = updatedFolder.name.trim();
-  let finalName = baseName;
-  let suffix = 1;
-  while (newFileSystem[itemPath]?.some(i => i.type === 'folder' && i.name === finalName && i.id !== updatedFolder.id)) {
-    finalName = `${baseName}_${suffix}`;
-    suffix++;
-  }
-
-  const newPath = `${itemPath}${finalName}/`;
-  const renamedFolder = { ...updatedFolder, name: finalName };
-  newFileSystem[itemPath][itemIndex] = renamedFolder;
-
-  const updatedPaths = Object.keys(newFileSystem);
-  const updates = {};
-
-  for (const path of updatedPaths) {
-    if (path.startsWith(oldPath)) {
-      const newSubPath = path.replace(oldPath, newPath);
-      updates[newSubPath] = newFileSystem[path];
-      delete newFileSystem[path];
-    }
-  }
-
-  if (newFileSystem[oldPath]) {
-    updates[newPath] = newFileSystem[oldPath];
-    delete newFileSystem[oldPath];
-  }
-
-  Object.assign(newFileSystem, updates);
-
-  setFileSystem(newFileSystem);
-  setActivityLog([
-    { type: 'edit', title: `Pasta renomeada para "${finalName}"`, time: new Date().toLocaleString() },
-    ...activityLog
-  ]);
-
-  closeEditFolderModal();
-};
-
-  const navigateTo = (folderName) => {
-    const newPath = folderName === '' ? '/' : `${currentPath}${folderName}/`;
-    if (fileSystem[newPath]) {
-      setCurrentPath(newPath);
-    }
+  const handleCredentialSaved = async () => {
+    await loadLevel(currentFolder);
+    closeEditModal();
   };
 
-  const navigateBack = (pathIndex) => {
-    const pathParts = currentPath.split('/').filter(p => p);
-    const newPath = `/${pathParts.slice(0, pathIndex + 1).join('/')}/`;
-    if (fileSystem[newPath]) {
-      setCurrentPath(newPath);
-    }
-  };
-
-  const Breadcrumbs = () => {
-    const pathParts = currentPath.split('/').filter(p => p);
-    return (
-      <div className="breadcrumbs">
-        <span 
-          onClick={() => navigateTo('')} 
-          className={dragOverBreadcrumbPath === '/' ? 'drag-over' : ''}
-          onDragOver={(e) => handleBreadcrumbDragOver(e, '/')}
-          onDragLeave={handleBreadcrumbDragLeave}
-          onDrop={(e) => handleBreadcrumbDrop(e, '/')}
-        >
-          Raiz
-        </span>
-        {pathParts.map((part, index) => {
-          const path = `/${pathParts.slice(0, index + 1).join('/')}/`;
-          return (
-            <React.Fragment key={index}>
-              <ChevronRight size={16} />
-              <span 
-                onClick={() => navigateBack(index)}
-                className={dragOverBreadcrumbPath === path ? 'drag-over' : ''}
-                onDragOver={(e) => handleBreadcrumbDragOver(e, path)}
-                onDragLeave={handleBreadcrumbDragLeave}
-                onDrop={(e) => handleBreadcrumbDrop(e, path)}
-              >
-                {part}
-              </span>
-            </React.Fragment>
-          )
-        })}
-      </div>
-    );
+  const updateFolderName = async ({ id, name }) => {
+    await folderService.updateFolder(id, { nome: name });
+    await loadLevel(currentFolder);
+    closeEditFolderModal();
   };
 
   return (
     <>
       <div className="left-panel">
-        <div className="search-bar"><Search size={16} /><span>Pesquisar</span></div>
+        <div className="search-bar">
+          <Search size={16} />
+          <span>Pesquisar</span>
+        </div>
+
         <div className="tags">
           <div className="tag-title">Tags</div>
           <div className="tag-list">
-            {allTags.map(tag => (
-              <div 
-                key={tag.name} 
-                className={`tag ${selectedTags.includes(tag.name) ? 'selected' : ''}`}
-                onClick={() => handleTagClick(tag.name)} 
-                style={{ borderLeftColor: tag.color }}>
+            {allTags.map((tag) => (
+              <div
+                key={tag.id}
+                className={`tag ${selectedTags.includes(tag.name) ? "selected" : ""}`}
+                onClick={() => handleTagClick(tag.name)}
+                style={{ borderLeftColor: tag.color }}
+              >
                 {tag.name}
               </div>
             ))}
@@ -469,91 +289,112 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
       </div>
 
       <div className="main-content">
-        <Header 
-          title={selectedTags.length > 0 ? `Itens com as tags "${selectedTags.join(', ')}"` : "Meu Cofre"} 
-          onNewFolder={openNewFolderModal}
-          onNewCredential={openNewCredentialModal}
+        <Header
+          title={
+            selectedTags.length > 0
+              ? `Itens com as tags "${selectedTags.join(", ")}"`
+              : "Meu Cofre"
+          }
+          onNewFolder={() => openNewFolderModal(currentFolder?.id ?? null)}
+          onNewCredential={() => openNewCredentialModal(currentFolder?.id ?? null)}
           onLogout={onLogout}
         />
-        <div className="file-manager">
-          {selectedTags.length === 0 && <Breadcrumbs />}
-          <div className="file-list">
-            {displayedItems.map((item, index) => (
-              <div 
-                key={item.id} 
-                className={`file-item ${dragOverFolderIndex === index ? 'drag-over' : ''}`}
-                draggable="true"
-                onDragStart={(e) => handleDragStart(e, index)}
-                onDragOver={(e) => handleDragOver(e, index)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, index)}
-                onClick={() => {
-                  if (item.type === 'folder') {
-                    navigateTo(item.name);
-                  } else if (item.type === 'credential') {
-                    openReadCredentialModal(item);
-                  }
-                }}>
 
-                <div className="file-info">
-                  {item.type === 'folder' && <Folder size={20} />}
-                  {item.type === 'file' && <File size={20} />}
-                  {item.type === 'credential' && <Key size={20} />}
-                  <div className="file-details">
-                    <span className="file-name">{item.name}</span>
-                    {item.type === 'credential' && item.email && <span className="file-email">{item.email}</span>}
+        <div className="breadcrumbs">
+          {breadcrumbs.map((bc, i) => (
+            <span
+              key={`${bc.id ?? "root"}-${i}`}
+              onClick={() => navigateToBreadcrumb(bc)}
+              style={{ cursor: "pointer" }}
+            >
+              {i > 0 && <ChevronRight size={16} />}
+              {bc.nome}
+            </span>
+          ))}
+        </div>
+
+        <div className="file-manager">
+          {loading ? (
+            <div className="file-list">
+              <p>Carregando...</p>
+            </div>
+          ) : (
+            <div className="file-list">
+              {displayedItems.map((item) => (
+                <div
+                  key={`${item.type}-${item.id}`}
+                  className="file-item"
+                  onClick={() => {
+                    if (item.type === "folder") navigateToFolder(item);
+                    if (item.type === "credential") openReadCredentialModal(item);
+                  }}
+                >
+                  <div className="file-info">
+                    {item.type === "folder" && <Folder size={20} />}
+                    {item.type === "credential" && <Key size={20} />}
+                    <div className="file-details">
+                      <span className="file-name">{item.name}</span>
+                      {item.type === "credential" && item.email && (
+                        <span className="file-email">{item.email}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="file-actions">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveItemId(item.id === activeItemId ? null : item.id);
+                      }}
+                    >
+                      <MoreVertical size={16} />
+                    </button>
+                    {activeItemId === item.id && (
+                      <ItemActionsMenu
+                        onViewCredential={() => openReadCredentialModal(item)}
+                        onEditCredential={() => openEditModal(item)}
+                        onEditFolder={() => openEditFolderModal(item)}
+                        onDelete={() => openDeleteModal(item)}
+                        onShare={() => openShareModal(item)}
+                        itemType={item.type}
+                      />
+                    )}
                   </div>
                 </div>
-                <div className="file-actions">
-                  <button onClick={(e) => { e.stopPropagation(); setActiveItemId(item.id === activeItemId ? null : item.id); }}><MoreVertical size={16} /></button>
-                  {activeItemId === item.id && (
-                    <ItemActionsMenu
-                      onViewCredential={() => openReadCredentialModal(item)}
-                      onEditCredential={() => openEditModal(item)}
-                      onEditFolder={() => openEditFolderModal(item)}
-                      onDelete={() => openDeleteModal(item)}
-                      onShare={() => openShareModal(item)}
-                      itemType={item.type}
-                    />
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+              {displayedItems.length === 0 && <p>Nenhum item.</p>}
+            </div>
+          )}
         </div>
       </div>
-      
-    <Modal title="Editar Item" isOpen={isEditCredentialModalOpen} onCancel={closeEditModal}>
-      <NewCredentialForm 
-        onCancel={closeEditModal}
-        editItem={itemToEdit}
-        updatePassword={updatePassword}
-        allTags={allTags}
-      />
-    </Modal>
 
-    <Modal title="Renomear Pasta" isOpen={isEditFolderModalOpen} onCancel={closeEditFolderModal}>
-      <RenameFolderForm
-        folder={folderToEdit}
-        onCancel={closeEditFolderModal}
-        updateFolderName={updateFolderName}
-      />
-    </Modal>
+      <Modal title="Editar Credencial" isOpen={isEditCredentialModalOpen} onCancel={closeEditModal}>
+        <NewCredentialForm
+          onCancel={closeEditModal}
+          editItem={itemToEdit}
+          initialTags={allTags.map((t) => ({ id: t.id, nome: t.name, cor: t.color }))}
+          onSuccess={handleCredentialSaved}
+          currentFolderId={currentFolder?.id ?? null}
+        />
+      </Modal>
 
-    <Modal title="Confirmar Exclusão" isOpen={isDeleteModalOpen} onCancel={closeDeleteModal}>
-      <p>Você tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.</p>
-      <div className="modal-actions">
-        <button type="button" className="btn btn-secondary" onClick={closeDeleteModal}>Cancelar</button>
-        <button type="button" className="btn btn-danger" onClick={confirmDelete}>Excluir</button>
-      </div>
-    </Modal>
-
+      <Modal title="Renomear Pasta" isOpen={isEditFolderModalOpen} onCancel={closeEditFolderModal}>
+        <RenameFolderForm
+          folder={folderToEdit ? { id: folderToEdit.id, name: folderToEdit.nome } : null}
+          onCancel={closeEditFolderModal}
+          updateFolderName={updateFolderName}
+        />
+      </Modal>
 
       <Modal title="Confirmar Exclusão" isOpen={isDeleteModalOpen} onCancel={closeDeleteModal}>
-        <p>Você tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.</p>
+        <p>Você tem certeza que deseja excluir este item?</p>
         <div className="modal-actions">
-          <button type="button" className="btn btn-secondary" onClick={closeDeleteModal}>Cancelar</button>
-          <button type="button" className="btn btn-danger" onClick={confirmDelete}>Excluir</button>
+          <button type="button" className="btn btn-secondary" onClick={closeDeleteModal}>
+            Cancelar
+          </button>
+          <button type="button" className="btn btn-danger" onClick={confirmDelete}>
+            Excluir
+          </button>
         </div>
       </Modal>
 
@@ -562,7 +403,7 @@ const Cofre = ({ fileSystem, setFileSystem, activityLog, setActivityLog, current
       </Modal>
 
       <Modal title="Compartilhar Item" isOpen={isShareModalOpen} onCancel={closeShareModal}>
-        <ShareItemModal item={itemToShare} onCancel={closeShareModal} onConfirm={confirmShare} />
+        <ShareItemModal item={itemToShare} onCancel={closeShareModal} />
       </Modal>
     </>
   );
