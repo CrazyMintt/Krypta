@@ -29,6 +29,7 @@ inputs = {
             python-multipart
             argon2-cffi
 						pydantic-extra-types
+						httpx
           ]))
           
           # Frontend
