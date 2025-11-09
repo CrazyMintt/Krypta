@@ -1,9 +1,12 @@
+import logging
 import base64
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..exceptions import DataNotFoundError
 from ..repository import repository_separador, repository_data
+
+logger = logging.getLogger(__name__)
 
 
 def decode_base64_file(base64_string: str) -> bytes:
@@ -125,3 +128,11 @@ def clear_all_user_data_logic(db: Session, user_id: int):
     repository_data.delete_compartilhamentos_by_user(db, user_id=user_id)
     repository_data.delete_dados_by_user(db, user_id=user_id)
     repository_separador.delete_separadores_by_user_id(db, user_id=user_id)
+
+
+def send_email_alert_placeholder(email: str, assunto: str, mensagem: str):
+    """
+    Placeholder para o serviço de envio de email.
+    No futuro, isso usará uma biblioteca como 'smtplib' ou uma API (SendGrid).
+    """
+    logger.debug(f"SIMULAÇÃO DE ENVIO DE EMAIL (Background Task)")

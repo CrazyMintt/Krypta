@@ -140,15 +140,9 @@ def get_folder_and_all_descendants_ids(
 
 
 def create_separador(db: Session, db_separador: models.Separador) -> models.Separador:
-    """Cria um objeto Separador (pasta/tag) no banco de dados."""
-    try:
-        db.add(db_separador)
-        db.commit()
-        db.refresh(db_separador)
-        return db_separador
-    except Exception as e:
-        db.rollback()
-        raise e
+    """Adiciona um objeto Separador (pasta/tag) à sessão."""
+    db.add(db_separador)
+    return db_separador
 
 
 # --- Funções de Atualização ---
@@ -157,33 +151,23 @@ def create_separador(db: Session, db_separador: models.Separador) -> models.Sepa
 def update_folder(
     db: Session, db_folder: models.Separador, update_data: schemas.FolderUpdate
 ) -> models.Separador:
-    """Aplica atualizações parciais a uma Pasta e commita no banco."""
-    try:
-        update_dict = update_data.model_dump(exclude_unset=True)
-        for key, value in update_dict.items():
-            setattr(db_folder, key, value)
-        db.commit()
-        db.refresh(db_folder)
-        return db_folder
-    except Exception as e:
-        db.rollback()
-        raise e
+    """Aplica atualizações parciais a uma Pasta e adiciona à sessão (sem fazer commit)."""
+    update_dict = update_data.model_dump(exclude_unset=True)
+    for key, value in update_dict.items():
+        setattr(db_folder, key, value)
+    db.add(db_folder)
+    return db_folder
 
 
 def update_tag(
     db: Session, db_tag: models.Separador, update_data: schemas.TagUpdate
 ) -> models.Separador:
-    """Aplica atualizações parciais a uma Tag e commita no banco."""
-    try:
-        update_dict = update_data.model_dump(exclude_unset=True)
-        for key, value in update_dict.items():
-            setattr(db_tag, key, value)
-        db.commit()
-        db.refresh(db_tag)
-        return db_tag
-    except Exception as e:
-        db.rollback()
-        raise e
+    """Aplica atualizações parciais a uma Tag e e adiciona à sessão (sem fazer commit)."""
+    update_dict = update_data.model_dump(exclude_unset=True)
+    for key, value in update_dict.items():
+        setattr(db_tag, key, value)
+    db.add(db_tag)
+    return db_tag
 
 
 # --- Funções de Exclusão ---

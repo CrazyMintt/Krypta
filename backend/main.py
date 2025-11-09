@@ -5,6 +5,7 @@ from app.routers import (
     router_data,
     router_separador,
     router_share,
+    router_notificacao,
 )
 from fastapi.middleware.cors import CORSMiddleware
 import logging
@@ -35,6 +36,7 @@ app.include_router(router_user.router)
 app.include_router(router_data.router)
 app.include_router(router_separador.router)
 app.include_router(router_share.router)
+app.include_router(router_notificacao.router)
 
 
 @app.get("/", tags=["Root"])

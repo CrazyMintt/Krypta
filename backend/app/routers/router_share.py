@@ -1,14 +1,13 @@
 import logging
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from typing import Annotated, List
 
-from .. import schemas, models
+from .. import schemas, models, services
 from ..database import get_db
 from ..exceptions import (
     DataNotFoundError,
 )
-from ..services import service_share
 from .dependencies import get_current_user
 import base64
 
@@ -29,6 +28,8 @@ def create_new_share(
     share_data: schemas.ShareDataCreate,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
+    request: Request,
+    tasks: BackgroundTasks,
 ):
     """
     Cria um novo link de compartilhamento para um ou mais Dados.
@@ -40,9 +41,16 @@ def create_new_share(
     com o fuso horário (ex: "2025-11-05T21:45:00-03:00" para Brasília).
 
     """
+    ip = request.client.host if request.client else "desconhecido"
+    dispositivo = request.headers.get("User-Agent", "desconhecido")
+    log_context = schemas.LogContext(ip=ip, dispositivo=dispositivo)
     try:
-        new_share = service_share.create_share_link(
-            db=db, user_id=current_user.id, share_data=share_data
+        new_share = services.create_share_link(
+            db=db,
+            user=current_user,
+            share_data=share_data,
+            log_context=log_context,
+            tasks=tasks,
         )
 
         # TODO: A URL base deve vir de
@@ -71,13 +79,23 @@ def create_new_share(
     "/{token_acesso}",
     response_model=schemas.SharedDataViewResponse,
 )
-def get_shared_data(token_acesso: str, db: Annotated[Session, Depends(get_db)]):
+def get_shared_data(
+    token_acesso: str,
+    db: Annotated[Session, Depends(get_db)],
+    request: Request,
+    tasks: BackgroundTasks,
+):
     """
     Endpoint PÚBLICO para um destinatário buscar os dados de um
     compartilhamento usando o token de acesso.
     """
+    ip = request.client.host if request.client else "desconhecido"
+    dispositivo = request.headers.get("User-Agent", "desconhecido")
+    log_context = schemas.LogContext(ip=ip, dispositivo=dispositivo)
     try:
-        db_share = service_share.get_shared_data_by_token(db, token_acesso=token_acesso)
+        db_share = services.get_shared_data_by_token(
+            db, token_acesso=token_acesso, log_context=log_context, tasks=tasks
+        )
 
         # Constrói a lista de itens para a resposta
         itens_view = [
@@ -117,7 +135,7 @@ def get_my_shares(
     criados pelo usuário logado.
     """
     try:
-        shares = service_share.get_shares_by_user_id(db, user_id=current_user.id)
+        shares = services.get_shares_by_user_id(db, user_id=current_user.id)
         return shares
     except Exception as e:
         logger.error(
@@ -136,6 +154,8 @@ def update_share_rules(
     update_data: schemas.ShareRulesUpdate,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
+    request: Request,
+    tasks: BackgroundTasks,
 ):
     """
     Atualiza as regras (limite de acesso, data de expiração)
@@ -147,9 +167,17 @@ def update_share_rules(
     com o fuso horário (ex: "2025-11-05T21:45:00-03:00" para Brasília).
 
     """
+    ip = request.client.host if request.client else "desconhecido"
+    dispositivo = request.headers.get("User-Agent", "desconhecido")
+    log_context = schemas.LogContext(ip=ip, dispositivo=dispositivo)
     try:
-        updated_share = service_share.edit_share_rules(
-            db, user_id=current_user.id, share_id=share_id, update_data=update_data
+        updated_share = services.edit_share_rules(
+            db,
+            user=current_user,
+            share_id=share_id,
+            update_data=update_data,
+            log_context=log_context,
+            tasks=tasks,
         )
         return updated_share
     except DataNotFoundError as e:
@@ -173,13 +201,24 @@ def delete_share(
     share_id: int,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
+    request: Request,
+    tasks: BackgroundTasks,
 ):
     """
     Apaga um link de compartilhamento existente.
     """
+    ip = request.client.host if request.client else "desconhecido"
+    dispositivo = request.headers.get("User-Agent", "desconhecido")
+    log_context = schemas.LogContext(ip=ip, dispositivo=dispositivo)
     try:
         # Chama o serviço para fazer a validação e a exclusão
-        service_share.delete_share_by_id(db, user_id=current_user.id, share_id=share_id)
+        services.delete_share_by_id(
+            db,
+            user=current_user,
+            share_id=share_id,
+            log_context=log_context,
+            tasks=tasks,
+        )
         return None  # Retorna 204 No Content (sucesso)
 
     except DataNotFoundError as e:
