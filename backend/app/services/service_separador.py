@@ -1,8 +1,11 @@
+from typing import List
+from fastapi import BackgroundTasks
 from sqlalchemy.orm import Session
+
+from app.services import service_notificacao
 from .. import models, schemas
 from ..exceptions import DataNotFoundError, SeparatorNameTakenError
 from ..repository import repository_separador, repository_data
-from typing import List
 
 
 # GET
@@ -50,7 +53,11 @@ def get_child_folders(
 
 
 def create_folder(
-    db: Session, user_id: int, folder_data: schemas.FolderCreate
+    db: Session,
+    user: models.Usuario,
+    folder_data: schemas.FolderCreate,
+    log_context: schemas.LogContext,
+    tasks: BackgroundTasks,
 ) -> models.Separador:
     """
     Serviço para um novo Separador do tipo Pasta.
@@ -60,7 +67,7 @@ def create_folder(
     existing_folder = repository_separador.get_folder_by_name_and_parent(
         db,
         nome=folder_data.nome,
-        user_id=user_id,
+        user_id=user.id,
         parent_id=folder_data.id_pasta_raiz,
     )
     if existing_folder:
@@ -75,7 +82,7 @@ def create_folder(
 
     if folder_data.id_pasta_raiz is not None:
         parent_folder = repository_separador.get_separador_by_id_and_user_id(
-            db=db, separador_id=folder_data.id_pasta_raiz, user_id=user_id
+            db=db, separador_id=folder_data.id_pasta_raiz, user_id=user.id
         )
         if not parent_folder:
             raise DataNotFoundError(
@@ -86,15 +93,29 @@ def create_folder(
     db_folder = models.Separador(
         nome=folder_data.nome,
         tipo=models.TipoSeparador.PASTA,
-        usuario_id=user_id,
+        usuario_id=user.id,
         id_pasta_raiz=folder_data.id_pasta_raiz,
         cor=None,
     )
-    return repository_separador.create_separador(db, db_separador=db_folder)
+    try:
+        db_folder = repository_separador.create_separador(db, db_separador=db_folder)
+        service_notificacao.log_and_notify(
+            db, user, schemas.LogTipo.PASTA_CRIADA, log_context, tasks
+        )
+        db.commit()
+        db.refresh(db_folder)
+        return db_folder
+    except Exception as e:
+        db.rollback()
+        raise e
 
 
 def create_tag(
-    db: Session, user_id: int, tag_data: schemas.TagCreate
+    db: Session,
+    user: models.Usuario,
+    tag_data: schemas.TagCreate,
+    log_context: schemas.LogContext,
+    tasks: BackgroundTasks,
 ) -> models.Separador:
     """
     Serviço para criar um novo Separador do tipo Tag.
@@ -102,7 +123,7 @@ def create_tag(
     """
 
     existing_tag = repository_separador.get_tag_by_name_and_user(
-        db, nome=tag_data.nome, user_id=user_id
+        db, nome=tag_data.nome, user_id=user.id
     )
     if existing_tag:
         raise SeparatorNameTakenError(
@@ -111,18 +132,33 @@ def create_tag(
     db_tag = models.Separador(
         nome=tag_data.nome,
         tipo=models.TipoSeparador.TAG,
-        usuario_id=user_id,
+        usuario_id=user.id,
         cor=tag_data.cor,
         id_pasta_raiz=None,
     )
-    return repository_separador.create_separador(db, db_separador=db_tag)
+    try:
+        db_tag = repository_separador.create_separador(db, db_separador=db_tag)
+        service_notificacao.log_and_notify(
+            db, user, schemas.LogTipo.TAG_CRIADA, log_context, tasks
+        )
+        db.commit()
+        db.refresh(db_tag)
+        return db_tag
+    except Exception as e:
+        db.rollback()
+        raise e
 
 
 # EDIT
 
 
 def edit_folder(
-    db: Session, user_id: int, folder_id: int, update_data: schemas.FolderUpdate
+    db: Session,
+    user: models.Usuario,
+    folder_id: int,
+    update_data: schemas.FolderUpdate,
+    log_context: schemas.LogContext,
+    tasks: BackgroundTasks,
 ) -> models.Separador:
 
     update_dict = update_data.model_dump(exclude_unset=True)
@@ -132,7 +168,7 @@ def edit_folder(
 
     #  Busca a pasta e valida a propriedade
     db_folder = repository_separador.get_separador_by_id_and_user_id(
-        db, folder_id, user_id
+        db, folder_id, user.id
     )
     if not db_folder or db_folder.tipo != models.TipoSeparador.PASTA:
         raise DataNotFoundError(f"Pasta com id {folder_id} não encontrada.")
@@ -140,7 +176,7 @@ def edit_folder(
     if "nome" in update_dict and update_dict["nome"] != db_folder.nome:
         parent_id_to_check = update_dict.get("id_pasta_raiz", db_folder.id_pasta_raiz)
         existing = repository_separador.get_folder_by_name_and_parent(
-            db, nome=update_dict["nome"], user_id=user_id, parent_id=parent_id_to_check
+            db, nome=update_dict["nome"], user_id=user.id, parent_id=parent_id_to_check
         )
         if existing:
             raise SeparatorNameTakenError(
@@ -159,7 +195,7 @@ def edit_folder(
         else:
             # Verificação de Loop de Hierarquia
             current_parent = repository_separador.get_separador_by_id_and_user_id(
-                db, new_parent_id, user_id
+                db, new_parent_id, user.id
             )
 
             if not current_parent or current_parent.tipo != models.TipoSeparador.PASTA:
@@ -177,21 +213,36 @@ def edit_folder(
                 if temp_parent.id_pasta_raiz is None:
                     break  # Chegou à raiz, sem loop
                 temp_parent = repository_separador.get_separador_by_id_and_user_id(
-                    db, temp_parent.id_pasta_raiz, user_id
+                    db, temp_parent.id_pasta_raiz, user.id
                 )
+    # Tenta realizar as operações no DB e commitar
+    try:
+        db_folder = repository_separador.update_folder(
+            db, db_folder=db_folder, update_data=update_data
+        )
+        service_notificacao.log_and_notify(
+            db, user, schemas.LogTipo.SEPARADOR_EDITADO, log_context, tasks
+        )
+        db.commit()
+        return db_folder
 
-    return repository_separador.update_folder(
-        db, db_folder=db_folder, update_data=update_data
-    )
+    except Exception as e:
+        db.rollback()
+        raise e
 
 
 def edit_tag(
-    db: Session, user_id: int, tag_id: int, update_data: schemas.TagUpdate
+    db: Session,
+    user: models.Usuario,
+    tag_id: int,
+    update_data: schemas.TagUpdate,
+    log_context: schemas.LogContext,
+    tasks: BackgroundTasks,
 ) -> models.Separador:
     """Edita uma tag, permitindo mudança de nome ou cor."""
 
     # Busca a tag e valida a propriedade
-    db_tag = repository_separador.get_separador_by_id_and_user_id(db, tag_id, user_id)
+    db_tag = repository_separador.get_separador_by_id_and_user_id(db, tag_id, user.id)
     if not db_tag or db_tag.tipo != models.TipoSeparador.TAG:
         raise DataNotFoundError(
             f"Tag com id {tag_id} não encontrada ou não pertence ao usuário."
@@ -201,26 +252,41 @@ def edit_tag(
 
     if "nome" in update_dict and update_dict["nome"] != db_tag.nome:
         existing = repository_separador.get_tag_by_name_and_user(
-            db, update_dict["nome"], user_id
+            db, update_dict["nome"], user.id
         )
         if existing:
             raise SeparatorNameTakenError(
                 f"O nome de tag '{update_dict['nome']}' já existe."
             )
+    try:
+        repository_separador.update_tag(db, db_tag=db_tag, update_data=update_data)
 
-    return repository_separador.update_tag(db, db_tag=db_tag, update_data=update_data)
+        service_notificacao.log_and_notify(
+            db, user, schemas.LogTipo.SEPARADOR_EDITADO, log_context, tasks
+        )
+        db.commit()
+        return db_tag
+    except Exception as e:
+        db.rollback()
+        raise e
 
 
 # DELETE
 
 
-def delete_tag_by_id(db: Session, user_id: int, tag_id: int):
+def delete_tag_by_id(
+    db: Session,
+    user: models.Usuario,
+    tag_id: int,
+    log_context: schemas.LogContext,
+    tasks: BackgroundTasks,
+):
     """
     Deleta uma Tag específica.
     Verifica se a tag existe, pertence ao usuário e é do tipo TAG.
     """
     db_tag = repository_separador.get_separador_by_id_and_user_id(
-        db, separador_id=tag_id, user_id=user_id
+        db, separador_id=tag_id, user_id=user.id
     )
 
     if not db_tag:
@@ -235,6 +301,9 @@ def delete_tag_by_id(db: Session, user_id: int, tag_id: int):
 
     try:
         repository_separador.delete_separador(db, db_separador=db_tag)
+        service_notificacao.log_and_notify(
+            db, user, schemas.LogTipo.SEPARADOR_DELETADO, log_context, tasks
+        )
 
         # O ON DELETE CASCADE em 'dados_separadores' é executado pelo banco
         db.commit()
@@ -243,13 +312,19 @@ def delete_tag_by_id(db: Session, user_id: int, tag_id: int):
         raise e
 
 
-def delete_folder_recursively(db: Session, user_id: int, folder_id: int):
+def delete_folder_recursively(
+    db: Session,
+    user: models.Usuario,
+    folder_id: int,
+    log_context: schemas.LogContext,
+    tasks: BackgroundTasks,
+):
     """
     Deleta uma Pasta e TODO o seu conteúdo (subpastas e dados).
     """
     # Valida se a pasta existe, pertence ao usuário e é uma PASTA
     db_folder = repository_separador.get_separador_by_id_and_user_id(
-        db, separador_id=folder_id, user_id=user_id
+        db, separador_id=folder_id, user_id=user.id
     )
     if not db_folder or db_folder.tipo != models.TipoSeparador.PASTA:
         raise DataNotFoundError(
@@ -259,7 +334,7 @@ def delete_folder_recursively(db: Session, user_id: int, folder_id: int):
     try:
         # Encontra todos os IDs de pastas (esta + todas as descendentes)
         all_folder_ids = repository_separador.get_folder_and_all_descendants_ids(
-            db, folder_id=folder_id, user_id=user_id
+            db, folder_id=folder_id, user_id=user.id
         )
 
         # Encontra todos os IDs de dados únicos nessas pastas
@@ -276,6 +351,9 @@ def delete_folder_recursively(db: Session, user_id: int, folder_id: int):
         # Deleta todas as PASTAS (a pasta principal e suas filhas)
         repository_separador.delete_separadores_by_ids(db, all_folder_ids)
 
+        service_notificacao.log_and_notify(
+            db, user, schemas.LogTipo.SEPARADOR_DELETADO, log_context, tasks
+        )
         db.commit()
 
     except Exception as e:

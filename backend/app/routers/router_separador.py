@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import Annotated, List
 
@@ -23,11 +23,20 @@ def create_folder(
     folder_data: schemas.FolderCreate,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
+    request: Request,
+    tasks: BackgroundTasks,
 ):
     """Cria uma nova pasta."""
+    ip = request.client.host if request.client else "desconhecido"
+    dispositivo = request.headers.get("User-Agent", "desconhecido")
+    log_context = schemas.LogContext(ip=ip, dispositivo=dispositivo)
     try:
         created_folder = services.create_folder(
-            db=db, user_id=current_user.id, folder_data=folder_data
+            db=db,
+            user=current_user,
+            folder_data=folder_data,
+            log_context=log_context,
+            tasks=tasks,
         )
         return created_folder
     except SeparatorNameTakenError as e:
@@ -54,11 +63,21 @@ def create_tag(
     tag_data: schemas.TagCreate,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
+    request: Request,
+    tasks: BackgroundTasks,
 ):
     """Cria uma nova tag."""
+    ip = request.client.host if request.client else "desconhecido"
+    dispositivo = request.headers.get("User-Agent", "desconhecido")
+    log_context = schemas.LogContext(ip=ip, dispositivo=dispositivo)
+
     try:
         created_tag = services.create_tag(
-            db=db, user_id=current_user.id, tag_data=tag_data
+            db=db,
+            user=current_user,
+            tag_data=tag_data,
+            log_context=log_context,
+            tasks=tasks,
         )
         return created_tag
     except SeparatorNameTakenError as e:
@@ -153,11 +172,22 @@ def update_folder(
     update_data: schemas.FolderUpdate,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
+    request: Request,
+    tasks: BackgroundTasks,
 ):
     """Atualiza uma pasta (muda nome e/ou pasta pai)."""
+    ip = request.client.host if request.client else "desconhecido"
+    dispositivo = request.headers.get("User-Agent", "desconhecido")
+    log_context = schemas.LogContext(ip=ip, dispositivo=dispositivo)
+
     try:
         updated_folder = services.edit_folder(
-            db, user_id=current_user.id, folder_id=folder_id, update_data=update_data
+            db,
+            user=current_user,
+            folder_id=folder_id,
+            update_data=update_data,
+            log_context=log_context,
+            tasks=tasks,
         )
         return updated_folder
     except SeparatorNameTakenError as e:
@@ -183,11 +213,21 @@ def update_tag(
     update_data: schemas.TagUpdate,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
+    request: Request,
+    tasks: BackgroundTasks,
 ):
     """Atualiza uma tag (muda nome e/ou cor)."""
+    ip = request.client.host if request.client else "desconhecido"
+    dispositivo = request.headers.get("User-Agent", "desconhecido")
+    log_context = schemas.LogContext(ip=ip, dispositivo=dispositivo)
     try:
         updated_tag = services.edit_tag(
-            db, user_id=current_user.id, tag_id=tag_id, update_data=update_data
+            db,
+            user=current_user,
+            tag_id=tag_id,
+            update_data=update_data,
+            log_context=log_context,
+            tasks=tasks,
         )
         return updated_tag
     except SeparatorNameTakenError as e:
@@ -210,10 +250,17 @@ def delete_tag(
     tag_id: int,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
+    request: Request,
+    tasks: BackgroundTasks,
 ):
     """Apaga uma Tag específica."""
+    ip = request.client.host if request.client else "desconhecido"
+    dispositivo = request.headers.get("User-Agent", "desconhecido")
+    log_context = schemas.LogContext(ip=ip, dispositivo=dispositivo)
     try:
-        services.delete_tag_by_id(db, user_id=current_user.id, tag_id=tag_id)
+        services.delete_tag_by_id(
+            db, user=current_user, tag_id=tag_id, log_context=log_context, tasks=tasks
+        )
         return None
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -237,11 +284,20 @@ def delete_folder(
     folder_id: int,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
+    request: Request,
+    tasks: BackgroundTasks,
 ):
     """Apaga uma Pasta e TODO o seu conteúdo recursivamente."""
+    ip = request.client.host if request.client else "desconhecido"
+    dispositivo = request.headers.get("User-Agent", "desconhecido")
+    log_context = schemas.LogContext(ip=ip, dispositivo=dispositivo)
     try:
         services.delete_folder_recursively(
-            db, user_id=current_user.id, folder_id=folder_id
+            db,
+            user=current_user,
+            folder_id=folder_id,
+            log_context=log_context,
+            tasks=tasks,
         )
         return None
 
