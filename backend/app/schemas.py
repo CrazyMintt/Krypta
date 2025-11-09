@@ -10,9 +10,10 @@ from pydantic import (
     computed_field,
 )
 from pydantic_extra_types.color import Color
-from typing import Optional, List, Self
+from typing import Any, Optional, List, Self
 from datetime import datetime
-from .models import TipoDado, TipoSeparador
+from .models import TipoDado, TipoSeparador, Arquivo
+import base64
 
 
 # Enum de Eventos e Logs
@@ -257,20 +258,7 @@ class FileResponse(BaseSchema):
     id: int
     extensao: str
     nome_arquivo: str
-
-    @computed_field
-    @staticmethod
-    def arquivo_data(db_obj: models.Arquivo) -> str:
-        """
-        Este é um "campo calculado". O Pydantic irá chamá-lo
-        para obter o valor de 'arquivo_data'.
-
-        Ele pega os 'bytes' do banco (db_obj.arquivo) e os
-        codifica em Base64 (string) para o JSON.
-        """
-        if db_obj.arquivo:
-            return base64.b64encode(db_obj.arquivo).decode("utf-8")
-        return ""
+    arquivo_data: str
 
 
 # --- Schema de Output Principal (Pai) ---
