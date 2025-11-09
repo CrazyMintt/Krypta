@@ -263,34 +263,22 @@ def get_file_size_by_id(db: Session, arquivo_id: int) -> int:
 
 
 def create_file(db: Session, dado: models.Dado, arquivo: models.Arquivo) -> models.Dado:
-    try:
-        db.add(dado)
-        db.flush()
-        arquivo.id = dado.id
-        db.add(arquivo)
-        db.commit()
-        db.refresh(dado)
-        return dado
-    except Exception as e:
-        db.rollback()
-        raise e
+    db.add(dado)
+    db.flush()
+    arquivo.id = dado.id
+    db.add(arquivo)
+    return dado
 
 
 def create_credential(
     db: Session, dado: models.Dado, senha: models.Senha
 ) -> models.Dado:
     """Cria um novo Dado e sua Senha filha associada."""
-    try:
-        db.add(dado)
-        db.flush()
-        senha.id = dado.id
-        db.add(senha)
-        db.commit()
-        db.refresh(dado)
-        return dado
-    except Exception as e:
-        db.rollback()
-        raise e
+    db.add(dado)
+    db.flush()
+    senha.id = dado.id
+    db.add(senha)
+    return dado
 
 
 # --- Funções de Atualização (Dado, Senha, Arquivo) ---
@@ -303,30 +291,23 @@ def update_file_data(
     update_data: schemas.DataUpdateFile,
     decoded_bytes: Optional[bytes],
 ) -> models.Dado:
-    try:
-        dado_update_dict = update_data.model_dump(
-            exclude={"arquivo"}, exclude_unset=True
+    dado_update_dict = update_data.model_dump(exclude={"arquivo"}, exclude_unset=True)
+    for key, value in dado_update_dict.items():
+        setattr(db_dado, key, value)
+
+    if update_data.arquivo:
+        file_update_dict = update_data.arquivo.model_dump(
+            exclude={"arquivo_data"}, exclude_unset=True
         )
-        for key, value in dado_update_dict.items():
-            setattr(db_dado, key, value)
+        if decoded_bytes is not None:
+            db_arquivo.arquivo = decoded_bytes
+        if "nome_arquivo" in file_update_dict:
+            db_arquivo.nome_arquivo = file_update_dict["nome_arquivo"]
+        if "extensao" in file_update_dict:
+            db_arquivo.extensao = file_update_dict["extensao"]
 
-        if update_data.arquivo:
-            file_update_dict = update_data.arquivo.model_dump(
-                exclude={"arquivo_data"}, exclude_unset=True
-            )
-            if decoded_bytes is not None:
-                db_arquivo.arquivo = decoded_bytes
-            if "nome_arquivo" in file_update_dict:
-                db_arquivo.nome_arquivo = file_update_dict["nome_arquivo"]
-            if "extensao" in file_update_dict:
-                db_arquivo.extensao = file_update_dict["extensao"]
-
-        db.commit()
-        db.refresh(db_dado)
-        return db_dado
-    except Exception as e:
-        db.rollback()
-        raise e
+    db.add(db_dado)
+    return db_dado
 
 
 def update_credential_data(
@@ -335,22 +316,17 @@ def update_credential_data(
     db_senha: models.Senha,
     update_data: schemas.DataUpdateCredential,
 ) -> models.Dado:
-    try:
-        dado_update_dict = update_data.model_dump(exclude={"senha"}, exclude_unset=True)
-        for key, value in dado_update_dict.items():
-            setattr(db_dado, key, value)
+    dado_update_dict = update_data.model_dump(exclude={"senha"}, exclude_unset=True)
+    for key, value in dado_update_dict.items():
+        setattr(db_dado, key, value)
 
-        if update_data.senha:
-            senha_update_dict = update_data.senha.model_dump(exclude_unset=True)
-            for key, value in senha_update_dict.items():
-                setattr(db_senha, key, value)
+    if update_data.senha:
+        senha_update_dict = update_data.senha.model_dump(exclude_unset=True)
+        for key, value in senha_update_dict.items():
+            setattr(db_senha, key, value)
 
-        db.commit()
-        db.refresh(db_dado)
-        return db_dado
-    except Exception as e:
-        db.rollback()
-        raise e
+    db.add(db_dado)
+    return db_dado
 
 
 # --- Funções de Exclusão (Dado, Log, Evento, Compartilhamento) ---

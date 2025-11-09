@@ -18,7 +18,7 @@ inputs = {
           (python3.withPackages (python-pkgs: with python-pkgs; [
             requests
             fastapi
-            "uvicorn[standard]"
+            uvicorn
             sqlalchemy
             python-dotenv
             pymysql
@@ -29,6 +29,7 @@ inputs = {
             python-multipart
             argon2-cffi
 						pydantic-extra-types
+						httpx
           ]))
           
           # Frontend

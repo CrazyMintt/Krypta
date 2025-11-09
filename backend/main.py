@@ -5,9 +5,21 @@ from app.routers import (
     router_data,
     router_separador,
     router_share,
+    router_notificacao,
 )
 from fastapi.middleware.cors import CORSMiddleware
+import logging
 
+# Configuracao do logger
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(levelname)-8s - %(name)-25s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+logger = logging.getLogger()
+
+# Configuracao do FASTAPI
 origins = ["*"]  # Aceita todas as origens
 
 app = FastAPI(
@@ -24,6 +36,7 @@ app.include_router(router_user.router)
 app.include_router(router_data.router)
 app.include_router(router_separador.router)
 app.include_router(router_share.router)
+app.include_router(router_notificacao.router)
 
 
 @app.get("/", tags=["Root"])

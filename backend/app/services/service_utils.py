@@ -1,9 +1,17 @@
+import smtplib
+import ssl
+import logging
 import base64
 from typing import List, Optional
 from sqlalchemy.orm import Session
+from email.message import EmailMessage
+
 from .. import models, schemas
 from ..exceptions import DataNotFoundError
 from ..repository import repository_separador, repository_data
+from ..core import settings
+
+logger = logging.getLogger(__name__)
 
 
 def decode_base64_file(base64_string: str) -> bytes:
@@ -125,3 +133,40 @@ def clear_all_user_data_logic(db: Session, user_id: int):
     repository_data.delete_compartilhamentos_by_user(db, user_id=user_id)
     repository_data.delete_dados_by_user(db, user_id=user_id)
     repository_separador.delete_separadores_by_user_id(db, user_id=user_id)
+
+
+def send_email_alert(email: str, assunto: str, mensagem: str):
+    """
+    Serviço real de envio de email.
+    Conecta-se ao SMTP do Gmail e envia uma notificação.
+
+    Esta função é síncrona (bloqueante) e deve ser executada
+    em uma BackgroundTask para não travar a API.
+    """
+    # 1. Obter as credenciais do settings
+    email_remetente = settings.EMAIL_HOST_USER
+    email_senha = settings.EMAIL_HOST_PASSWORD
+
+    # 2. Criar o objeto do e-mail
+    msg = EmailMessage()
+    msg["Subject"] = assunto
+    msg["From"] = email_remetente
+    msg["To"] = email  # O destinatário
+    msg.set_content(mensagem)  # O corpo do e-mail
+
+    # 3. Criar o contexto SSL seguro
+    context = ssl.create_default_context()
+
+    logger.info(f"Iniciando envio de email (em background) para {email}...")
+
+    try:
+        # 4. Conectar e Enviar
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as smtp:
+            smtp.login(email_remetente, email_senha)
+            smtp.send_message(msg)
+            logger.info(f"Email enviado com sucesso para {email}.")
+
+    except Exception as e:
+        # Se o envio de email falhar, apenas logamos.
+        # Não devemos quebrar a aplicação.
+        logger.error(f"Falha ao enviar email para {email}: {e}", exc_info=True)

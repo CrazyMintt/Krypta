@@ -1,12 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import logging
+from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import Annotated, List
 
-from .. import schemas, models
+from .. import schemas, models, services
 from ..database import get_db
 from ..exceptions import DataNotFoundError, SeparatorNameTakenError
-from ..services import service_separador
 from .dependencies import get_current_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/separators")
 
@@ -21,11 +23,20 @@ def create_folder(
     folder_data: schemas.FolderCreate,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
+    request: Request,
+    tasks: BackgroundTasks,
 ):
     """Cria uma nova pasta."""
+    ip = request.client.host if request.client else "desconhecido"
+    dispositivo = request.headers.get("User-Agent", "desconhecido")
+    log_context = schemas.LogContext(ip=ip, dispositivo=dispositivo)
     try:
-        created_folder = service_separador.create_folder(
-            db=db, user_id=current_user.id, folder_data=folder_data
+        created_folder = services.create_folder(
+            db=db,
+            user=current_user,
+            folder_data=folder_data,
+            log_context=log_context,
+            tasks=tasks,
         )
         return created_folder
     except SeparatorNameTakenError as e:
@@ -33,6 +44,9 @@ def create_folder(
     except (DataNotFoundError, ValueError) as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
+        logger.error(
+            f"Erro ao criar pasta do usuário {current_user.id}: {e}", exc_info=True
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro ao criar pasta.",
@@ -49,19 +63,32 @@ def create_tag(
     tag_data: schemas.TagCreate,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
+    request: Request,
+    tasks: BackgroundTasks,
 ):
     """Cria uma nova tag."""
+    ip = request.client.host if request.client else "desconhecido"
+    dispositivo = request.headers.get("User-Agent", "desconhecido")
+    log_context = schemas.LogContext(ip=ip, dispositivo=dispositivo)
+
     try:
-        created_tag = service_separador.create_tag(
-            db=db, user_id=current_user.id, tag_data=tag_data
+        created_tag = services.create_tag(
+            db=db,
+            user=current_user,
+            tag_data=tag_data,
+            log_context=log_context,
+            tasks=tasks,
         )
         return created_tag
     except SeparatorNameTakenError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except Exception as e:
+        logger.error(
+            f"Erro ao criar tag do usuário {current_user.id}: {e}", exc_info=True
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao criar tag.{e}",
+            detail=f"Erro interno ao criar tag.",
         )
 
 
@@ -72,9 +99,12 @@ def get_all_user_tags(
 ):
     """Busca a lista plana de todas as Tags do usuário logado."""
     try:
-        tags = service_separador.get_tags_by_user(db, user_id=current_user.id)
+        tags = services.get_tags_by_user(db, user_id=current_user.id)
         return tags
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"Erro ao buscar tags do usuário {current_user.id}: {e}", exc_info=True
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao buscar tags",
@@ -90,9 +120,13 @@ def get_root_level_folders(
 ):
     """Busca a lista de Pastas que estão no nível raiz."""
     try:
-        folders = service_separador.get_root_folders(db, user_id=current_user.id)
+        folders = services.get_root_folders(db, user_id=current_user.id)
         return folders
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"Erro ao buscar pastas na raiz do usuário {current_user.id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro interno ao buscar pastas raiz.",
@@ -111,7 +145,7 @@ def get_subfolders(
 ):
     """Busca a lista de Subpastas de uma 'folder_id' específica."""
     try:
-        subfolders = service_separador.get_child_folders(
+        subfolders = services.get_child_folders(
             db, user_id=current_user.id, parent_folder_id=folder_id
         )
         return subfolders
@@ -120,6 +154,10 @@ def get_subfolders(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
+        logger.error(
+            f"Erro ao listar pastas filhas da pasta {folder_id} do usuário {current_user.id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro interno ao buscar subpastas.",
@@ -134,11 +172,22 @@ def update_folder(
     update_data: schemas.FolderUpdate,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
+    request: Request,
+    tasks: BackgroundTasks,
 ):
     """Atualiza uma pasta (muda nome e/ou pasta pai)."""
+    ip = request.client.host if request.client else "desconhecido"
+    dispositivo = request.headers.get("User-Agent", "desconhecido")
+    log_context = schemas.LogContext(ip=ip, dispositivo=dispositivo)
+
     try:
-        updated_folder = service_separador.edit_folder(
-            db, user_id=current_user.id, folder_id=folder_id, update_data=update_data
+        updated_folder = services.edit_folder(
+            db,
+            user=current_user,
+            folder_id=folder_id,
+            update_data=update_data,
+            log_context=log_context,
+            tasks=tasks,
         )
         return updated_folder
     except SeparatorNameTakenError as e:
@@ -147,7 +196,11 @@ def update_folder(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except DataNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"Erro ao editar pasta {folder_id} do usuário {current_user.id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao editar pasta.",
@@ -160,18 +213,32 @@ def update_tag(
     update_data: schemas.TagUpdate,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
+    request: Request,
+    tasks: BackgroundTasks,
 ):
     """Atualiza uma tag (muda nome e/ou cor)."""
+    ip = request.client.host if request.client else "desconhecido"
+    dispositivo = request.headers.get("User-Agent", "desconhecido")
+    log_context = schemas.LogContext(ip=ip, dispositivo=dispositivo)
     try:
-        updated_tag = service_separador.edit_tag(
-            db, user_id=current_user.id, tag_id=tag_id, update_data=update_data
+        updated_tag = services.edit_tag(
+            db,
+            user=current_user,
+            tag_id=tag_id,
+            update_data=update_data,
+            log_context=log_context,
+            tasks=tasks,
         )
         return updated_tag
     except SeparatorNameTakenError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except DataNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"Erro ao editar tag {tag_id} do usuário {current_user.id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao editar tag.",
@@ -183,16 +250,27 @@ def delete_tag(
     tag_id: int,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
+    request: Request,
+    tasks: BackgroundTasks,
 ):
     """Apaga uma Tag específica."""
+    ip = request.client.host if request.client else "desconhecido"
+    dispositivo = request.headers.get("User-Agent", "desconhecido")
+    log_context = schemas.LogContext(ip=ip, dispositivo=dispositivo)
     try:
-        service_separador.delete_tag_by_id(db, user_id=current_user.id, tag_id=tag_id)
+        services.delete_tag_by_id(
+            db, user=current_user, tag_id=tag_id, log_context=log_context, tasks=tasks
+        )
         return None
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except DataNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
+        logger.error(
+            f"Erro ao apagar tag {tag_id} do usuário {current_user.id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao deletar tag.",
@@ -206,17 +284,30 @@ def delete_folder(
     folder_id: int,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[models.Usuario, Depends(get_current_user)],
+    request: Request,
+    tasks: BackgroundTasks,
 ):
     """Apaga uma Pasta e TODO o seu conteúdo recursivamente."""
+    ip = request.client.host if request.client else "desconhecido"
+    dispositivo = request.headers.get("User-Agent", "desconhecido")
+    log_context = schemas.LogContext(ip=ip, dispositivo=dispositivo)
     try:
-        service_separador.delete_folder_recursively(
-            db, user_id=current_user.id, folder_id=folder_id
+        services.delete_folder_recursively(
+            db,
+            user=current_user,
+            folder_id=folder_id,
+            log_context=log_context,
+            tasks=tasks,
         )
         return None
 
     except DataNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
+        logger.error(
+            f"Erro ao apagar pasta {folder_id} do usuário {current_user.id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao deletar pasta.",
