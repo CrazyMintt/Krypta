@@ -1,6 +1,7 @@
 // src/App.jsx
 
 import React, { useState } from 'react';
+import './styles/colors.css';
 import './styles/main.css';
 import './styles/sidebar.css';
 import './styles/cofre.css';

@@ -1,3 +1,4 @@
+/* --- Settings Modal --- */
 .settings-modal {
   display: flex;
   height: 450px;
@@ -6,9 +7,9 @@
 .settings-sidebar {
   width: 200px;
   min-width: 200px;
-  background-color: #202328;
+  background-color: var(--bg-sidebar);
   padding: 20px;
-  border-right: 1px solid #3a3a3a;
+  border-right: 1px solid var(--border-soft);
   border-radius: 16px 0 0 16px;
 }
 
@@ -24,13 +25,13 @@
   border-radius: 8px;
   margin-bottom: 10px;
   font-weight: 500;
-  color: #a0a0a0;
+  color: var(--text-secondary);
   transition: background-color 0.2s, color 0.2s;
 }
 
 .settings-sidebar li.active {
-  background-color: #3a3d44;
-  color: #fff;
+  background-color: var(--bg-surface-active);
+  color: var(--text-primary);
 }
 
 .settings-content {
@@ -39,10 +40,10 @@
 }
 
 .settings-content h2 {
-    font-size: 18px;
-    font-weight: 600;
-    color: #e5e5e5;
-    margin-bottom: 24px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 24px;
 }
 
 .settings-section {
@@ -54,7 +55,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 24px 0;
-  border-bottom: 1px solid #3a3a3a;
+  border-bottom: 1px solid var(--border-soft);
 }
 
 .settings-item:last-child {
@@ -65,15 +66,74 @@
   margin: 0;
   font-size: 16px;
   font-weight: 500;
-  color: #e5e5e5;
+  color: var(--text-primary);
 }
 
 .settings-item p {
   margin: 8px 0 0;
   font-size: 14px;
-  color: #888;
+  color: var(--text-tertiary);
 }
 
 .settings-item .btn {
-    flex: 0 1 120px; /* Adjust button width */
+  flex: 0 1 120px;
+}
+
+/* --- Toggle de Tema --- */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.theme-switch {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 24px;
+}
+
+.theme-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--border-soft);
+  transition: 0.3s;
+  border-radius: 24px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: var(--text-primary);
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+.theme-switch input:checked + .slider {
+  background-color: var(--brand-primary);
+}
+
+.theme-switch input:checked + .slider:before {
+  transform: translateX(22px);
+}
+
+.theme-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  min-width: 50px;
 }

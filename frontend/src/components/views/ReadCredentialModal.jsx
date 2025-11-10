@@ -1,4 +1,3 @@
-// components/views/ReadCredentialModal.jsx
 import React from "react";
 import { Eye, EyeOff, Clipboard } from "lucide-react";
 

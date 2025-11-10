@@ -241,22 +241,31 @@ const NewCredentialForm = ({
             <p>Carregando pastas...</p>
           ) : (
             <select
-              className="form-select"
-              value={folder ?? ""}
-              onChange={(e) => {
-                const v = e.target.value;
-                setFolder(v === "" ? "" : Number(v));
-              }}
-            >
-              <option value={currentFolderId ?? ""}>
-                {currentFolderId ? "Pasta atual" : "Raiz (sem pasta)"}
-              </option>
-              {folders.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.nome}
-                </option>
-              ))}
-            </select>
+  className="form-select"
+  value={folder === "" ? "" : String(folder)}
+  onChange={(e) => {
+    const v = e.target.value;
+    setFolder(v === "" ? "" : Number(v));
+  }}
+>
+  {/* Sempre disponível: enviar sem pasta (raiz) */}
+  <option value="">Raiz (sem pasta)</option>
+
+  {/* Quando estiver dentro de uma pasta, mostra a opção "Pasta atual" */}
+  {currentFolderId != null && (
+    <option value={String(currentFolderId)}>Pasta atual</option>
+  )}
+
+  {/* Lista de pastas, removendo a duplicata da pasta atual */}
+  {folders
+    .filter((f) => String(f.id) !== String(currentFolderId ?? ""))
+    .map((f) => (
+      <option key={f.id} value={String(f.id)}>
+        {f.nome}
+      </option>
+    ))}
+</select>
+
           )}
         </div>
       </div>

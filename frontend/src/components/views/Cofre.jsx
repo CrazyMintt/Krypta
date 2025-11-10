@@ -1,17 +1,19 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { Folder, MoreVertical, Search, Key, ChevronRight } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import Header from "../layout/Header";
 import Modal from "../layout/Modal";
-import ItemActionsMenu from "../layout/ItemActionsMenu";
 import NewCredentialForm from "../forms/NewCredentialForm";
 import RenameFolderForm from "../forms/RenameFolderForm";
 import ReadCredentialModal from "../views/ReadCredentialModal";
 import ShareItemModal from "../modals/ShareItemModal";
+import Sidebar from "../Cofre/sidebar";
+import Breadcrumbs from "../Cofre/BreadCrumbs";
+import FileList from "../Cofre/FileList";
 import "../../styles/share-modal.css";
 
-import * as folderService from "../../services/folderService";
 import * as tagService from "../../services/tagService";
+import * as folderService from "../../services/folderService";
 import * as dataService from "../../services/dataService";
+import useVaultLevel from "../hooks/useVaultLevel";
 
 const Cofre = ({
   activityLog,
@@ -22,15 +24,22 @@ const Cofre = ({
   onFolderChange,
   refreshKey,
 }) => {
-  const [currentFolder, setCurrentFolder] = useState(null); // { id, nome } | null
-  const [breadcrumbs, setBreadcrumbs] = useState([{ id: null, nome: "Raiz" }]);
 
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const {
+    currentFolder,
+    breadcrumbs,
+    items,
+    loading,
+    loadLevel,
+    navigateToFolder,
+    navigateToBreadcrumb,
+  } = useVaultLevel(refreshKey, onFolderChange);
 
+  // Tags
   const [allTags, setAllTags] = useState([]);
   const [selectedTags, setSelectedTags] = useState([]);
 
+  // Menus/Modais
   const [activeItemId, setActiveItemId] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
@@ -47,6 +56,7 @@ const Cofre = ({
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [itemToShare, setItemToShare] = useState(null);
 
+  // Carrega tags
   useEffect(() => {
     (async () => {
       try {
@@ -58,74 +68,7 @@ const Cofre = ({
     })();
   }, []);
 
-  const normalizeFolders = (folders) =>
-    (folders || []).map((f) => ({
-      id: f.id,
-      type: "folder",
-      name: f.nome,
-      email: null,
-      tags: [],
-      raw: f,
-    }));
-
-  const normalizeCredentials = (credentials) =>
-    (credentials || []).map((c) => {
-      const tags =
-        (c.separadores || [])
-          .filter((s) => s.tipo === "tag")
-          .map((s) => ({ id: s.id, name: s.nome, color: s.cor })) || [];
-      return {
-        id: c.id,
-        type: "credential",
-        name: c.nome_aplicacao ?? "",
-        email: c.senha?.email ?? "",
-        tags,
-        raw: c,
-      };
-    });
-
-  const loadLevel = useCallback(async (folderObjOrNull) => {
-    setLoading(true);
-    try {
-      const folders = !folderObjOrNull
-        ? await folderService.getRootFolders()
-        : await folderService.getSubfolders(folderObjOrNull.id);
-
-      const searchFilters = {
-        page_size: 100,
-        page_number: 1,
-        ...(folderObjOrNull ? { id_separadores: [folderObjOrNull.id] } : {}),
-        // OBS: se quiser listar SOMENTE itens “na raiz” (sem pasta),
-        // confirme com o backend qual filtro usar (ex.: id_pasta: null).
-      };
-
-      const dataPage = await dataService.searchData(searchFilters);
-      const dataList = Array.isArray(dataPage?.results)
-        ? dataPage.results
-        : Array.isArray(dataPage?.items)
-        ? dataPage.items
-        : Array.isArray(dataPage)
-        ? dataPage
-        : [];
-
-      const credentials = dataList.filter((d) => d.tipo === "senha");
-
-      setItems([...normalizeFolders(folders), ...normalizeCredentials(credentials)]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Carrega quando muda de pasta ou quando alguém sinaliza refresh pelo MainApp
-  useEffect(() => {
-    loadLevel(currentFolder);
-  }, [currentFolder, refreshKey, loadLevel]);
-
-  // Informa pasta atual ao MainApp
-  useEffect(() => {
-    onFolderChange?.(currentFolder?.id ?? null);
-  }, [currentFolder, onFolderChange]);
-
+  // Fecha menu ao clicar fora
   useEffect(() => {
     const handleOutsideClick = () => {
       if (activeItemId !== null) setActiveItemId(null);
@@ -134,12 +77,12 @@ const Cofre = ({
     return () => window.removeEventListener("click", handleOutsideClick);
   }, [activeItemId]);
 
-  const handleTagClick = (tagName) => {
+  // Filtro por tags (feito aqui, lista já chega normalizada pelo hook)
+  const handleToggleTag = (tagName) => {
     setSelectedTags((prev) =>
       prev.includes(tagName) ? prev.filter((t) => t !== tagName) : [...prev, tagName]
     );
   };
-
   const displayedItems =
     selectedTags.length > 0
       ? items.filter(
@@ -149,23 +92,7 @@ const Cofre = ({
         )
       : items;
 
-  // Navegação: apenas atualiza estado; o efeito recarrega
-  const navigateToFolder = (folderItemOrNull) => {
-    const next = folderItemOrNull ? { id: folderItemOrNull.id, nome: folderItemOrNull.name } : null;
-    setCurrentFolder(next);
-    setSelectedTags([]);
-    setBreadcrumbs((prev) => {
-      if (!next) return [{ id: null, nome: "Raiz" }];
-      const idx = prev.findIndex((b) => b.id === next.id);
-      if (idx >= 0) return prev.slice(0, idx + 1);
-      return [...prev, next];
-    });
-  };
-
-  const navigateToBreadcrumb = (bc) => {
-    navigateToFolder(bc.id === null ? null : { id: bc.id, name: bc.nome });
-  };
-
+  // Ações / Modais
   const openReadCredentialModal = async (credentialItem) => {
     try {
       const full = await dataService.getDataById(credentialItem.id);
@@ -192,7 +119,6 @@ const Cofre = ({
     setIsReadCredentialModalOpen(true);
     setActiveItemId(null);
   };
-
   const closeReadCredentialModal = () => {
     setCredentialToRead(null);
     setIsReadCredentialModalOpen(false);
@@ -265,28 +191,11 @@ const Cofre = ({
 
   return (
     <>
-      <div className="left-panel">
-        <div className="search-bar">
-          <Search size={16} />
-          <span>Pesquisar</span>
-        </div>
-
-        <div className="tags">
-          <div className="tag-title">Tags</div>
-          <div className="tag-list">
-            {allTags.map((tag) => (
-              <div
-                key={tag.id}
-                className={`tag ${selectedTags.includes(tag.name) ? "selected" : ""}`}
-                onClick={() => handleTagClick(tag.name)}
-                style={{ borderLeftColor: tag.color }}
-              >
-                {tag.name}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <Sidebar
+        allTags={allTags}
+        selectedTags={selectedTags}
+        onToggleTag={handleToggleTag}
+      />
 
       <div className="main-content">
         <Header
@@ -300,71 +209,25 @@ const Cofre = ({
           onLogout={onLogout}
         />
 
-        <div className="breadcrumbs">
-          {breadcrumbs.map((bc, i) => (
-            <span
-              key={`${bc.id ?? "root"}-${i}`}
-              onClick={() => navigateToBreadcrumb(bc)}
-              style={{ cursor: "pointer" }}
-            >
-              {i > 0 && <ChevronRight size={16} />}
-              {bc.nome}
-            </span>
-          ))}
-        </div>
+        <Breadcrumbs breadcrumbs={breadcrumbs} onClick={navigateToBreadcrumb} />
 
         <div className="file-manager">
-          {loading ? (
-            <div className="file-list">
-              <p>Carregando...</p>
-            </div>
-          ) : (
-            <div className="file-list">
-              {displayedItems.map((item) => (
-                <div
-                  key={`${item.type}-${item.id}`}
-                  className="file-item"
-                  onClick={() => {
-                    if (item.type === "folder") navigateToFolder(item);
-                    if (item.type === "credential") openReadCredentialModal(item);
-                  }}
-                >
-                  <div className="file-info">
-                    {item.type === "folder" && <Folder size={20} />}
-                    {item.type === "credential" && <Key size={20} />}
-                    <div className="file-details">
-                      <span className="file-name">{item.name}</span>
-                      {item.type === "credential" && item.email && (
-                        <span className="file-email">{item.email}</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="file-actions">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveItemId(item.id === activeItemId ? null : item.id);
-                      }}
-                    >
-                      <MoreVertical size={16} />
-                    </button>
-                    {activeItemId === item.id && (
-                      <ItemActionsMenu
-                        onViewCredential={() => openReadCredentialModal(item)}
-                        onEditCredential={() => openEditModal(item)}
-                        onEditFolder={() => openEditFolderModal(item)}
-                        onDelete={() => openDeleteModal(item)}
-                        onShare={() => openShareModal(item)}
-                        itemType={item.type}
-                      />
-                    )}
-                  </div>
-                </div>
-              ))}
-              {displayedItems.length === 0 && <p>Nenhum item.</p>}
-            </div>
-          )}
+          <FileList
+            loading={loading}
+            items={items}
+            selectedItems={displayedItems}
+            activeItemId={activeItemId}
+            setActiveItemId={setActiveItemId}
+            onOpenFolder={navigateToFolder}
+            onOpenCredential={openReadCredentialModal}
+            onActions={{
+              onView: openReadCredentialModal,
+              onEditCredential: openEditModal,
+              onEditFolder: openEditFolderModal,
+              onDelete: openDeleteModal,
+              onShare: openShareModal,
+            }}
+          />
         </div>
       </div>
 

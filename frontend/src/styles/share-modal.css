@@ -1,3 +1,11 @@
+/* --- Share Modal --- */
+.share-modal {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* --- Duração (prazo de compartilhamento) --- */
 .duration-group {
   display: flex;
   gap: 0.5rem;
@@ -5,24 +13,52 @@
 
 .duration-group input {
   width: 70%;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  padding: 8px;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .duration-group select {
   width: 30%;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  padding: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
-.share-modal {
-  font-size: 14px;
-  font-weight: 500;
-  /* margin-bottom: 8px; */
+.duration-group input:hover,
+.duration-group select:hover {
+  border-color: var(--border-strong);
+  background-color: var(--bg-input-focus);
 }
 
+/* --- Container do link gerado --- */
 .generated-link-container {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
+/* --- Botão de gerar link --- */
 .generated-link-button {
   width: 6rem;
+  background-color: var(--brand-primary);
+  color: var(--text-primary);
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.generated-link-button:hover {
+  background-color: var(--color-primary-press);
+  transform: scale(1.03);
 }

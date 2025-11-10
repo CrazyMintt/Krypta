@@ -21,7 +21,6 @@ const ShareItemModal = ({ item, onCancel }) => {
     setIsLoading(true);
 
     try {
-      // Define expiração conforme unidade escolhida
       const expiration = new Date();
       if (durationUnit === "minutos")
         expiration.setMinutes(expiration.getMinutes() + Number(durationValue));
@@ -30,13 +29,10 @@ const ShareItemModal = ({ item, onCancel }) => {
       if (durationUnit === "dias")
         expiration.setDate(expiration.getDate() + Number(durationValue));
 
-      // Monta o payload conforme o backend exige
       const payload = {
         itens: [
           {
             dado_origem_id: item.id,
-            // Aqui assumimos que você ainda não tem criptografia implementada no front
-            // Por enquanto, mandamos uma simulação codificada
             dado_criptografado: btoa(JSON.stringify(item)),
           },
         ],
@@ -44,13 +40,10 @@ const ShareItemModal = ({ item, onCancel }) => {
         n_acessos_total: Number(accessCount),
       };
 
-      // Chama o backend
       const response = await createShare(payload);
 
-      // Atualiza estado com link real retornado
       setGeneratedLink(response.share_link);
 
-      // Atualiza contexto local (UI)
       addSharedItem({
         id: response.id || Math.random(),
         name: item.name,
@@ -59,7 +52,6 @@ const ShareItemModal = ({ item, onCancel }) => {
         expiresIn: new Date(expiration).toLocaleString(),
       });
 
-      // Log local de atividade
       const newLogEntry = {
         type: "add",
         title: `Item "${item.name}" compartilhado`,

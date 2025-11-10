@@ -10,12 +10,10 @@ export const SharedItemsProvider = ({ children }) => {
   const [activityLog, setActivityLog] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 🔹 Carrega os compartilhamentos reais do backend ao montar o contexto
   useEffect(() => {
     const fetchShares = async () => {
       try {
         const data = await getMyShares();
-        // Converte o retorno do backend para o formato esperado na UI
         const formatted = data.map((share) => ({
           id: share.id,
           name: share.token_acesso || "Compartilhamento",
@@ -34,12 +32,10 @@ export const SharedItemsProvider = ({ children }) => {
     fetchShares();
   }, []);
 
-  // 🔹 Adiciona novo compartilhamento
   const addSharedItem = (item) => {
     setSharedItems((prev) => [item, ...prev]);
   };
 
-  // 🔹 Remove compartilhamento (chama o backend e atualiza estado local)
   const removeSharedItem = async (itemId) => {
     try {
       await deleteShare(itemId);
