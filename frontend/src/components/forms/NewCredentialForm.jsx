@@ -124,7 +124,7 @@ const NewCredentialForm = ({ onCancel, addPassword, editItem, updatePassword, al
             required
           />
         </div>
-        <div className="form-group">
+        {/* <div className="form-group">
           <label className="form-label">Pasta</label>
           <select
             className="form-select"
@@ -136,7 +136,7 @@ const NewCredentialForm = ({ onCancel, addPassword, editItem, updatePassword, al
             <option value="Cofre 2">Cofre 2</option>
             <option value="Cofre 3">Cofre 3</option>
           </select>
-        </div>
+        </div> */}
       </div>
       <div className="divider"></div>
       <div className="form-section">
