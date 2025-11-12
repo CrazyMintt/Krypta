@@ -84,7 +84,7 @@ class Dado(Base):
     usuario_id: Mapped[int] = mapped_column(
         ForeignKey("usuario.id", ondelete="CASCADE")
     )
-    nome_aplicacao: Mapped[Optional[str]] = mapped_column(String(255))
+    nome_aplicacao: Mapped[str] = mapped_column(String(255))
     descricao: Mapped[Optional[str]] = mapped_column(Text)
     tipo: Mapped[TipoDado] = mapped_column(
         MysqlEnum("arquivo", "senha", name="tipo_enum")
@@ -112,9 +112,9 @@ class Arquivo(Base):
     id: Mapped[int] = mapped_column(
         ForeignKey("dados.id", ondelete="CASCADE"), primary_key=True
     )
-    arquivo: Mapped[Optional[bytes]] = mapped_column(LONGBLOB)
-    extensao: Mapped[Optional[str]] = mapped_column(String(50))
-    nome_arquivo: Mapped[Optional[str]] = mapped_column(String(255))
+    arquivo: Mapped[bytes] = mapped_column(LONGBLOB)
+    extensao: Mapped[str] = mapped_column(String(50))
+    nome_arquivo: Mapped[str] = mapped_column(String(255))
 
     dado: Mapped["Dado"] = relationship(back_populates="arquivo")
 

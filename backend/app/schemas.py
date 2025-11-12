@@ -7,11 +7,13 @@ from pydantic import (
     field_validator,
     model_validator,
     PositiveInt,
+    computed_field,
 )
 from pydantic_extra_types.color import Color
-from typing import Optional, List, Self
+from typing import Any, Optional, List, Self
 from datetime import datetime
-from .models import TipoDado, TipoSeparador
+from .models import TipoDado, TipoSeparador, Arquivo
+import base64
 
 
 # Enum de Eventos e Logs
@@ -247,6 +249,7 @@ class CredentialResponse(BaseSchema):
     id: int
     host_url: Optional[str]
     email: Optional[str]
+    senha_cripto: str
 
 
 class FileResponse(BaseSchema):
@@ -255,6 +258,7 @@ class FileResponse(BaseSchema):
     id: int
     extensao: str
     nome_arquivo: str
+    arquivo_data: str
 
 
 # --- Schema de Output Principal (Pai) ---
