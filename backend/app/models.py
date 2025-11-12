@@ -228,7 +228,8 @@ class Log(Base):
     regiao: Mapped[Optional[str]] = mapped_column(String(255))
     nome_aplicacao: Mapped[Optional[str]] = mapped_column(String(255))
     tipo_acesso: Mapped[str] = mapped_column(String(100))
-    id_dado: Mapped[Optional[int]] = mapped_column(ForeignKey("dados.id"))
-
+    id_dado: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("dados.id", ondelete="SET NULL")
+    )
     usuario: Mapped[Optional["Usuario"]] = relationship(back_populates="logs")
     dado: Mapped[Optional["Dado"]] = relationship(back_populates="logs")

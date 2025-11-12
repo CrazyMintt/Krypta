@@ -447,7 +447,7 @@ def delete_data_by_id(
             if remaining_items_count == 0:
                 repository_data.delete_compartilhamento_by_id(db, comp_id=comp_id)
         services.log_and_notify(
-            db, user, schemas.LogTipo.DADO_DELETADO, log_context, tasks, dado=dado
+        db, user, schemas.LogTipo.DADO_DELETADO, log_context, tasks, dado=dado
         )
         db.commit()
     except Exception as e:
