@@ -119,6 +119,22 @@
 
 .auth-container .toggle-password { right: 14px; }
 
+.toggle-password {
+  background: none;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggle-password svg {
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+}
+
+
 .forgot-password {
   text-align: right;
   margin-top: 12px;

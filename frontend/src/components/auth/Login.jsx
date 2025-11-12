@@ -102,9 +102,6 @@ const Login = ({ onNavigateToSignup, onLoginSuccess, onNavigateToLanding }) => {
                 </svg>
               </button>
             </div>
-            <div className="forgot-password">
-              <a href="#">Esqueci minha senha</a>
-            </div>
           </div>
 
           <button type="submit" className="submit-btn">Entrar</button>
