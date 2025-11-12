@@ -1,20 +1,30 @@
 import React, { useState, useEffect } from "react";
+import { folderService } from "../../services";
 
 const RenameFolderForm = ({ folder, onCancel, updateFolderName }) => {
   const [name, setName] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (folder) setName(folder.name);
+    if (folder) setName(folder.nome || "");
   }, [folder]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (name.trim() === "") return;
-    
-    updateFolderName({
-      ...folder,
-      name: name.trim()
-    });
+    const newName = name.trim();
+    if (!newName || newName === folder.nome) return;
+
+    setIsSubmitting(true);
+    try {
+      await folderService.updateFolder(folder.id, { nome: newName });
+      updateFolderName({ ...folder, nome: newName });
+      onCancel();
+    } catch (err) {
+      console.error("Erro ao renomear pasta:", err);
+      alert(err.response?.data?.detail || "Erro ao renomear pasta.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -36,8 +46,12 @@ const RenameFolderForm = ({ folder, onCancel, updateFolderName }) => {
         <button type="button" className="btn btn-secondary" onClick={onCancel}>
           Cancelar
         </button>
-        <button type="submit" className="btn btn-primary">
-          Salvar
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Salvando..." : "Salvar"}
         </button>
       </div>
     </form>

@@ -1,55 +1,94 @@
-import React from 'react';
-import { Eye, EyeOff, Clipboard } from 'lucide-react';
+import React from "react";
+import { Eye, EyeOff, Clipboard } from "lucide-react";
 
 const ReadCredentialModal = ({ credential }) => {
   const [showPassword, setShowPassword] = React.useState(false);
-
-  const handleCopy = (text) => {
-    navigator.clipboard.writeText(text);
-    // You might want to show a notification that the text was copied
-  };
-
   if (!credential) return null;
 
+  const copyToClipboard = async (text) => {
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (e) {
+      // fallback
+      const el = document.createElement("textarea");
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+    }
+  };
+
   return (
-    <div className="item-form">
+    <div className="item-form" role="region" aria-label="Detalhes da credencial">
       <div className="form-group">
-        <label className="form-label">Name</label>
-        <input type="text" className="form-input" value={credential.name} readOnly />
-      </div>
-      <div className="form-group">
-        <label className="form-label">Email/Username</label>
-        <input type="text" className="form-input" value={credential.email} readOnly />
-      </div>
-      <div className="form-group">
-        <label className="form-label">Password</label>
-        <div className="password-input-wrapper two-buttons">
-          <input
-            type={showPassword ? 'text' : 'password'}
-            className="form-input"
-            value={credential.password} // Assuming the credential object has a password field
-            readOnly
-          />
-          <button onClick={() => setShowPassword(!showPassword)} className="toggle-password">
-            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-          </button>
-          <button onClick={() => handleCopy(credential.password)} className="copy-btn">
+        <label className="form-label">Nome</label>
+        <div className="copyable-input">
+          <input type="text" className="form-input" value={credential.name || ""} readOnly />
+          <button type="button" className="copy-btn" aria-label="Copiar nome" onClick={() => copyToClipboard(credential.name || "")}>
             <Clipboard size={18} />
           </button>
         </div>
       </div>
-      {credential.url && (
+
+      <div className="form-group">
+        <label className="form-label">Email/Usuário</label>
+        <div className="copyable-input">
+          <input type="text" className="form-input" value={credential.email || ""} readOnly />
+          <button type="button" className="copy-btn" aria-label="Copiar email/usuário" onClick={() => copyToClipboard(credential.email || "")}>
+            <Clipboard size={18} />
+          </button>
+        </div>
+      </div>
+
+      <div className="form-group">
+        <label className="form-label">Senha</label>
+        <div className="password-input-wrapper two-buttons">
+          <input
+            type={showPassword ? "text" : "password"}
+            className="form-input"
+            value={credential.password || ""}
+            readOnly
+            aria-label="Campo de senha"
+          />
+          <button
+            type="button"
+            className="toggle-password"
+            aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+            onClick={() => setShowPassword((v) => !v)}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+          <button
+            type="button"
+            className="copy-btn"
+            aria-label="Copiar senha"
+            onClick={() => copyToClipboard(credential.password || "")}
+          >
+            <Clipboard size={18} />
+          </button>
+        </div>
+      </div>
+
+      {credential.url ? (
         <div className="form-group">
           <label className="form-label">URL</label>
-          <input type="text" className="form-input" value={credential.url} readOnly />
+          <div className="copyable-input">
+            <input type="text" className="form-input" value={credential.url} readOnly />
+            <button type="button" className="copy-btn" aria-label="Copiar URL" onClick={() => copyToClipboard(credential.url)}>
+              <Clipboard size={18} />
+            </button>
+          </div>
         </div>
-      )}
-      {credential.tags && credential.tags.length > 0 && (
+      ) : null}
+
+      {Array.isArray(credential.tags) && credential.tags.length > 0 && (
         <div className="form-group">
           <label className="form-label">Tags</label>
           <div className="tag-list-modal">
-            {credential.tags.map((tag) => (
-              <div key={tag.name} className="tag-item-modal" style={{ backgroundColor: tag.color }}>
+            {credential.tags.map((tag, idx) => (
+              <div key={`${tag.name}-${idx}`} className="tag-item-modal" style={{ backgroundColor: tag.color || "#ccc" }} title={tag.name}>
                 {tag.name}
               </div>
             ))}

@@ -1,3 +1,4 @@
+/* --- Sharing Page --- */
 .sharing-list {
   padding: 20px;
 }
@@ -8,13 +9,13 @@
   align-items: center;
   padding: 15px;
   border-radius: 8px;
-  background-color: #2a2d35;
+  background-color: var(--bg-surface);
   margin-bottom: 10px;
   transition: background-color 0.2s;
 }
 
 .share-item:hover {
-  background-color: #31343d;
+  background-color: var(--bg-surface-hover);
 }
 
 .share-info {
@@ -25,18 +26,18 @@
 .share-name {
   font-weight: 600;
   font-size: 1.1em;
-  color: #e0e0e0;
+  color: var(--text-primary);
 }
 
 .share-with {
   font-size: 0.9em;
-  color: #a0a0a0;
+  color: var(--text-secondary);
   margin-top: 4px;
 }
 
 .share-details {
   font-size: 0.8em;
-  color: #888;
+  color: var(--text-tertiary);
   margin-top: 8px;
 }
 
@@ -47,27 +48,29 @@
 .share-actions button {
   background: none;
   border: none;
-  color: #a0a0a0;
+  color: var(--text-secondary);
   cursor: pointer;
   padding: 5px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .share-actions button:hover {
-  background-color: #444;
-  color: #fff;
+  background-color: var(--bg-button-hover);
+  color: var(--text-primary);
 }
 
 .item-actions-menu {
   position: absolute;
   right: 0;
   top: 30px;
-  background-color: #3a3a3a;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-soft);
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px var(--shadow-soft);
   z-index: 10;
   width: 120px;
   overflow: hidden;
@@ -77,10 +80,11 @@
   padding: 10px 15px;
   cursor: pointer;
   font-size: 0.9em;
-  color: #e0e0e0;
-  background-color: #2A2D35;
+  color: var(--text-primary);
+  background-color: var(--bg-surface);
+  transition: background-color 0.2s ease;
 }
 
 .item-actions-menu .menu-item:hover {
-  background-color: #31343D;
+  background-color: var(--bg-surface-hover);
 }

@@ -1,91 +1,95 @@
 .dashboard-view {
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
 
 .dashboard-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    padding: 20px;
-    flex-grow: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  padding: 20px;
+  flex-grow: 1;
 }
 
 .dashboard-section {
-    background-color: #1e1f24;
-    padding: 20px;
-    border-radius: 8px;
+  background-color: var(--bg-deep);
+  padding: 20px;
+  border-radius: 8px;
 }
 
 .section-title {
-    font-size: 1.2rem;
-    margin-bottom: 20px;
+  font-size: 1.2rem;
+  margin-bottom: 20px;
+  color: var(--text-primary);
 }
 
 .chart-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
 }
 
 .donut-chart {
-    position: relative;
-    width: 280px;
-    height: 280px;
+  position: relative;
+  width: 280px;
+  height: 280px;
 }
 
 .chart-center {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
 }
 
 .chart-value {
-    font-size: 2rem;
-    font-weight: bold;
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--text-primary);
 }
 
 .chart-label {
-    font-size: 1rem;
-    color: #aaa;
+  font-size: 1rem;
+  color: var(--text-secondary);
 }
 
 .dashboard-section .file-list .file-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px 0;
-    border-bottom: 1px solid #2a2d35;
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-soft);
 }
 
 .dashboard-section .file-list .file-item:last-child {
-    border-bottom: none;
+  border-bottom: none;
 }
 
 .file-type {
-    font-weight: bold;
+  font-weight: bold;
+  color: var(--text-primary);
 }
 
 .activity-list .activity-item {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
 }
 
 .activity-icon svg {
-    width: 24px;
-    height: 24px;
-    fill: #8b5cf6;
+  width: 24px;
+  height: 24px;
+  fill: var(--brand-primary);
 }
 
 .activity-title {
-    font-weight: bold;
+  font-weight: bold;
+  color: var(--text-primary);
 }
 
 .activity-time {
-    font-size: 0.9rem;
-    color: #aaa;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
 }

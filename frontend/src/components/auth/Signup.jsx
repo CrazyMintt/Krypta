@@ -1,44 +1,41 @@
-import React from 'react';
+import React, { useState } from "react";
+import { signup } from "../../services/userService";
 
 const Signup = ({ onNavigateToLogin, onNavigateToLanding }) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleSignup = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
-    const email = e.target.elements.email.value;
-    const nome = e.target.elements.nome.value;
+    const email = e.target.elements.email.value.trim();
+    const nome = e.target.elements.nome.value.trim();
     const password = e.target.elements.password.value;
     const confirmPassword = e.target.elements.confirmPassword.value;
 
     if (password !== confirmPassword) {
       alert("As senhas não coincidem!");
+      setIsSubmitting(false);
       return;
     }
 
     try {
-      const response = await fetch("https://localhost:8000/users/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: email,
-          nome: nome,
-          senha_mestre: password,
-        }),
-      });
-
-      if (!response.ok) {
-        const errData = await response.json();
-        alert(errData.detail || "Erro ao registrar usuário");
-        return;
-      }
-
+      await signup(email, nome, password);
       alert("Conta criada com sucesso!");
+      e.target.reset();
       onNavigateToLogin();
-      
     } catch (error) {
       console.error("Erro ao registrar usuário:", error);
-      alert("Erro no servidor");
+      const errMsg =
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        (error.response?.status === 409
+          ? "Este email já está registrado."
+          : "Erro ao registrar usuário.");
+      alert(errMsg);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -46,22 +43,35 @@ const Signup = ({ onNavigateToLogin, onNavigateToLanding }) => {
     <div className="auth-container">
       <div className="form-container signup-form-container">
         <div className="form-header">
-            <div className="form-header-row">
-                <div className="form-subtitle">
-                    Bem-vindo ao <a href="#" onClick={(e) => { e.preventDefault(); onNavigateToLanding(); }}>Krypta</a>
-                </div>
-                <div className="account-link">
-                    <span className="account-link-text">Já possui uma conta?</span>
-                    <a href="#" onClick={(e) => {
-                        e.preventDefault();
-                        onNavigateToLogin();
-                        }}>
-                    Entrar
-                    </a>
-                </div>
+          <div className="form-header-row">
+            <div className="form-subtitle">
+              Bem-vindo ao{" "}
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onNavigateToLanding();
+                }}
+              >
+                Krypta
+              </a>
             </div>
-    <h1 className="form-title">Criar Conta</h1>
-    </div>
+            <div className="account-link">
+              <span className="account-link-text">Já possui uma conta?</span>
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onNavigateToLogin();
+                }}
+              >
+                Entrar
+              </a>
+            </div>
+          </div>
+          <h1 className="form-title">Criar Conta</h1>
+        </div>
+
         <form id="signupForm" onSubmit={handleSignup}>
           <div className="form-group">
             <label className="form-label">Digite seu nome de usuário ou email</label>
@@ -85,7 +95,9 @@ const Signup = ({ onNavigateToLogin, onNavigateToLanding }) => {
             <input name="confirmPassword" type="password" className="form-input" placeholder="Senha" required />
           </div>
 
-          <button type="submit" className="submit-btn">Criar Conta</button>
+          <button type="submit" className="submit-btn" disabled={isSubmitting}>
+            {isSubmitting ? "Criando conta..." : "Criar Conta"}
+          </button>
         </form>
       </div>
     </div>
