@@ -9,12 +9,16 @@
   gap: 20px;
   padding: 20px;
   flex-grow: 1;
+  align-items: stretch; /* já colocado antes */
+  height: calc(100vh - 80px); /* altura visível após o header */
+  overflow: hidden;    
 }
 
 .dashboard-section {
-  background-color: var(--bg-deep);
-  padding: 20px;
-  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;    /* IMPORTANTE */
+  min-height: 0;   /* IMPORTANTE */
 }
 
 .section-title {
@@ -22,6 +26,8 @@
   margin-bottom: 20px;
   color: var(--text-primary);
 }
+
+/* -------- Armazenamento -------- */
 
 .chart-container {
   display: flex;
@@ -71,6 +77,23 @@
   color: var(--text-primary);
 }
 
+.empty-file-list {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  padding: 8px 0;
+}
+
+
+/* -------- Atividade recente -------- */
+
+.activity-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+
 .activity-list .activity-item {
   display: flex;
   align-items: center;
@@ -92,4 +115,28 @@
 .activity-time {
   font-size: 0.9rem;
   color: var(--text-secondary);
+}
+
+/* Scrollbar minimalista */
+.activity-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.activity-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.activity-list::-webkit-scrollbar-thumb {
+  background-color: var(--border-soft);
+  border-radius: 4px;
+}
+
+.activity-list::-webkit-scrollbar-thumb:hover {
+  background-color: var(--border-medium);
+}
+
+/* Firefox */
+.activity-list {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-soft) transparent;
 }

@@ -2,6 +2,9 @@ import React, { useRef, useState, useEffect } from "react";
 import * as credentialService from "../../services/credentialService";
 import * as folderService from "../../services/folderService";
 import * as tagService from "../../services/tagService";
+import { useCryptoKey } from "../../context/cryptoKeyContext";
+import { encryptText } from "../../utils/encryption";
+import { toBase64 } from "../../utils/toBase64";
 
 const NewCredentialForm = ({
   onCancel,
@@ -33,6 +36,9 @@ const NewCredentialForm = ({
 
   const [folders, setFolders] = useState([]); // [{id, nome}]
   const [loadingFolders, setLoadingFolders] = useState(true);
+
+  const { cryptoKey } = useCryptoKey();
+
 
   // Preencher campos ao entrar em edição
   useEffect(() => {
@@ -178,7 +184,12 @@ const NewCredentialForm = ({
     if (isSubmitting) return;
     setIsSubmitting(true);
 
-    // Coerção de folder para número quando aplicável
+    if (!cryptoKey) {
+      alert("Sua chave de criptografia não está carregada. Faça login novamente.");
+      setIsSubmitting(false);
+      return;
+    }
+
     const idPasta =
       folder === "" || folder === null ? undefined : Number(folder);
 
@@ -186,13 +197,23 @@ const NewCredentialForm = ({
       .map((t) => Number(t.id))
       .filter((n) => Number.isFinite(n) && n > 0);
 
+    let encryptedPassword = null;
+
+    if (password.trim()) {
+      encryptedPassword = await encryptText(cryptoKey, password.trim());
+    }
+
     const payload = {
       nome_aplicacao: name,
       ...(description?.trim() && { descricao: description.trim() }),
       senha: {
-        ...(password?.trim() && { senha_cripto: password.trim() }),
         ...(email?.trim() && { email: email.trim() }),
         ...(url?.trim() && { host_url: url.trim() }),
+
+        ...(encryptedPassword && {
+          senha_cripto: toBase64(encryptedPassword.ciphertext),
+          iv: toBase64(encryptedPassword.iv)
+        })
       },
       ...(typeof idPasta === "number" && !Number.isNaN(idPasta) && {
         id_pasta: idPasta,
@@ -231,6 +252,7 @@ const NewCredentialForm = ({
             placeholder="Digite o nome do item"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            maxLength={60}
             required
           />
         </div>
@@ -361,6 +383,7 @@ const NewCredentialForm = ({
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={handleTagInputKeyDown}
+              maxLength={60}
             />
             <input
               type="color"

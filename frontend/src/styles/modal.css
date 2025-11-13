@@ -84,6 +84,31 @@
   margin-bottom: 18px;
 }
 
+.copyable-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.copyable-input .form-input {
+  flex: 1;
+  padding-right: 40px; /* espaço para o botão */
+}
+
+.copy-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+
 .form-label {
   display: block;
   font-size: 14px;
@@ -364,3 +389,63 @@
   border-color: var(--text-primary);
   background-color: rgba(255, 255, 255, 0.1);
 }
+
+.tag-item-modal {
+  display: flex;
+  align-items: center;
+  min-width: 0;        /* ESSENCIAL */
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: #fff;
+}
+
+.existing-tag-pill {
+  display: flex;
+  align-items: center;
+  min-width: 0;          /* ESSENCIAL */
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.color-picker {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  background: none;
+}
+
+/* Remove halo do Chrome */
+.color-picker::-webkit-color-swatch-wrapper {
+  padding: 0;
+  border-radius: 6px;
+}
+
+.color-picker::-webkit-color-swatch {
+  border: 2px solid var(--border-soft);
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+/* Firefox */
+.color-picker::-moz-color-swatch {
+  border: 2px solid var(--border-soft);
+  border-radius: 6px;
+}
+

@@ -53,3 +53,27 @@
   font-size: 12px;
   color: var(--text-secondary);
 }
+
+/* Scrollbar customizado */
+.notifications-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notifications-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.notifications-list::-webkit-scrollbar-thumb {
+  background-color: var(--border-soft);
+  border-radius: 4px;
+}
+
+.notifications-list::-webkit-scrollbar-thumb:hover {
+  background-color: var(--border-medium);
+}
+
+/* Firefox */
+.notifications-list {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-soft) transparent;
+}

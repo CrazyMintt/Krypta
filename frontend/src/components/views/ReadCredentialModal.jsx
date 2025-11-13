@@ -1,7 +1,13 @@
 import React from "react";
 import { Eye, EyeOff, Clipboard } from "lucide-react";
+import { useCryptoKey } from "../../context/cryptoKeyContext";
+import { decryptText } from "../../utils/decryptText";
 
 const ReadCredentialModal = ({ credential }) => {
+
+  const [plainPassword, setPlainPassword] = React.useState("");
+  const { cryptoKey } = useCryptoKey();
+
   const [showPassword, setShowPassword] = React.useState(false);
   if (!credential) return null;
 
@@ -19,6 +25,26 @@ const ReadCredentialModal = ({ credential }) => {
       document.body.removeChild(el);
     }
   };
+
+  React.useEffect(() => {
+  const encrypted = credential?.senha?.senha_cripto;
+  const iv = credential?.senha?.iv;
+
+  if (!encrypted || !iv) return;
+  if (!cryptoKey) return;
+
+  const decrypt = async () => {
+    try {
+      const pwd = await decryptText(cryptoKey, encrypted, iv);
+      setPlainPassword(pwd);
+    } catch (err) {
+      console.error("Erro ao descriptografar senha:", err);
+      setPlainPassword("[erro]");
+    }
+  };
+
+  decrypt();
+}, [credential, cryptoKey]);
 
   return (
     <div className="item-form" role="region" aria-label="Detalhes da credencial">
@@ -48,9 +74,8 @@ const ReadCredentialModal = ({ credential }) => {
           <input
             type={showPassword ? "text" : "password"}
             className="form-input"
-            value={credential.password || ""}
+            value={plainPassword}
             readOnly
-            aria-label="Campo de senha"
           />
           <button
             type="button"
@@ -64,7 +89,7 @@ const ReadCredentialModal = ({ credential }) => {
             type="button"
             className="copy-btn"
             aria-label="Copiar senha"
-            onClick={() => copyToClipboard(credential.password || "")}
+            onClick={() => copyToClipboard(plainPassword)}
           >
             <Clipboard size={18} />
           </button>

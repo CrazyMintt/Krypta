@@ -35,9 +35,92 @@ const Cofre = ({
     navigateToBreadcrumb,
   } = useVaultLevel(refreshKey, onFolderChange);
 
+  const [allVaultItems, setAllVaultItems] = useState([]);
+
+
+  const loadAllFolders = async () => {
+  const folders = [];
+
+  const scan = async (parentId = null) => {
+    const subfolders = parentId
+      ? await folderService.getSubfolders(parentId)
+      : await folderService.getRootFolders();
+
+    for (const f of subfolders) {
+      folders.push({
+        id: f.id,
+        name: f.nome,
+        type: "folder",
+        parentId: f.id_pasta_raiz,
+        raw: f,
+      });
+
+      await scan(f.id);
+    }
+  };
+
+  await scan();
+  return folders;
+};
+
+const loadAllData = async () => {
+  let page = 1;
+  const size = 50;
+  let items = [];
+  let fetched;
+
+  do {
+    fetched = await dataService.searchData({
+      page_number: page,
+      page_size: size,
+      id_separadores: [],
+    });
+
+    items = items.concat(fetched);
+    page++;
+  } while (fetched.length === size);
+
+  return items.map((d) => {
+    const folderSep = (d.separadores || []).find((s) => s.tipo === "pasta");
+
+    return {
+      id: d.id,
+      name: d.nome_aplicacao,
+      type: "credential",
+      email: d.senha?.email || "",
+      url: d.senha?.host_url || "",
+      folderId: folderSep?.id_pasta_raiz || null,
+      tags: (d.separadores || [])
+        .filter((s) => s.tipo === "tag")
+        .map((s) => ({ name: s.nome, color: s.cor })),
+      raw: d,
+    };
+  });
+};
+
+const loadEntireVault = async () => {
+  try {
+    const folders = await loadAllFolders();
+    const data = await loadAllData();
+    setAllVaultItems([...folders, ...data]);
+  } catch (err) {
+    console.error("Erro ao carregar cofre inteiro:", err);
+  }
+};
+
+useEffect(() => {
+  loadEntireVault();
+}, []);
+
+
   // Tags
   const [allTags, setAllTags] = useState([]);
   const [selectedTags, setSelectedTags] = useState([]);
+  const reloadTags = async () => {
+      const data = await tagService.getAllTags();
+      setAllTags((data || []).map((t) => ({ id: t.id, name: t.nome, color: t.cor })));
+    };
+
 
   // Menus/Modais
   const [activeItemId, setActiveItemId] = useState(null);
@@ -83,14 +166,6 @@ const Cofre = ({
       prev.includes(tagName) ? prev.filter((t) => t !== tagName) : [...prev, tagName]
     );
   };
-  const displayedItems =
-    selectedTags.length > 0
-      ? items.filter(
-          (item) =>
-            item.tags &&
-            selectedTags.every((selected) => item.tags.some((t) => t.name === selected))
-        )
-      : items;
 
   // Ações / Modais
   const openReadCredentialModal = async (credentialItem) => {
@@ -189,21 +264,70 @@ const Cofre = ({
     closeEditFolderModal();
   };
 
+  // Search
+const [searchTerm, setSearchTerm] = useState("");
+
+// 1. Filtragem global por texto
+const textFiltered = allVaultItems.filter((item) => {
+  const q = searchTerm.toLowerCase();
+
+  if (item.type === "folder") {
+    return item.name.toLowerCase().includes(q);
+  }
+
+  if (item.type === "credential") {
+    return (
+      item.name.toLowerCase().includes(q) ||
+      item.email.toLowerCase().includes(q) ||
+      item.url.toLowerCase().includes(q)
+    );
+  }
+
+  return false;
+});
+
+// 2. Filtragem global por tags
+const tagsFiltered =
+  selectedTags.length === 0
+    ? textFiltered
+    : textFiltered.filter((item) =>
+        item.tags &&
+        selectedTags.every((s) =>
+          item.tags?.some((t) => t.name === s)
+        )
+      );
+
+// 3. Se houver busca OU tags → usar filtragem global
+//    Caso contrário → usar apenas a pasta atual
+const rootItems =
+  searchTerm.trim() !== "" || selectedTags.length > 0
+    ? tagsFiltered       // global
+    : items;             // somente pasta atual
+
+const truncate = (text, limit = 20) =>
+  text.length > limit ? text.slice(0, limit) + "..." : text;
+
+const limitedTagNames = selectedTags.map(t => truncate(t, 20));
+
+const titleText =
+  selectedTags.length > 0
+    ? `Itens com as tags "${limitedTagNames.join(", ")}"`
+    : "Meu Cofre";
+
+
   return (
     <>
       <Sidebar
         allTags={allTags}
         selectedTags={selectedTags}
         onToggleTag={handleToggleTag}
+        refreshTags={reloadTags}
+        onSearch={setSearchTerm}
       />
 
       <div className="main-content">
         <Header
-          title={
-            selectedTags.length > 0
-              ? `Itens com as tags "${selectedTags.join(", ")}"`
-              : "Meu Cofre"
-          }
+          title={titleText}
           onNewFolder={() => openNewFolderModal(currentFolder?.id ?? null)}
           onNewCredential={() => openNewCredentialModal(currentFolder?.id ?? null)}
           onLogout={onLogout}
@@ -214,8 +338,8 @@ const Cofre = ({
         <div className="file-manager">
           <FileList
             loading={loading}
-            items={items}
-            selectedItems={displayedItems}
+            items={rootItems}
+            selectedItems={rootItems}
             activeItemId={activeItemId}
             setActiveItemId={setActiveItemId}
             onOpenFolder={navigateToFolder}
