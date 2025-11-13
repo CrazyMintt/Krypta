@@ -39,6 +39,7 @@ const RenameFolderForm = ({ folder, onCancel, updateFolderName }) => {
           onChange={(e) => setName(e.target.value)}
           autoFocus
           required
+          maxLength={40}
         />
       </div>
 

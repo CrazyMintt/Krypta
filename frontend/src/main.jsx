@@ -1,9 +1,13 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import KryptaApp from "./App";
+import { CryptoKeyProvider } from "./context/cryptoKeyContext";
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+ReactDOM.createRoot(document.getElementById("root")).render(    
   <React.StrictMode>
-    <KryptaApp />
+    <CryptoKeyProvider>
+      <KryptaApp />
+    </CryptoKeyProvider>
   </React.StrictMode>,
+  
 );

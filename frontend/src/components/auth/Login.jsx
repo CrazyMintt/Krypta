@@ -1,9 +1,12 @@
 import React, { useRef } from "react";
 import { login } from "../../services/userService";
+import { useCryptoKey } from "../../context/cryptoKeyContext";
+import { deriveKeyFromPassword } from "../../utils/deriveKeyFromPassword";
 
 const Login = ({ onNavigateToSignup, onLoginSuccess, onNavigateToLanding }) => {
   const passwordInputRef = useRef(null);
   const eyeIconRef = useRef(null);
+  const { setCryptoKey } = useCryptoKey();
 
   const togglePassword = () => {
     const input = passwordInputRef.current;
@@ -25,31 +28,41 @@ const Login = ({ onNavigateToSignup, onLoginSuccess, onNavigateToLanding }) => {
   };
 
   const handleLogin = async (e) => {
-    e.preventDefault();
-    const email = e.target.elements.email.value;
-    const password = e.target.elements.password.value;
+  e.preventDefault();
 
-    try {
-      const data = await login(email, password);
+  const email = e.target.elements.email.value;
+  const password = e.target.elements.password.value;
 
-      localStorage.setItem("authToken", `${data.token_type} ${data.access_token}`);
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          id: data.id,
-          nome: data.nome,
-          email: data.email,
-          created_at: data.created_at,
-        })
-      );
+  try {
+    // 1. Login normal
+    const data = await login(email, password);
 
-      alert("Login realizado com sucesso!");
-      onLoginSuccess();
-    } catch (err) {
-      console.error("Erro ao fazer login:", err);
-      alert(err.response?.data?.detail || "Email ou senha incorretos");
-    }
-  };
+    // 2. Salvar token e usuário (igual antes)
+    localStorage.setItem("authToken", `${data.token_type} ${data.access_token}`);
+    localStorage.setItem(
+      "user",
+      JSON.stringify({
+        id: data.id,
+        nome: data.nome,
+        email: data.email,
+        created_at: data.created_at,
+      })
+    );
+
+    // 3. Gerar chave criptográfica derivada da senha
+    const key = await deriveKeyFromPassword(password);
+
+    // 4. Armazenar chave somente em memória
+    setCryptoKey(key);
+
+    // 5. Redirecionamento padrão
+    onLoginSuccess();
+  } catch (err) {
+    console.error("Erro ao fazer login:", err);
+    alert(err.response?.data?.detail || "Email ou senha incorretos");
+  }
+};
+
 
   return (
     <div className="auth-container">

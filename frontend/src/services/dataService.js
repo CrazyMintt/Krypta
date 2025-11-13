@@ -19,7 +19,7 @@ export const getDataById = async (dataId) => {
     tipo: "arquivo" | "senha",
     criado_em: string,
     arquivo: { id, extensao, nome_arquivo },
-    senha: { id, host_url, email },
+    senha: { id, host_url, email, senha_cripto },
     separadores: []
   }
   */

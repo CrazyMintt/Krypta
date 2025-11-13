@@ -112,8 +112,20 @@ const MainApp = ({ onLogout }) => {
           />
         )}
 
-        {view === 'dashboard' && <Dashboard onLogout={onLogout} />}
-        {view === 'sharing' && <Sharing />}
+        {view === 'dashboard' && (
+          <Dashboard
+            onLogout={onLogout}
+            openNewFolderModal={openNewFolderModal}
+            openNewCredentialModal={openNewCredentialModal}
+          />
+        )}
+        {view === 'sharing' && ( 
+          <Sharing 
+            onLogout={onLogout}
+            openNewFolderModal={openNewFolderModal}
+            openNewCredentialModal={openNewCredentialModal}
+          />
+        )}
 
         {/* Nova Pasta */}
         <Modal title="Nova Pasta" isOpen={isNewFolderModalOpen} onCancel={closeNewFolderModal}>

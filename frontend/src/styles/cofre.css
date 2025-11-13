@@ -208,3 +208,217 @@
   border-radius: 50%;
   background-color: var(--brand-primary);
 }
+
+.file-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* ESSENCIAL para truncar texto em layout flex */
+}
+
+.file-name,
+.file-email {
+  display: block;
+  max-width: 180px;  /* ajuste conforme o tamanho desejado */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+.file-email {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.tag-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0; /* ESSENCIAL para truncamento funcionar */
+}
+
+.tag {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-left: 4px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+
+  /* TRUNCAMENTO */
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  color: var(--text-primary);
+  background: var(--bg-surface);
+}
+
+.tag.selected {
+  background: var(--bg-surface-hover);
+  font-weight: 600;
+}
+
+.tag-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0; /* ESSENCIAL */
+}
+
+.tag {
+  display: flex;
+  align-items: center;
+  min-width: 0;        /* ESSENCIAL */
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding: 6px 10px;
+  border-left: 4px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  justify-content: space-between;
+  border-left: 4px solid transparent;
+  background: var(--bg-surface);
+}
+
+.tag-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tag-add-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  color: var(--text-primary);
+}
+
+.tag-add-btn:hover {
+  background: var(--bg-surface-hover);
+}
+
+
+.tag-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.tag-menu-btn {
+  cursor: pointer;
+  padding: 4px;
+}
+
+.tag-menu {
+  position: absolute;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+  z-index: 999;
+}
+
+.tag-menu button {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  padding: 6px 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tag-menu button:hover {
+  background: var(--bg-surface-hover);
+}
+
+.tag-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0; /* Permite o texto encolher */
+  flex: 1;
+}
+
+.tag-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0; /* Nunca encolhe */
+}
+
+
+.file-manager {
+  flex: 1;
+  min-height: 0; /* ESSENCIAL para permitir scroll interno */
+  display: flex;
+  flex-direction: column;
+}
+
+.file-list {
+  flex: 1;
+  min-height: 0; /* ESSENCIAL */
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.file-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.file-list::-webkit-scrollbar-thumb {
+  background: var(--border-soft);
+  border-radius: 6px;
+}
+
+/* --- Search Bar --- */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+
+  background: var(--bg-surface);
+  border: 1px solid var(--border-soft);
+
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.search-bar:hover {
+  border-color: var(--border-medium);
+}
+
+.search-bar svg {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+/* Campo de texto */
+.search-input {
+  width: 100%;
+  border: none;
+  outline: none;
+
+  font-size: 0.9rem;
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.search-input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+.search-input:focus {
+  color: var(--text-primary);
+}
