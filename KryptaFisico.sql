@@ -1,3 +1,4 @@
+
 DROP DATABASE IF EXISTS `KryptaTeste`;
 CREATE DATABASE IF NOT EXISTS `KryptaTeste` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `KryptaTeste`;
@@ -61,6 +62,7 @@ CONSTRAINT `dados_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuario` (`id`)
 CREATE TABLE IF NOT EXISTS `arquivos` (
 `id` int(11) NOT NULL,
 `arquivo` longblob DEFAULT NULL,
+`iv_arquivo` VARCHAR(64) DEFAULT NULL,
 `extensao` varchar(50) DEFAULT NULL,
 `nome_arquivo` varchar(255) DEFAULT NULL,
 PRIMARY KEY (`id`),
@@ -71,6 +73,7 @@ CREATE TABLE IF NOT EXISTS `senhas` (
 `id` int(11) NOT NULL,
 `email` varchar(255),
 `senha_cripto` varchar(1024) NOT NULL,
+`iv_senha_cripto` VARCHAR(64) NOT NULL,
 `host_url` varchar(1024) DEFAULT NULL,
 PRIMARY KEY (`id`),
 CONSTRAINT `senhas_ibfk_1` FOREIGN KEY (`id`) REFERENCES `dados` (`id`) ON DELETE CASCADE
@@ -81,6 +84,7 @@ CREATE TABLE IF NOT EXISTS `dados_compartilhados` (
 `compartilhamento_id` int(11) NOT NULL,
 `dado_origem_id` int(11) DEFAULT NULL,
 `dado_criptografado` longblob NOT NULL,
+`iv_dado` VARCHAR(64) NOT NULL,
 `meta` longtext DEFAULT NULL,
 `criado_em` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
 PRIMARY KEY (`id`),
@@ -122,5 +126,6 @@ CREATE TABLE IF NOT EXISTS `logs` (
 PRIMARY KEY (`id`),
 KEY `idx_logs_usuario` (`usuario_id`),
 KEY `logs_dados_FK` (`id_dado`),
-CONSTRAINT `logs_dados_FK` FOREIGN KEY (`id_dado`) REFERENCES `dados` (`id`) ON DELETE SET NULL
+CONSTRAINT `logs_dados_FK` FOREIGN KEY (`id_dado`) REFERENCES `dados` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
