@@ -1,4 +1,3 @@
-
 DROP DATABASE IF EXISTS `KryptaTeste`;
 CREATE DATABASE IF NOT EXISTS `KryptaTeste` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `KryptaTeste`;
@@ -126,6 +125,6 @@ CREATE TABLE IF NOT EXISTS `logs` (
 PRIMARY KEY (`id`),
 KEY `idx_logs_usuario` (`usuario_id`),
 KEY `logs_dados_FK` (`id_dado`),
-CONSTRAINT `logs_dados_FK` FOREIGN KEY (`id_dado`) REFERENCES `dados` (`id`)
+CONSTRAINT `logs_dados_FK` FOREIGN KEY (`id_dado`) REFERENCES `dados` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
