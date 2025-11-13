@@ -1,8 +1,14 @@
+// src/components/modals/ShareItemModal.jsx
+
 import React, { useState } from "react";
 import { useSharedItems } from "../../context/SharedItemsContext";
 import { createShare } from "../../services/shareService";
+import * as dataService from "../../services/dataService";
+import { useCryptoKey } from "../../context/cryptoKeyContext";
 
 const ShareItemModal = ({ item, onCancel }) => {
+  const { cryptoKey } = useCryptoKey();
+
   const [accessCount, setAccessCount] = useState(1);
   const [durationValue, setDurationValue] = useState(1);
   const [durationUnit, setDurationUnit] = useState("horas");
@@ -18,30 +24,101 @@ const ShareItemModal = ({ item, onCancel }) => {
       return;
     }
 
+    if (!cryptoKey) {
+      alert("Chave criptográfica não inicializada. Faça login/desbloqueie o cofre.");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
+      // =================================
+      // 1. Calcular data de expiração
+      // =================================
       const expiration = new Date();
-      if (durationUnit === "minutos")
-        expiration.setMinutes(expiration.getMinutes() + Number(durationValue));
-      if (durationUnit === "horas")
-        expiration.setHours(expiration.getHours() + Number(durationValue));
-      if (durationUnit === "dias")
-        expiration.setDate(expiration.getDate() + Number(durationValue));
+      const duration = Number(durationValue);
 
+      if (durationUnit === "minutos") {
+        expiration.setMinutes(expiration.getMinutes() + duration);
+      } else if (durationUnit === "horas") {
+        expiration.setHours(expiration.getHours() + duration);
+      } else if (durationUnit === "dias") {
+        expiration.setDate(expiration.getDate() + duration);
+      }
+
+      // =================================
+      // 2. Buscar dado completo no backend
+      // =================================
+      const full = await dataService.getDataById(item.id);
+      // full.tipo provavelmente é "arquivo" ou "senha" (ou enum equivalente)
+      const tipo = (full.tipo || "").toString().toLowerCase();
+
+      let originalCipher = null;
+      let originalIv = null;
+
+      if (tipo === "arquivo" || tipo === "file") {
+        originalCipher = full.arquivo?.arquivo_data || null;
+        originalIv = full.arquivo?.iv_arquivo || null;
+      } else if (tipo === "senha" || tipo === "credential") {
+        originalCipher = full.senha?.senha_cripto || null;
+        originalIv = full.senha?.iv_senha_cripto || null;
+      }
+
+      if (!originalCipher || !originalIv) {
+        alert("Este item não possui dados criptografados para compartilhamento.");
+        setIsLoading(false);
+        return;
+      }
+
+      // =================================
+      // 3. Transformar cipher original (Base64 → bytes)
+      // =================================
+      const cipherBytes = Uint8Array.from(
+        atob(originalCipher),
+        (c) => c.charCodeAt(0)
+      );
+
+      // =================================
+      // 4. Gerar nova IV
+      // =================================
+      const newIv = crypto.getRandomValues(new Uint8Array(12));
+
+      // =================================
+      // 5. Recriptografar o blob inteiro (cipher original)
+      // =================================
+      const reencrypted = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: newIv },
+        cryptoKey,
+        cipherBytes
+      );
+
+      const encryptedB64 = btoa(
+        String.fromCharCode(...new Uint8Array(reencrypted))
+      );
+      const ivB64 = btoa(String.fromCharCode(...newIv));
+
+      // =================================
+      // 6. Montar payload para o backend
+      // =================================
       const payload = {
         itens: [
           {
             dado_origem_id: item.id,
-            dado_criptografado: btoa(JSON.stringify(item)),
+            dado_criptografado: encryptedB64,
+            iv_dado: ivB64,
+            meta: item.name,
           },
         ],
         data_expiracao: expiration.toISOString(),
         n_acessos_total: Number(accessCount),
       };
 
+      // Chamada à API /shares/
       const response = await createShare(payload);
 
+      // =================================
+      // 7. Atualizar estado local (UI)
+      // =================================
       setGeneratedLink(response.share_link);
 
       addSharedItem({
@@ -52,21 +129,24 @@ const ShareItemModal = ({ item, onCancel }) => {
         expiresIn: new Date(expiration).toLocaleString(),
       });
 
-      const newLogEntry = {
-        type: "add",
-        title: `Item "${item.name}" compartilhado`,
-        time: new Date().toLocaleString(),
-      };
-      setActivityLog([newLogEntry, ...activityLog]);
+      setActivityLog([
+        {
+          type: "add",
+          title: `Item "${item.name}" compartilhado`,
+          time: new Date().toLocaleString(),
+        },
+        ...activityLog,
+      ]);
     } catch (err) {
-      console.error("Erro ao gerar link de compartilhamento:", err);
-      alert(err.response?.data?.detail || "Erro ao gerar link de compartilhamento.");
+      console.error("Erro ao gerar link:", err);
+      alert(err.response?.data?.detail || "Erro ao gerar link.");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleCopy = () => {
+    if (!generatedLink) return;
     navigator.clipboard.writeText(generatedLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -77,30 +157,27 @@ const ShareItemModal = ({ item, onCancel }) => {
       {!generatedLink ? (
         <>
           <div className="form-group">
-            <label htmlFor="access-count">Número de acessos permitidos:</label>
+            <label>Número de acessos permitidos:</label>
             <input
               type="number"
-              id="access-count"
               className="form-input"
               value={accessCount}
-              onChange={(e) => setAccessCount(e.target.value)}
               min="1"
+              onChange={(e) => setAccessCount(e.target.value)}
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="duration">Duração:</label>
+            <label>Duração:</label>
             <div className="duration-group">
               <input
                 type="number"
-                id="duration-value"
                 className="form-input"
                 value={durationValue}
-                onChange={(e) => setDurationValue(e.target.value)}
                 min="1"
+                onChange={(e) => setDurationValue(e.target.value)}
               />
               <select
-                id="duration-unit"
                 className="form-select"
                 value={durationUnit}
                 onChange={(e) => setDurationUnit(e.target.value)}
@@ -113,7 +190,11 @@ const ShareItemModal = ({ item, onCancel }) => {
           </div>
 
           <div className="modal-actions">
-            <button type="button" className="btn btn-secondary" onClick={onCancel}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={onCancel}
+            >
               Cancelar
             </button>
             <button
@@ -128,7 +209,7 @@ const ShareItemModal = ({ item, onCancel }) => {
         </>
       ) : (
         <div className="generated-link-container">
-          <p className="generated-link-label">Link de compartilhamento gerado:</p>
+          <p>Link de compartilhamento gerado:</p>
           <input
             type="text"
             className="form-input generated-link-input"
@@ -136,7 +217,6 @@ const ShareItemModal = ({ item, onCancel }) => {
             readOnly
           />
           <button
-            type="button"
             className="btn btn-primary generated-link-button"
             onClick={handleCopy}
           >

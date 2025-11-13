@@ -1,0 +1,94 @@
+/* Container da área */
+.shared-with-me-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px;
+}
+
+/* Caixa de input + botão */
+.share-input-box {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: 16px;
+  align-items: center;
+}
+
+/* Input */
+.share-input-box .form-input {
+  flex: 1;
+  height: 38px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-soft);
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+}
+
+/* Botão compacto */
+.share-input-box .btn-primary {
+  height: 38px;
+  padding: 8px 16px;
+  font-size: 14px;
+  white-space: nowrap;
+  max-width: 100px;
+}
+
+/* Lista */
+.sharing-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+/* Item */
+.share-item {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  padding: 14px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: 0.15s ease;
+}
+
+.share-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Informações */
+.share-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.share-name {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.share-details {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* Botões */
+.share-actions .btn-secondary {
+  height: 32px;
+  padding: 4px 14px;
+  font-size: 13px;
+  border-radius: 8px;
+}
+
+/* Texto vazio */
+.empty-text {
+  margin-top: 20px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}

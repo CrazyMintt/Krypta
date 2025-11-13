@@ -19,6 +19,7 @@ import Signup from './components/auth/Signup';
 import Sidebar from './components/layout/Sidebar';
 import Cofre from './components/views/Cofre';
 import Dashboard from './components/views/Dashboard';
+import SharedWithMePage from './components/views/SharedWithMePage';
 import Sharing from './components/views/Sharing';
 import Modal from './components/layout/Modal';
 import NewCredentialForm from './components/forms/NewCredentialForm';
@@ -132,6 +133,10 @@ const MainApp = ({ onLogout }) => {
             openNewFolderModal={openNewFolderModal}
             openNewCredentialModal={openNewCredentialModal}
           />
+        )}
+
+        {view === 'sharedWithMe' && (
+          <SharedWithMePage />
         )}
 
         {/* Nova Pasta */}

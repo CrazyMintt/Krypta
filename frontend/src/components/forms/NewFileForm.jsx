@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import * as fileService from "../../services/fileService";
 import { encryptFile } from "../../utils/encryptFile";
 import { useCryptoKey } from "../../context/cryptoKeyContext";
+import "../../styles/fileform.css"
 
 const NewFileForm = ({ onCancel, onSuccess, currentFolderId }) => {
   const [file, setFile] = useState(null);
@@ -13,7 +14,6 @@ const NewFileForm = ({ onCancel, onSuccess, currentFolderId }) => {
     if (!f) return;
 
     setFile(f);
-
     setCustomName(f.name.replace(/\.[^/.]+$/, ""));
   };
 
@@ -31,10 +31,7 @@ const NewFileForm = ({ onCancel, onSuccess, currentFolderId }) => {
     }
 
     try {
-      // Ler arquivo como ArrayBuffer
       const arrayBuffer = await file.arrayBuffer();
-
-      // Criptografar arquivo
       const encrypted = await encryptFile(cryptoKey, arrayBuffer);
 
       const ext = "." + file.name.split(".").pop();
@@ -64,7 +61,15 @@ const NewFileForm = ({ onCancel, onSuccess, currentFolderId }) => {
     <form className="item-form" onSubmit={handleSubmit}>
       <div className="form-group">
         <label>Arquivo</label>
-        <input type="file" onChange={handleFileChange} />
+
+        <label className="file-input-wrapper">
+          Selecionar arquivo
+          <input type="file" onChange={handleFileChange} />
+        </label>
+
+        {file && (
+          <span className="selected-file-name">{file.name}</span>
+        )}
       </div>
 
       <div className="form-group">

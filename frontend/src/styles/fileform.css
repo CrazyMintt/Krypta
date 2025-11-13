@@ -1,0 +1,76 @@
+/* Container geral do form */
+.item-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 1rem;
+}
+
+/* Wrapper estilizado para input de arquivo */
+.file-input-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-soft);
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  transition: 0.15s ease;
+}
+
+/* Hover */
+.file-input-wrapper:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
+}
+
+/* Remove aparência do input real */
+.file-input-wrapper input[type="file"] {
+  display: none;
+}
+
+/* Nome do arquivo selecionado */
+.selected-file-name {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  opacity: 0.85;
+}
+
+/* Inputs normais */
+.form-input {
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-soft);
+  color: var(--text-primary);
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  width: 100%;
+}
+
+/* Hover do input */
+.form-input:hover {
+  border-color: var(--border-strong);
+}
+
+/* Botões do modal */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 1.5rem;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: 500;
+}
