@@ -20,6 +20,52 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/data")
 
 
+def _build_data_response(db_dado: models.Dado) -> schemas.DataResponse:
+    """
+    Converte manualmente um models.Dado (SQLAlchemy) em um schemas.DataResponse (Pydantic),
+    lidando com a conversão de bytes para Base64 e populando os IVs.
+    """
+    file_response: Optional[schemas.FileResponse] = None
+    credential_response: Optional[schemas.CredentialResponse] = None
+
+    if db_dado.tipo == models.TipoDado.ARQUIVO and db_dado.arquivo:
+        # Converte os bytes do arquivo para Base64
+        arquivo_data_str = ""
+        if db_dado.arquivo.arquivo:
+            arquivo_data_str = base64.b64encode(db_dado.arquivo.arquivo).decode("utf-8")
+
+        file_response = schemas.FileResponse(
+            id=db_dado.arquivo.id,
+            extensao=db_dado.arquivo.extensao,
+            nome_arquivo=db_dado.arquivo.nome_arquivo,
+            arquivo_data=arquivo_data_str,  # Passa a string Base64
+            iv_arquivo=db_dado.arquivo.iv_arquivo,  # Passa o IV
+        )
+
+    elif db_dado.tipo == models.TipoDado.SENHA and db_dado.senha:
+        credential_response = schemas.CredentialResponse(
+            id=db_dado.senha.id,
+            host_url=db_dado.senha.host_url,
+            email=db_dado.senha.email,
+            senha_cripto=db_dado.senha.senha_cripto,
+            iv_senha_cripto=db_dado.senha.iv_senha_cripto,  # Passa o IV
+        )
+
+    return schemas.DataResponse(
+        id=db_dado.id,
+        usuario_id=db_dado.usuario_id,
+        nome_aplicacao=db_dado.nome_aplicacao,
+        descricao=db_dado.descricao,
+        tipo=db_dado.tipo,
+        criado_em=db_dado.criado_em,
+        arquivo=file_response,
+        senha=credential_response,
+        separadores=[
+            schemas.SeparatorResponse.model_validate(s) for s in db_dado.separadores
+        ],
+    )
+
+
 @router.post(
     "/credentials",
     response_model=schemas.DataResponse,
@@ -45,7 +91,7 @@ def create_credential(
             log_context=log_context,
             tasks=tasks,
         )
-        return created_data
+        return _build_data_response(created_data)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except DuplicateDataError as e:
@@ -88,7 +134,7 @@ def create_file(
             log_context=log_context,
             tasks=tasks,
         )
-        return created_file
+        return _build_data_response(created_file)
     except DataNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ValueError as e:
@@ -129,45 +175,7 @@ def get_single_data_entry(
             log_context=log_context,
             tasks=tasks,
         )
-        file_response: Optional[schemas.FileResponse] = None
-        credential_response: Optional[schemas.CredentialResponse] = None
-
-        if db_dado.tipo == models.TipoDado.ARQUIVO and db_dado.arquivo:
-            # Converte os bytes do arquivo para Base64
-            arquivo_data_str = ""
-            if db_dado.arquivo.arquivo:
-                arquivo_data_str = base64.b64encode(db_dado.arquivo.arquivo).decode(
-                    "utf-8"
-                )
-            file_response = schemas.FileResponse(
-                id=db_dado.arquivo.id,
-                extensao=db_dado.arquivo.extensao,
-                nome_arquivo=db_dado.arquivo.nome_arquivo,
-                arquivo_data=arquivo_data_str,  # Passa a string Base64
-            )
-
-        elif db_dado.tipo == models.TipoDado.SENHA and db_dado.senha:
-            credential_response = schemas.CredentialResponse(
-                id=db_dado.senha.id,
-                host_url=db_dado.senha.host_url,
-                email=db_dado.senha.email,
-                senha_cripto=db_dado.senha.senha_cripto,
-            )
-
-        response = schemas.DataResponse(
-            id=db_dado.id,
-            usuario_id=db_dado.usuario_id,
-            nome_aplicacao=db_dado.nome_aplicacao,
-            descricao=db_dado.descricao,
-            tipo=db_dado.tipo,
-            criado_em=db_dado.criado_em,
-            arquivo=file_response,
-            senha=credential_response,
-            separadores=[
-                schemas.SeparatorResponse.model_validate(s) for s in db_dado.separadores
-            ],
-        )
-        return response
+        return _build_data_response(db_dado)
     except DataNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
@@ -205,7 +213,7 @@ def update_credential_entry(
             log_context=log_context,
             tasks=tasks,
         )
-        return updated_dado
+        return _build_data_response(updated_dado)
     except DataNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ValueError as e:
@@ -248,7 +256,7 @@ def update_file_entry(
             log_context=log_context,
             tasks=tasks,
         )
-        return updated_dado
+        return _build_data_response(updated_dado)
     except DuplicateDataError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except DataNotFoundError as e:
@@ -313,7 +321,7 @@ def search_data_paginated(
     """Busca paginada de dados."""
     try:
         data = services.get_data_paginated_filtered(db, current_user, payload)
-        return data
+        return [_build_data_response(dado) for dado in data]
     except HTTPException:
         raise
     except Exception as e:

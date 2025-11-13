@@ -250,6 +250,7 @@ class CredentialResponse(BaseSchema):
     host_url: Optional[str]
     email: Optional[str]
     senha_cripto: str
+    iv_senha_cripto: str
 
 
 class FileResponse(BaseSchema):
@@ -259,6 +260,7 @@ class FileResponse(BaseSchema):
     extensao: str
     nome_arquivo: str
     arquivo_data: str
+    iv_arquivo: Optional[str]
 
 
 # --- Schema de Output Principal (Pai) ---
@@ -289,6 +291,7 @@ class FileCreate(BaseModel):
     arquivo_data: str = Field(
         ..., min_length=1, description="Bytes do arquivo em Base64, não pode ser vazio."
     )
+    iv_arquivo: str = Field(..., min_length=1)
     # Extensão é obrigatório
     extensao: str
     # E nome do arquivo também é obrigatório
@@ -299,6 +302,7 @@ class CredentialCreate(BaseModel):
     """Schema aninhado para os detalhes de uma nova credencial (senha)."""
 
     senha_cripto: str = Field(..., min_length=1)
+    iv_senha_cripto: str = Field(..., min_length=1)
     email: Optional[EmailStr] = Field(
         default=None, description="Email associado à credencial (opcional)."
     )
@@ -344,16 +348,40 @@ class FileUpdate(BaseModel):
     """Schema aninhado para atualizar os detalhes de um Arquivo."""
 
     arquivo_data: Optional[str] = Field(default=None, min_length=1)
+    iv_arquivo: Optional[str] = Field(default=None, min_length=1)
     extensao: Optional[str] = Field(default=None, min_length=1)
     nome_arquivo: Optional[str] = Field(default=None, min_length=1)
+
+    @model_validator(mode="after")
+    def check_data_and_iv_consistency(self) -> Self:
+        """Garante que se 'arquivo_data' for fornecido, 'iv_arquivo' também seja."""
+        if self.arquivo_data is not None and self.iv_arquivo is None:
+            raise ValueError("'iv_arquivo' é obrigatório ao fornecer 'arquivo_data'.")
+        if self.arquivo_data is None and self.iv_arquivo is not None:
+            raise ValueError("'arquivo_data' é obrigatório ao fornecer 'iv_arquivo'.")
+        return self
 
 
 class CredentialUpdate(BaseModel):
     """Schema aninhado para atualizar os detalhes de uma Senha."""
 
     senha_cripto: Optional[str] = Field(default=None, min_length=1)
+    iv_senha_cripto: Optional[str] = Field(default=None, min_length=1)
     host_url: Optional[str] = Field(default=None, min_length=1)
     email: Optional[EmailStr] = None
+
+    @model_validator(mode="after")
+    def check_senha_and_iv_consistency(self) -> Self:
+        """Garante que se 'senha_cripto' for fornecida, 'iv_senha_cripto' também seja."""
+        if self.senha_cripto is not None and self.iv_senha_cripto is None:
+            raise ValueError(
+                "'iv_senha_cripto' é obrigatório ao fornecer 'senha_cripto'."
+            )
+        if self.senha_cripto is None and self.iv_senha_cripto is not None:
+            raise ValueError(
+                "'senha_cripto' é obrigatório ao fornecer 'iv_senha_cripto'."
+            )
+        return self
 
 
 # --- Schemas de Input Principais (Update) ---
@@ -418,6 +446,7 @@ class ShareItemCreate(BaseModel):
     dado_criptografado: str = Field(
         ..., min_length=1, description="Blob de dados (re-criptografado) em Base64."
     )
+    iv_dado: str = Field(..., min_length=1)
     meta: Optional[str] = Field(
         default=None, min_length=1, description="Metadados para o destinatário."
     )
@@ -467,6 +496,7 @@ class SharedItemView(BaseSchema):
     """O que o destinatário vê de CADA item."""
 
     dado_criptografado: str  # O blob em Base64
+    iv_dado: str
     meta: Optional[str]
 
 

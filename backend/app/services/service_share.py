@@ -43,6 +43,7 @@ def create_share_link(
             models.DadosCompartilhados(
                 dado_origem_id=item.dado_origem_id,
                 dado_criptografado=encrypted_bytes,
+                iv_dado=item.iv_dado,
                 meta=item.meta,
             )
         )

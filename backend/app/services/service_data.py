@@ -126,6 +126,7 @@ def create_credential(
         )
         db_senha = models.Senha(
             senha_cripto=credential_data.senha.senha_cripto,
+            iv_senha_cripto=credential_data.senha.iv_senha_cripto,
             email=credential_data.senha.email,
             host_url=credential_data.senha.host_url,
         )
@@ -200,6 +201,7 @@ def create_file(
     )
     db_arquivo = models.Arquivo(
         arquivo=encrypted_bytes,
+        iv_arquivo=file_data.arquivo.iv_arquivo,
         nome_arquivo=file_data.arquivo.nome_arquivo,
         extensao=file_data.arquivo.extensao,
     )
@@ -208,6 +210,8 @@ def create_file(
     services.log_and_notify(
         db, user, schemas.LogTipo.DADO_CRIADO, log_context, tasks, dado=created_data
     )
+    db.commit()
+    db.refresh(created_data)
 
     return created_data
 
@@ -447,7 +451,7 @@ def delete_data_by_id(
             if remaining_items_count == 0:
                 repository_data.delete_compartilhamento_by_id(db, comp_id=comp_id)
         services.log_and_notify(
-        db, user, schemas.LogTipo.DADO_DELETADO, log_context, tasks, dado=dado
+            db, user, schemas.LogTipo.DADO_DELETADO, log_context, tasks, dado=dado
         )
         db.commit()
     except Exception as e:

@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy import (
+    TEXT,
     BigInteger,
     Column,
     ForeignKey,
@@ -113,6 +114,7 @@ class Arquivo(Base):
         ForeignKey("dados.id", ondelete="CASCADE"), primary_key=True
     )
     arquivo: Mapped[bytes] = mapped_column(LONGBLOB)
+    iv_arquivo: Mapped[Optional[str]] = mapped_column(String(64))
     extensao: Mapped[str] = mapped_column(String(50))
     nome_arquivo: Mapped[str] = mapped_column(String(255))
 
@@ -124,7 +126,8 @@ class Senha(Base):
     id: Mapped[int] = mapped_column(
         ForeignKey("dados.id", ondelete="CASCADE"), primary_key=True
     )
-    senha_cripto: Mapped[str] = mapped_column(String(1024))
+    senha_cripto: Mapped[str] = mapped_column(TEXT)
+    iv_senha_cripto: Mapped[str] = mapped_column(String(64))
     host_url: Mapped[Optional[str]] = mapped_column(String(1024))
     email: Mapped[str] = mapped_column(String(255))
     dado: Mapped["Dado"] = relationship(back_populates="senha")
@@ -195,6 +198,7 @@ class DadosCompartilhados(Base):
         ForeignKey("dados.id", ondelete="SET NULL")
     )
     dado_criptografado: Mapped[bytes] = mapped_column(LONGBLOB)
+    iv_dado: Mapped[str] = mapped_column(String(64))
     meta: Mapped[Optional[str]] = mapped_column(LONGTEXT)
     criado_em: Mapped[datetime] = mapped_column(server_default=func.now())
 
