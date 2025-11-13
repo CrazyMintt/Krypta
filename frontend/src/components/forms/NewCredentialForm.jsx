@@ -3,7 +3,7 @@ import * as credentialService from "../../services/credentialService";
 import * as folderService from "../../services/folderService";
 import * as tagService from "../../services/tagService";
 import { useCryptoKey } from "../../context/cryptoKeyContext";
-import { encryptText } from "../../utils/encryption";
+import { encryptText } from "../../utils/encryptText";
 import { toBase64 } from "../../utils/toBase64";
 
 const NewCredentialForm = ({
@@ -19,9 +19,9 @@ const NewCredentialForm = ({
   const isEditing = Boolean(editItem);
 
   const [name, setName] = useState("");
-  const [folder, setFolder] = useState(currentFolderId ?? ""); // "" | number
+  const [folder, setFolder] = useState(currentFolderId ?? "");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState(""); // não preencher em edição
+  const [password, setPassword] = useState("");
   const [url, setUrl] = useState("");
   const [description, setDescription] = useState("");
 
@@ -212,7 +212,7 @@ const NewCredentialForm = ({
 
         ...(encryptedPassword && {
           senha_cripto: toBase64(encryptedPassword.ciphertext),
-          iv: toBase64(encryptedPassword.iv)
+          iv_senha_cripto: toBase64(encryptedPassword.iv)
         })
       },
       ...(typeof idPasta === "number" && !Number.isNaN(idPasta) && {

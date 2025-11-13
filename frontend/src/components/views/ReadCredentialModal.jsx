@@ -27,8 +27,9 @@ const ReadCredentialModal = ({ credential }) => {
   };
 
   React.useEffect(() => {
-  const encrypted = credential?.senha?.senha_cripto;
-  const iv = credential?.senha?.iv;
+  if (!credential) return;
+  const encrypted = credential.password;
+  const iv = credential.passwordIv;
 
   if (!encrypted || !iv) return;
   if (!cryptoKey) return;

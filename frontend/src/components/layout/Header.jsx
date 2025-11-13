@@ -5,7 +5,7 @@ import NewItemMenu from './NewItemMenu';
 import UserMenu from './UserMenu';
 import "../../styles/header.css"
 
-const Header = ({ title, onNewFolder, onNewCredential, onLogout }) => {
+const Header = ({ title, onNewFolder, onNewCredential, onNewFile, onLogout }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showNewItemMenu, setShowNewItemMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -97,7 +97,11 @@ const Header = ({ title, onNewFolder, onNewCredential, onLogout }) => {
             <Plus size={16} /> Novo
           </button>
           {showNewItemMenu && (
-            <NewItemMenu onNewFolder={onNewFolder} onNewCredential={onNewCredential} />
+            <NewItemMenu
+              onNewFolder={onNewFolder}
+              onNewCredential={onNewCredential}
+              onNewFile={onNewFile}
+            />
           )}
         </div>
 

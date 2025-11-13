@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Header from "../layout/Header";
 import Modal from "../layout/Modal";
 import NewCredentialForm from "../forms/NewCredentialForm";
+import NewFileForm from "../forms/NewFileForm";
 import RenameFolderForm from "../forms/RenameFolderForm";
 import ReadCredentialModal from "../views/ReadCredentialModal";
 import ShareItemModal from "../modals/ShareItemModal";
@@ -14,6 +15,9 @@ import * as tagService from "../../services/tagService";
 import * as folderService from "../../services/folderService";
 import * as dataService from "../../services/dataService";
 import useVaultLevel from "../hooks/useVaultLevel";
+import { decryptFile } from "../../utils/decryptFile";
+import { useCryptoKey } from "../../context/cryptoKeyContext";
+import { openEncryptedFile } from "../../utils/openEncryptedFile";
 
 const Cofre = ({
   activityLog,
@@ -82,17 +86,31 @@ const loadAllData = async () => {
 
   return items.map((d) => {
     const folderSep = (d.separadores || []).find((s) => s.tipo === "pasta");
+    const isFile = d.tipo === "arquivo";
 
     return {
       id: d.id,
       name: d.nome_aplicacao,
-      type: "credential",
+      type: isFile ? "file" : "credential",
+
+      // Credenciais
       email: d.senha?.email || "",
       url: d.senha?.host_url || "",
+      passwordCipher: d.senha?.senha_cripto || "",
+      passwordIv: d.senha?.iv_senha_cripto || "",
+
+      // Arquivos
+      fileExtension: d.arquivo?.extensao || "",
+      fileName: d.arquivo?.nome_arquivo || "",
+      fileCipher: d.arquivo?.arquivo_data || "",
+      fileIv: d.arquivo?.iv_arquivo || "",
+
       folderId: folderSep?.id_pasta_raiz || null,
-      tags: (d.separadores || [])
-        .filter((s) => s.tipo === "tag")
-        .map((s) => ({ name: s.nome, color: s.cor })),
+      tags:
+        (d.separadores || [])
+          .filter((s) => s.tipo === "tag")
+          .map((s) => ({ name: s.nome, color: s.cor })) || [],
+
       raw: d,
     };
   });
@@ -139,6 +157,31 @@ useEffect(() => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [itemToShare, setItemToShare] = useState(null);
 
+  const [isNewFileModalOpen, setIsNewFileModalOpen] = useState(false);
+  
+
+  const openNewFileModal = () => {
+  setIsNewFileModalOpen(true);
+  };
+
+  const closeNewFileModal = () => {
+    setIsNewFileModalOpen(false);
+  };
+
+  const handleFileSaved = async () => {
+    await loadLevel(currentFolder);
+    closeNewFileModal();
+  };
+
+  const handleOpenFile = async (item) => {
+  try {
+    await openEncryptedFile(cryptoKey, item);
+  } catch (err) {
+    console.error("Erro ao abrir arquivo:", err);
+  }
+};
+
+
   // Carrega tags
   useEffect(() => {
     (async () => {
@@ -179,6 +222,7 @@ useEffect(() => {
         name: full.nome_aplicacao || credentialItem.name,
         email: full.senha?.email || credentialItem.email || "",
         password: full.senha?.senha_cripto || "",
+        passwordIv: full.senha?.iv_senha_cripto || "",
         url: full.senha?.host_url || "",
         tags,
       });
@@ -187,6 +231,7 @@ useEffect(() => {
         name: credentialItem.name,
         email: credentialItem.email || "",
         password: "",
+        passwordIv: "",
         url: "",
         tags: credentialItem.tags || [],
       });
@@ -264,6 +309,40 @@ useEffect(() => {
     closeEditFolderModal();
   };
 
+
+  const { cryptoKey } = useCryptoKey();
+
+  const handleDownloadFile = async (item) => {
+    try {
+      if (!cryptoKey) {
+        alert("Chave criptográfica não carregada.");
+        return;
+      }
+
+      const { fileCipher, fileIv, fileName } = item;
+
+      const decryptedBuffer = await decryptFile(
+        cryptoKey,
+        fileCipher,
+        fileIv
+      );
+
+      const blob = new Blob([decryptedBuffer], { type: "application/octet-stream" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      a.click();
+
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Erro ao baixar arquivo:", err);
+      alert("Erro ao decifrar arquivo.");
+    }
+  };
+
+
   // Search
 const [searchTerm, setSearchTerm] = useState("");
 
@@ -271,20 +350,28 @@ const [searchTerm, setSearchTerm] = useState("");
 const textFiltered = allVaultItems.filter((item) => {
   const q = searchTerm.toLowerCase();
 
+  // Pastas
   if (item.type === "folder") {
     return item.name.toLowerCase().includes(q);
   }
 
+  // Credenciais
   if (item.type === "credential") {
     return (
       item.name.toLowerCase().includes(q) ||
-      item.email.toLowerCase().includes(q) ||
-      item.url.toLowerCase().includes(q)
+      item.email?.toLowerCase().includes(q) ||
+      item.url?.toLowerCase().includes(q)
     );
+  }
+
+  // Arquivos
+  if (item.type === "file") {
+    return item.name.toLowerCase().includes(q);
   }
 
   return false;
 });
+
 
 // 2. Filtragem global por tags
 const tagsFiltered =
@@ -301,8 +388,13 @@ const tagsFiltered =
 //    Caso contrário → usar apenas a pasta atual
 const rootItems =
   searchTerm.trim() !== "" || selectedTags.length > 0
-    ? tagsFiltered       // global
-    : items;             // somente pasta atual
+    ? tagsFiltered
+    : [
+        ...items, // pastas + credenciais da pasta atual
+        ...allVaultItems.filter(
+          (i) => i.type === "file" && i.folderId === currentFolder?.id
+        ),
+      ];
 
 const truncate = (text, limit = 20) =>
   text.length > limit ? text.slice(0, limit) + "..." : text;
@@ -330,6 +422,7 @@ const titleText =
           title={titleText}
           onNewFolder={() => openNewFolderModal(currentFolder?.id ?? null)}
           onNewCredential={() => openNewCredentialModal(currentFolder?.id ?? null)}
+          onNewFile={openNewFileModal} 
           onLogout={onLogout}
         />
 
@@ -344,12 +437,14 @@ const titleText =
             setActiveItemId={setActiveItemId}
             onOpenFolder={navigateToFolder}
             onOpenCredential={openReadCredentialModal}
+            onOpenFile={handleOpenFile}
             onActions={{
               onView: openReadCredentialModal,
               onEditCredential: openEditModal,
               onEditFolder: openEditFolderModal,
               onDelete: openDeleteModal,
               onShare: openShareModal,
+              onDownloadFile: handleDownloadFile,
             }}
           />
         </div>
@@ -391,6 +486,18 @@ const titleText =
 
       <Modal title="Compartilhar Item" isOpen={isShareModalOpen} onCancel={closeShareModal}>
         <ShareItemModal item={itemToShare} onCancel={closeShareModal} />
+      </Modal>
+
+      <Modal
+        title="Adicionar Arquivo"
+        isOpen={isNewFileModalOpen}
+        onCancel={closeNewFileModal}
+      >
+        <NewFileForm
+          currentFolderId={currentFolder?.id}
+          onCancel={closeNewFileModal}
+          onSuccess={handleFileSaved}
+        />
       </Modal>
     </>
   );

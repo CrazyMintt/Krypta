@@ -2,14 +2,18 @@
 .settings-modal {
   display: flex;
   height: 450px;
+  /* evita conteúdo “vazar” se algo passar da altura */
+  overflow: hidden;
 }
 
+/* --- Sidebar --- */
 .settings-sidebar {
   width: 200px;
   min-width: 200px;
   background-color: var(--bg-sidebar);
   padding: 20px;
   border-right: 1px solid var(--border-soft);
+  /* se o próprio Modal já tiver border-radius, pode tirar essa linha se estiver conflitando */
   border-radius: 16px 0 0 16px;
 }
 
@@ -29,14 +33,23 @@
   transition: background-color 0.2s, color 0.2s;
 }
 
+/* realce simples no hover, sem mudar layout */
+.settings-sidebar li:hover {
+  background-color: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
 .settings-sidebar li.active {
   background-color: var(--bg-surface-active);
   color: var(--text-primary);
 }
 
+/* --- Conteúdo --- */
 .settings-content {
   flex-grow: 1;
-  padding: 40px;
+  padding: 32px 40px;
+  /* se o conteúdo for maior que 450px, rola só dentro da área de conteúdo */
+  overflow-y: auto;
 }
 
 .settings-content h2 {
@@ -54,7 +67,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px 0;
+  padding: 20px 0;
   border-bottom: 1px solid var(--border-soft);
 }
 
@@ -76,10 +89,9 @@
 }
 
 .settings-item .btn {
-  flex: 0 1 120px;
+  flex: 0 1 140px;
 }
 
-/* --- Toggle de Tema --- */
 .theme-toggle {
   display: flex;
   align-items: center;
@@ -136,4 +148,26 @@
   font-weight: 500;
   color: var(--text-secondary);
   min-width: 50px;
+}
+
+.settings-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.settings-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.settings-content::-webkit-scrollbar-thumb {
+  background-color: var(--border-soft);
+  border-radius: 8px;
+}
+
+.settings-content::-webkit-scrollbar-thumb:hover {
+  background-color: var(--border-medium);
+}
+
+.settings-content {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-soft) transparent;
 }

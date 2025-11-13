@@ -42,3 +42,31 @@ export const normalizeCredentials = (credentials) =>
       raw: c,
     };
   });
+
+  export const normalizeFiles = (files) =>
+  (files || []).map((f) => {
+    const tags =
+      (f.separadores || [])
+        .filter((s) => s.tipo === "tag")
+        .map((s) => ({ id: s.id, name: s.nome, color: s.cor })) || [];
+
+    const folderSep = (f.separadores || []).find((s) => s.tipo === "pasta");
+
+    return {
+      id: f.id,
+      type: "file",
+      name: f.nome_aplicacao ?? f.arquivo?.nome_arquivo ?? "arquivo",
+
+      // informações do arquivo
+      fileName: f.arquivo?.nome_arquivo ?? "",
+      fileExtension: f.arquivo?.extensao ?? "",
+      fileCipher: f.arquivo?.arquivo_data ?? "",
+      fileIv: f.arquivo?.iv_arquivo ?? "",
+
+      // pasta
+      folderId: folderSep?.id_pasta_raiz ?? null,
+
+      tags,
+      raw: f,
+    };
+  });

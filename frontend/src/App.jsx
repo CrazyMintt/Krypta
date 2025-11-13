@@ -22,6 +22,7 @@ import Dashboard from './components/views/Dashboard';
 import Sharing from './components/views/Sharing';
 import Modal from './components/layout/Modal';
 import NewCredentialForm from './components/forms/NewCredentialForm';
+import NewFileForm from './components/forms/NewFileForm';
 import SettingsModal from './components/layout/SettingsModal';
 import Landing from './components/views/Landing';
 import { SharedItemsProvider } from './context/SharedItemsContext';
@@ -44,6 +45,11 @@ const MainApp = ({ onLogout }) => {
   const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
   const [isNewCredentialModalOpen, setIsNewCredentialModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isNewFileModalOpen, setIsNewFileModalOpen] = useState(false);
+
+  const openNewFileModal = () => setIsNewFileModalOpen(true);
+  const closeNewFileModal = () => setIsNewFileModalOpen(false);
+
 
   // Form da nova pasta
   const [newFolderName, setNewFolderName] = useState('');
@@ -106,6 +112,7 @@ const MainApp = ({ onLogout }) => {
             setActivityLog={setActivityLog}
             openNewFolderModal={openNewFolderModal}
             openNewCredentialModal={openNewCredentialModal}
+            onNewFile={openNewFileModal} 
             onLogout={onLogout}
             onFolderChange={setCurrentFolderId} // Cofre informa a pasta atual
             refreshKey={refreshKey}            // Cofre recarrega quando mudar
@@ -160,6 +167,18 @@ const MainApp = ({ onLogout }) => {
             currentFolderId={currentFolderId} // criar já na pasta atual
           />
         </Modal>
+
+        <Modal title="Adicionar Arquivo" isOpen={isNewFileModalOpen} onCancel={closeNewFileModal}>
+          <NewFileForm
+            onCancel={closeNewFileModal}
+            onSuccess={() => {
+              setRefreshKey((k) => k + 1);
+              closeNewFileModal();
+            }}
+            currentFolderId={currentFolderId}
+          />
+        </Modal>
+
 
         <SettingsModal isOpen={isSettingsModalOpen} onCancel={closeSettingsModal} />
       </div>

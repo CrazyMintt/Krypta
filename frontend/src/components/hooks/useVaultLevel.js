@@ -7,10 +7,11 @@ import {
   onlyRootItems,
   normalizeFolders,
   normalizeCredentials,
+  normalizeFiles,
 } from "../../utils/vaultNormalize";
 
 export default function useVaultLevel(refreshKey, onFolderChange) {
-  const [currentFolder, setCurrentFolder] = useState(null); // { id, nome } | null
+  const [currentFolder, setCurrentFolder] = useState(null);
   const [breadcrumbs, setBreadcrumbs] = useState([{ id: null, nome: "Raiz" }]);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -23,7 +24,7 @@ export default function useVaultLevel(refreshKey, onFolderChange) {
         ? await folderService.getRootFolders()
         : await folderService.getSubfolders(folderObjOrNull.id);
 
-      // Dados/credenciais
+      // Dados (credenciais + arquivos)
       const searchFilters = {
         page_size: 100,
         page_number: 1,
@@ -31,29 +32,44 @@ export default function useVaultLevel(refreshKey, onFolderChange) {
       };
 
       const dataPage = await dataService.searchData(searchFilters);
-      let dataList = pickArray(dataPage).filter((d) => d.tipo === "senha");
-      if (!folderObjOrNull) dataList = onlyRootItems(dataList);
-      dataList = dedupeById(dataList);
+      let rawData = pickArray(dataPage);
 
-      setItems([...normalizeFolders(folders), ...normalizeCredentials(dataList)]);
+      // Se estamos na raiz, remover itens que pertencem a alguma pasta
+      if (!folderObjOrNull) rawData = onlyRootItems(rawData);
+
+      rawData = dedupeById(rawData);
+
+      // Separar por tipos
+      const credentials = rawData.filter((d) => d.tipo === "senha");
+      const files = rawData.filter((d) => d.tipo === "arquivo");
+
+      setItems([
+        ...normalizeFolders(folders),
+        ...normalizeCredentials(credentials),
+        ...normalizeFiles(files),
+      ]);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Carrega quando muda pasta ou refreshKey
+  // Recarregar ao mudar pasta ou disparar refreshKey
   useEffect(() => {
     loadLevel(currentFolder);
   }, [currentFolder, refreshKey, loadLevel]);
 
-  // Notifica pai
+  // Notificar o pai
   useEffect(() => {
     onFolderChange?.(currentFolder?.id ?? null);
   }, [currentFolder, onFolderChange]);
 
   const navigateToFolder = (folderItemOrNull) => {
-    const next = folderItemOrNull ? { id: folderItemOrNull.id, nome: folderItemOrNull.name } : null;
+    const next = folderItemOrNull
+      ? { id: folderItemOrNull.id, nome: folderItemOrNull.name }
+      : null;
+
     setCurrentFolder(next);
+
     setBreadcrumbs((prev) => {
       if (!next) return [{ id: null, nome: "Raiz" }];
       const idx = prev.findIndex((b) => b.id === next.id);

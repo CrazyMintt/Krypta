@@ -1,8 +1,8 @@
 import React from 'react';
-import { Trash2, Edit, Eye, Share2 } from 'lucide-react';
+import { Trash2, Edit, Eye, Share2, Download } from 'lucide-react';
 
 const ItemActionsMenu = React.forwardRef(
-  ({ onEditCredential, onEditFolder, onDelete, onViewCredential, onShare, itemType }, ref) => {
+  ({ onEditCredential, onEditFolder, onDelete, onViewCredential, onShare, onDownloadFile, itemType }, ref) => {
     const handleActionClick = (e, action) => {
       e.stopPropagation();
       action(e);
@@ -26,6 +26,15 @@ const ItemActionsMenu = React.forwardRef(
           <div className="dropdown-item" onClick={(e) => { e.stopPropagation(); onEditFolder(); }}>
             <Edit size={16} />
             <span>Renomear</span>
+          </div>
+        )}
+        {itemType === "file" && (
+          <div
+            className="dropdown-item"
+            onClick={(e) => handleActionClick(e, onDownloadFile)}
+          >
+            <Download size={16} />
+            <span>Baixar arquivo</span>
           </div>
         )}
         <div className="dropdown-item" onClick={(e) => handleActionClick(e, onShare)}>
